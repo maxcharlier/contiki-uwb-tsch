@@ -1,0 +1,22 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+# CLion
+.idea*
+
+#Contiki
+*.z1-dw1000
+symbols.c
+symbols.h
+obj_z1-dw1000
+contiki-z1-dw1000.*
+*.ihex
+
+*.o
+*.*~

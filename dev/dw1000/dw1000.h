@@ -462,17 +462,7 @@ typedef struct
 	dw1000_base_conf_t conf;
 
 	/**
-	 * \brief Holds the number bytes received in last reception.
-	 */
-	uint32_t receive_buffer_len;
-
-	/**
-	 * \brief Holds the most recently received data.
-	 */
-	uint8_t  p_receive_buffer[DW_RX_BUFFER_MAX_LEN];
-
-	/**
-	 * \Brief if tha auto ACK is activate or not.
+	 * \brief The current ACK mode.
 	 */
 	uint8_t auto_ack;
 
@@ -495,23 +485,12 @@ void dw_enable_gpio_led(void);
 void dw_disable_gpio_led(void);
 
 // RX / TX
-void dw_receive( dw1000_tranceive_t receive_type );
-void dw_transmit( uint8_t * p_data, uint32_t data_len, dw1000_tranceive_t transmit_type );
-
-void dw_transmit_multiple_data( 	uint8_t  ** pp_data,
-									uint32_t *  p_data_len,
-									uint32_t    length,
-									dw1000_tranceive_t transmit_type );
-
-int dw_send_frame(uint8_t* message, uint8_t length);
 void dw_init_rx(void);
 
 // Utility
 
 // Device independent
-uint8_t  dw_get_seq_no();
 uint64_t dw_ms_to_device_time( float t );
-uint64_t dw_generate_extendedUniqueID();
 
 // Device dependent
 uint16_t dw_get_pan_id();
@@ -523,7 +502,6 @@ void dw_set_pan_id(uint16_t pan_id);
 void dw_set_short_addr(uint16_t short_addr);
 void dw_set_extendedUniqueID( uint64_t euid );
 void print_u8_Array_inHex ( char * string, uint8_t* array , uint32_t arrayLength);
-void dw_read_reg( uint32_t regAddr, uint32_t regLen, uint8_t * pData );
 void dw_soft_reset(void);
 // ADC
 float   dw_get_temperature(dw_adc_src_t temp_source);
@@ -538,7 +516,6 @@ float dw_get_fp_power();
 // RX/TX
 void dw_enable_automatic_receiver_Re_Enable();
 void dw_disable_automatic_receiver_Re_Enable();
-void dw_get_rx_buffer();
 void dw_get_rx_error();
 int dw_get_rx_len(void);
 void dw_set_tx_frame_length(uint32_t frame_len);
@@ -613,12 +590,13 @@ void dw1000_test();
 /*========================== Device communication ===========================*/ 
 
 // Registers
-void     dw_write_reg(uint32_t reg_addr, uint32_t reg_len, uint8_t * p_data );
-uint32_t dw_read_reg_32( uint32_t reg_addr, uint32_t reg_len );
-uint64_t dw_read_reg_64( uint32_t reg_addr, uint32_t reg_len );
+inline void dw_read_reg( uint32_t reg_addr, uint16_t reg_len, uint8_t * p_data );
+inline void dw_write_reg( uint32_t reg_addr, uint16_t reg_len, uint8_t * p_data );
+uint32_t dw_read_reg_32( uint32_t reg_addr, uint16_t reg_len );
+uint64_t dw_read_reg_64( uint32_t reg_addr, uint16_t reg_len );
 // Sub registers
-uint32_t dw_read_subreg_32( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len );
-uint64_t dw_read_subreg_64( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len );
+uint32_t dw_read_subreg_32( uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len );
+uint64_t dw_read_subreg_64( uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len );
 
 
 // OTP

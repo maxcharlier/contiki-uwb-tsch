@@ -3,7 +3,7 @@
 
 #include "msp430.h"
 #include "dev/spi.h"
-#include <stdint.h> // For fixed size integer uint32_t etc.
+#include <stdint.h> // To add interger type uint32_t ...
 #include "assert.h"
 
 
@@ -24,14 +24,10 @@
 
 void dw1000_arch_init();
 void dw1000_us_delay(int ms);
-void dw_read_subreg( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t * p_data);
-void dw_write_subreg(uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t * data );
 
-// Composite data
-void dw_write_reg_multiple_data( uint32_t    reg_addr,
-								 uint32_t    reg_len,
-								 uint8_t  ** pp_data,
-								 uint32_t *  len_p_data,
-								 uint32_t    len_pp_data );
+/*===========================================================================*/
+/*========================== Device communication ===========================*/ 
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, uint8_t * p_data);
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, const uint8_t * data );
 
 #endif /* __DW1000_ARCH_Z1_H__ */

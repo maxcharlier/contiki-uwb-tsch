@@ -55,6 +55,8 @@
 #include "net/rime/rimestats.h"
 #include "net/netstack.h"
 
+#include "watchdog.h"
+
 #ifndef DW1000_CONF_CHECKSUM
   #define DW1000_CONF_CHECKSUM    1
 #endif /* DW1000_CONF_CHECKSUM */
@@ -124,6 +126,8 @@
 
 #define DEBUG_LED 1
 
+#define DOUBLE_BUFFERING
+
 // Used to fix an error with an possible interruption before 
 // the driver initialisation
 static int dw1000_driver_init_down = 0;
@@ -141,13 +145,25 @@ static uint8_t volatile pending;
     while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time)));   \
   } while(0)
 
+#define BUSYWAIT_UNTIL2(update, cond, max_time)                         \
+  do {                                                                  \
+    rtimer_clock_t t0;                                                  \
+    t0 = RTIMER_NOW();                                                  \
+      do {                                                              \
+        update;                                                         \
+      } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time))); \
+  } while(0)
+
 volatile uint8_t dw1000_driver_sfd_counter;
 volatile uint16_t dw1000_driver_sfd_start_time;
 volatile uint16_t dw1000_driver_sfd_end_time;
 
 static volatile uint16_t last_packet_timestamp;
 
+/* PLATFORM DEPENDENT */
+/* these following functions are defined in platform/[platform]/dev/dw1000-arc.c */
 void dw1000_arch_init(void);
+/* end PLATFORM DEPENDENT */
 
 static int dw1000_driver_prepare(const void *data, unsigned short payload_len);
 static int dw1000_driver_transmit(unsigned short payload_len);
@@ -255,12 +271,20 @@ int dw1000_driver_init(void){
   dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL); 
 
   dw1000_driver_enable_interrupt();
+
   #if DW1000_CONF_AUTOACK
     dw_enable_automatic_acknowledge();
     dw_config_switching_tx_to_rx_ACK(DW1000_DATA_RATE);
   #endif
+
   dw_disable_rx_timeout();
-  dw_enable_double_fuffering();
+
+  #ifdef DOUBLE_BUFFERING
+    dw_enable_double_fuffering();
+  #else
+    dw_enable_automatic_receiver_Re_Enable();
+  #endif /* DOUBLE_BUFFERING */
+
   #if DEBUG_LED
     dw_enable_gpio_led();
   #else
@@ -273,21 +297,18 @@ int dw1000_driver_init(void){
 }
 
 /**
- * Copy data to the TX buffer.
+ * \brief Copy data to the TX buffer.
  */
-static int dw1000_driver_prepare(const void *data, 
+static int dw1000_driver_prepare(const void *payload, 
                           unsigned short payload_len)
 {
   PRINTF("dw1000_driver_prepare\r\n");
 
   uint32_t data_len = payload_len;
   #if DW1000_CONF_AUTOACK
-    uint8_t ack_check[3];
-    memcpy(ack_check, data, 3);  
-    dw1000_driver_wait_ACK = (ack_check[0] & (1 << 5)) ? 1:0;
-    if(dw1000_driver_wait_ACK){
-      dw1000_driver_wait_ACK_num = ack_check[2];
-    }
+    dw1000_driver_wait_ACK = (((uint8_t *) payload)[0] & (1 << 5)) ? 1:0;
+    if(dw1000_driver_wait_ACK)
+      dw1000_driver_wait_ACK_num= ((uint8_t *) payload)[2];
   #endif
 
   GET_LOCK();
@@ -295,7 +316,7 @@ static int dw1000_driver_prepare(const void *data,
   if(!DW1000_CONF_CHECKSUM)
     dw_suppress_auto_FCS_tx();
   else
-    data_len += FOOTER_LEN; // The +2 is for fcs
+    data_len += FOOTER_LEN; // add the FCS size
 
   //preparing DW1000 for sending
   
@@ -309,7 +330,7 @@ static int dw1000_driver_prepare(const void *data,
   if (payload_len > 0)
   {
     // Copy data to dw1000
-    dw_write_reg(DW_REG_TX_BUFFER, payload_len, (uint8_t *) data);
+    dw_write_reg(DW_REG_TX_BUFFER, payload_len, (uint8_t *) payload);
   }
 
   #if DEBUG_VERBOSE
@@ -360,29 +381,42 @@ static int dw1000_driver_transmit(unsigned short payload_len){
   else
     dw_init_tx();
 
-  BUSYWAIT_UNTIL(((dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) &  DW_MTXFRS_MASK) != 0), DW1000_TX_TIMEOUT);
+  /* only reads low-byte of DW1000's SYS_STATUS (bit 7 is TXFRS) */
+  uint8_t sys_status_lo;
+  BUSYWAIT_UNTIL2(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, &sys_status_lo),
+      ((sys_status_lo & DW_TXFRS_MASK) != 0),
+      DW1000_TX_TIMEOUT);
 
-  if((dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) &  DW_MTXFRS_MASK) != 0)
-    tx_return = RADIO_TX_OK;
+  if ((sys_status_lo & DW_TXFRS_MASK) != 0)
+    tx_return= RADIO_TX_OK;
 
   //wait ACK
   if(dw1000_driver_wait_ACK && tx_return == RADIO_TX_OK){
     tx_return = RADIO_TX_NOACK;
-    BUSYWAIT_UNTIL((dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & DW_MRXDFR_MASK) != 0, DW1000_ACK_TIMEOUT);
-    uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-    if((status & DW_RXFCG_MASK) != 0){
-      //len ack 5 and ack num in the 3nd byte
+    BUSYWAIT_UNTIL2(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, &sys_status_lo/*_2*/); watchdog_periodic(),
+        ( ((sys_status_lo/*_2*/ & (DW_RXDFR_MASK >> 8)) != 0) &&
+          ((sys_status_lo/*_2*/ & ((DW_RXFCG_MASK >> 8) | (DW_RXFCE_MASK >> 8))) != 0) ),
+        DW1000_ACK_TIMEOUT);
+    if ((sys_status_lo/*_2*/ & (DW_RXFCG_MASK >> 8)) != 0){
+      // (len ACK== 5) and (Seq Num, 3rd byte == ACK num)
       if(dw_get_rx_len() == 5 ){
           uint8_t ack_num;
           dw_read_subreg(DW_REG_RX_BUFFER, 2, 1, &ack_num);
           if(ack_num == dw1000_driver_wait_ACK_num)
             tx_return = RADIO_TX_OK;
       }
-      //double buffering! swap the buffer
-      if(dw_good_rx_buffer_pointer()){
-        dw_db_mode_clear_pending_interrupt();
-      }
-      dw_change_rx_buffer();
+      #ifdef DOUBLE_BUFFERING
+        //double buffering! swap the buffer
+        if(dw_good_rx_buffer_pointer()){
+          dw_db_mode_clear_pending_interrupt();
+        }
+        dw_change_rx_buffer();
+      #else
+        dw_clear_pending_interrupt(DW_MRXFCE_MASK
+           | DW_MRXFCG_MASK
+           | DW_MRXDFR_MASK
+           | DW_MLDEDONE_MASK);
+      #endif /* DOUBLE_BUFFERING */
     }
   }
 
@@ -788,7 +822,8 @@ int dw1000_driver_interrupt(void){
     uint64_t status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
     // print_sys_status(status);
 
-    if(status & DW_RXOVRR_MASK){ //Overrun
+    #ifdef DOUBLE_BUFFERING
+      if(status & DW_RXOVRR_MASK){ //Overrun
         PRINTF("dw1000_driver_interrupt() > dw_overrun\r\n");
         dw1000_driver_disable_interrupt();
         dw_trxoff();        
@@ -797,7 +832,9 @@ int dw1000_driver_interrupt(void){
         dw_change_rx_buffer();
         if(receive_on)
           dw_db_init_rx();
-    }else if(status & DW_RXDFR_MASK){ // receiver Data Frame Ready.
+      } else
+    #endif // DOUBLE_BUFFERING
+    if(status & DW_RXDFR_MASK){ // receiver Data Frame Ready.
       process_poll(&dw1000_driver_process);
       pending++;
     }
@@ -815,28 +852,18 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
   PRINTF("dw1000_process: started\r\n");
   while(1) {
     PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
+
     uint64_t status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-    while((status & DW_RXOVRR_MASK) ||  (status & DW_RXDFR_MASK)){
+    while(
+#ifdef DOUBLE_BUFFERING
+            (status & DW_RXOVRR_MASK) ||
+#endif /* DOUBLE_BUFFERING */
+          (status & DW_RXDFR_MASK)){
 
       PRINTF("dw1000_process: calling receiver callback\r\n");
-      if(status & DW_RXOVRR_MASK){
-        dw_trxoff();
-        dw_trxsoft_reset();
-        dw_change_rx_buffer();
 
-        PRINTF("dw1000_process: RX Overrun\n");
-        if(receive_on)
-          dw_db_init_rx();
-      }
-      else if(status & DW_RXFCG_MASK) { // no overrun and good CRC
-        packetbuf_clear();
-        //packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp);
-        len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
-        // end of the interrupt
-        /* See Figure 14: Flow chart for using double RX buffering
-         * Of the manual */
-        status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-        if(status & DW_RXOVRR_MASK){ //overun may be occurs
+#ifdef DOUBLE_BUFFERING
+        if(status & DW_RXOVRR_MASK){
           dw_trxoff();
           dw_trxsoft_reset();
           dw_change_rx_buffer();
@@ -845,28 +872,74 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
           if(receive_on)
             dw_db_init_rx();
         }
-        else{
-          if(dw_good_rx_buffer_pointer()){
-            dw_db_mode_clear_pending_interrupt();
+        else 
+#endif /* DOUBLE_BUFFERING */
+      if(status & DW_RXFCG_MASK) { // no overrun and good CRC
+
+        packetbuf_clear();
+        //packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp);
+
+        len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+
+#ifndef DOUBLE_BUFFERING
+          dw_clear_pending_interrupt(DW_MRXFCE_MASK
+                   | DW_MRXFCG_MASK
+                   | DW_MRXDFR_MASK
+                   | DW_MLDEDONE_MASK);
+          dw_init_rx();
+
+          // end of the interrupt
+          /* See Figure 14: Flow chart for using double RX buffering
+           * Of the manual */
+          status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+          if(status & DW_RXOVRR_MASK){ //overun may be occurs
+            dw_trxoff();
+            dw_trxsoft_reset();
+            dw_change_rx_buffer();
+
+            PRINTF("dw1000_process: RX Overrun\n");
+            if(receive_on)
+              dw_db_init_rx();
           }
-          dw_change_rx_buffer();
+          else{
+            if(dw_good_rx_buffer_pointer()){
+              dw_db_mode_clear_pending_interrupt();
+            }
+            dw_change_rx_buffer();
+
           packetbuf_set_datalen(len);
 
           PRINTF("dw1000_process: len %i\r\n", len);
 
           NETSTACK_RDC.input();
-        }
-      }
-      else{ 
+          }
+#else /* DOUBLE_BUFFERING */
+          packetbuf_set_datalen(len);
+
+          PRINTF("dw1000_process: len %i\r\n", len);
+
+          NETSTACK_RDC.input();
+#endif /* DOUBLE_BUFFERING */
+      } else{ 
         /**
         Bad CRC, drop the packet > no read
         Change the buffer pointer.
         */
-        if(dw_good_rx_buffer_pointer()){
-          dw_db_mode_clear_pending_interrupt();
-        }
-        dw_change_rx_buffer();
+        #ifdef DOUBLE_BUFFERING
+          if(dw_good_rx_buffer_pointer()){
+            dw_db_mode_clear_pending_interrupt();
+          }
+          dw_change_rx_buffer();
+        #else
+          dw_clear_pending_interrupt(DW_MRXFCE_MASK
+                   | DW_MRXFCG_MASK
+                   | DW_MRXDFR_MASK
+                   | DW_MLDEDONE_MASK);
+        #endif /* DOUBLE_BUFFERING */
+            PRINTF("bad CRC\n\r");
       }
+
+      // Read status register for next iteration
       status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
     }
   }
@@ -948,13 +1021,12 @@ void dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate
   if(data_rate == DW_DATA_RATE_110_KBPS){
     dw1000_conf.data_rate       = DW_DATA_RATE_110_KBPS;
     dw1000_conf.preamble_length = DW_PREAMBLE_LENGTH_1024;
-    dw1000_conf.pac_size        = DW_PAC_SIZE_64;
+    dw1000_conf.pac_size        = DW_PAC_SIZE_32;
   }
   else if(data_rate == DW_DATA_RATE_850_KBPS){
     dw1000_conf.data_rate       = DW_DATA_RATE_850_KBPS;
     dw1000_conf.preamble_length = DW_PREAMBLE_LENGTH_256;
     dw1000_conf.pac_size        = DW_PAC_SIZE_16;
-
   }
   else{ //6800 kbps
     dw1000_conf.data_rate       = DW_DATA_RATE_6800_KBPS;
@@ -963,4 +1035,16 @@ void dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate
   }
 
   dw_conf(&dw1000_conf);
+
+  // BQU -- SFD initialization: This can be done by writing
+  // to the system control register Register file: 0x0D – System
+  // Control Register with both the transmission startbit TXSTRT
+  // and the transceiver off bit TRXOFF set at the same time. 
+  uint32_t sys_ctrl;
+  dw_read_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+  sys_ctrl |= DW_TXSTRT_MASK | DW_TRXOFF_MASK;
+  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+  sys_ctrl &= ~( DW_TXSTRT_MASK );
+  sys_ctrl |= ( DW_RXENAB_MASK );
+  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
 }

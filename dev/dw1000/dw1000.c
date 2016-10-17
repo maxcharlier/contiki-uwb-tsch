@@ -50,10 +50,11 @@
 
 #include "assert.h"
 
+#define DEBUG 0
 
 #if DEBUG
 #include <stdio.h>
-#define PRINTF(...) PRINTF(__VA_ARGS__)
+#define PRINTF(...) printf(__VA_ARGS__)
 #else
 #define PRINTF(...) do {} while (0)
 #endif
@@ -64,19 +65,12 @@
  */
 #define DW_MS_TO_DEVICE_TIME_SCALE 62.6566416e6f
 
-
-/* functions defined in platform/[platform]/dev/dw1000-arc.c */
+/* PLATFORM DEPENDENT */
+/* these following functions are defined in platform/[platform]/dev/dw1000-arc.c */
 void dw1000_us_delay(int ms);
-void dw_read_subreg( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t * p_data);
-void dw_write_subreg(uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t * data );
-
-// Composite data
-void dw_write_reg_multiple_data( uint32_t    reg_addr,
-                 uint32_t    reg_len,
-                 uint8_t  ** pp_data,
-                 uint32_t *  len_p_data,
-                 uint32_t    len_pp_data);
-
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, uint8_t * p_data);
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, const uint8_t * data );
+/* end PLATFORM DEPENDENT */
 
 /*===========================================================================*/
 /*========================== Public Declarations ============================*/
@@ -101,6 +95,9 @@ void dw1000_init() {
 
   dw1000.state = DW_STATE_INITIALIZING;
   dw1000.auto_ack = 0;
+  uint8_t tempRead1[8] ;
+  dw_read_reg(DW_REG_DEV_ID, DW_LEN_DEV_ID, tempRead1);
+  print_u8_Array_inHex ( "REG ID:", tempRead1 , DW_LEN_DEV_ID );
   // Check SPI communication works, by reading device ID
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
@@ -963,13 +960,6 @@ uint32_t dw_get_device_id(void)
   return (uint32_t) device_id;
 }
 
-#define NODE_ID 1
-// static union {
-//   uint64_t u64;
-//   uint32_t u32[sizeof(uint64_t) / sizeof(uint32_t)];
-//   uint16_t u16[sizeof(uint64_t) / sizeof(uint16_t)];
-//   uint8_t u8[sizeof(uint64_t) / sizeof(uint8_t)];
-// } id = { .u8 = {0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, NODE_ID } };
 uint8_t euid_set = 0;
 
 /**
@@ -1289,48 +1279,6 @@ float dw_get_fp_power()
 /*===========================================================================*/
 
 /**
- * \brief Fetches the rx buffer from the DW1000 and parses any reception
- * errors, setting the updating the state accordingly. Afterwards the buffers
- * can be accessed through the global dw1000_base_driver variable dw1000.
- *
- * \details Typically this function is called in the interrupt handler if the
- * detected event was a reception. After the call dw1000.p_receive_buffer will
- * mirror the data contained in the dw1000 register RX_BUFFER.
- */
-void dw_get_rx_buffer(void)
-{
-  uint32_t rx_len;
-
-  // Get error status
-  dw_get_rx_error();
-
-  // Get length of received frame
-  rx_len = dw_get_rx_len();
-
-  // Store rx data in global variable rxBuffer
-  dw1000.receive_buffer_len = 0;
-  dw1000.receive_buffer_len = rx_len;
-
-  if (rx_len > 0)
-  {
-    // Store rx data in global variable rxBuffer
-    dw_read_reg( DW_REG_RX_BUFFER, rx_len, dw1000.p_receive_buffer );
-  }
-
-  //double buffering
-  //Clear RX event flags
-  // dw_clear_pending_interrupt(DW_RXFCE_MASK 
-  //                           | DW_RXFCG_MASK 
-  //                           | DW_RXDFR_MASK 
-  //                           | DW_LDEDONE_MASK );
-
-  dw_clear_pending_interrupt(DW_RXFCG_MASK); //Receiver FCS Good.
-
-  // Cleanup
-  dw_clear_pending_interrupt(DW_RXDFR_MASK | DW_RXRFTO_MASK );
-}
-
-/**
  * \brief Get the len of the last frame received.
  * If she is too long return 128
  * \return The len of the last frame received.
@@ -1556,10 +1504,11 @@ void dw_init_tx(void)
 {
   dw1000.state = DW_STATE_TRANSMITTING;
   // Start transmission
-  uint32_t ctrl_reg_val;
-  ctrl_reg_val  = dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL );
-  ctrl_reg_val |= DW_TXSTRT_MASK;
-  dw_write_reg( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&ctrl_reg_val);
+  // Only read et write the first bytes of the register
+  uint8_t sys_ctrl_lo;
+  dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
+  sys_ctrl_lo|= DW_TXSTRT_MASK;
+  dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
 }
 
 
@@ -1572,11 +1521,11 @@ void dw_init_tx_ack(void)
 {
   dw1000.state = DW_STATE_TRANSMITTING;
   // Start transmission
-  uint32_t ctrl_reg_val;
-  ctrl_reg_val  = dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL );
-  ctrl_reg_val |= DW_TXSTRT_MASK;
-  ctrl_reg_val |= DW_WAIT4RESP_MASK;
-  dw_write_reg( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&ctrl_reg_val);
+  // Only read et write the first bytes of the register
+  uint8_t sys_ctrl_lo;
+  dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
+  sys_ctrl_lo|= DW_TXSTRT_MASK | DW_WAIT4RESP_MASK;
+  dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
 }
 
 /**
@@ -1821,12 +1770,12 @@ void dw1000_test_tx_del_on()
  * \brief Reads the value from a register on the dw1000 as a stream of bytes.
  * \param[in] reg_addr      Register address as specified in the manual or by
  *                           the DW_REG_* defines.
- * \param[in] reg_len       Nunmber of bytes to read. Should not be longer than
+ * \param[in] reg_len       Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the DW_LEN_*
  *                           defines.
  * \param[out] pData        Data read from the device.
  */
-void dw_read_reg( uint32_t reg_addr, uint32_t reg_len, uint8_t * pData )
+inline void dw_read_reg( uint32_t reg_addr, uint16_t reg_len, uint8_t * pData )
 {
   dw_read_subreg(reg_addr, 0, reg_len, pData);
 }
@@ -1835,14 +1784,18 @@ void dw_read_reg( uint32_t reg_addr, uint32_t reg_len, uint8_t * pData )
  * \brief Reads the value from a register on the dw1000 as a 32-bit integer.
  * \param[in] reg_addr      Register address as specified in the manual or by
  *                           the DW_REG_* defines.
- * \param[in] reg_len       Nunmber of bytes to read. Should not be longer than
+ * \param[in] reg_len       Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the DW_LEN_*
  *                           defines. Neither should it be larger than 4 bytes.
  * \return A 32-bit unsigned integer read from a register of the dw1000.
  */
-uint32_t dw_read_reg_32( uint32_t reg_addr, uint32_t reg_len )
+uint32_t dw_read_reg_32( uint32_t reg_addr, uint16_t reg_len )
 {
   uint32_t result = 0;
+
+  // avoid memory corruption
+  assert(reg_len <= 4);
+
   dw_read_reg(reg_addr, reg_len, (uint8_t *) &result);
   return result;
 }
@@ -1851,14 +1804,18 @@ uint32_t dw_read_reg_32( uint32_t reg_addr, uint32_t reg_len )
  * \brief Reads the value from a register on the dw1000 as a 64-bit integer.
  * \param[in] reg_addr      Register address as specified in the manual or by
  *                           the DW_REG_* defines.
- * \param[in] reg_len       Nunmber of bytes to read. Should not be longer than
+ * \param[in] reg_len       Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the DW_LEN_*
  *                           defines. Neither should it be larger than 8 bytes.
  * \return A 64-bit unsigned integer read from a register of the dw1000.
  */
-uint64_t dw_read_reg_64( uint32_t reg_addr, uint32_t reg_len )
+uint64_t dw_read_reg_64( uint32_t reg_addr, uint16_t reg_len )
 {
   uint64_t result = 0;
+
+  // avoid memory corruption
+  assert(reg_len <= 8);
+
   dw_read_reg(reg_addr, reg_len, (uint8_t *) &result);
   return result;
 }
@@ -1869,13 +1826,13 @@ uint64_t dw_read_reg_64( uint32_t reg_addr, uint32_t reg_len )
  *                           the DW_REG_* defines.
  * \param[in] subreg_addr   Subregister address as specified in the manual and
  *                           by the DW_SUBREG_* defines.
- * \param[in] subreg_len    Nunmber of bytes to read. Should not be longer than
+ * \param[in] subreg_len    Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the
  *                           DW_SUBLEN_* defines. Neither should it be larger
  *                           than 4 bytes.
  * \return A 32-bit unsigned integer read from a register of the dw1000.
  */
-uint32_t dw_read_subreg_32( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len )
+uint32_t dw_read_subreg_32( uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len )
 {
   uint32_t result = 0ULL;
   dw_read_subreg( reg_addr, subreg_addr, subreg_len, (uint8_t *)&result );
@@ -1888,13 +1845,13 @@ uint32_t dw_read_subreg_32( uint32_t reg_addr, uint32_t subreg_addr, uint32_t su
  *                           the DW_REG_* defines.
  * \param[in] subreg_addr   Subregister address as specified in the manual and
  *                           by the DW_SUBREG_* defines.
- * \param[in] subreg_len    Nunmber of bytes to read. Should not be longer than
+ * \param[in] subreg_len    Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the
  *                           DW_SUBLEN_* defines. Neither should it be larger
  *                           than 8 bytes.
  * \return A 64-bit unsigned integer read from a register of the dw1000.
  */
-uint64_t dw_read_subreg_64( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len )
+uint64_t dw_read_subreg_64( uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len )
 {
   uint64_t result = 0ULL;
   dw_read_subreg( reg_addr, subreg_addr, subreg_len, (uint8_t *)&result );
@@ -1905,12 +1862,12 @@ uint64_t dw_read_subreg_64( uint32_t reg_addr, uint32_t subreg_addr, uint32_t su
  * \brief Writes a stream of bytes to the specified dw1000 register.
  * \param[in] reg_addr      Register address as specified in the manual and by
  *                           the DW_REG_* defines.
- * \param[in] reg_len       Nunmber of bytes to write. Should not be longer than
+ * \param[in] reg_len       Number of bytes to write. Should not be longer than
  *                           the length specified in the manual or the DW_LEN_*
  *                           defines.
  * \param[in] p_data        A stream of bytes to write to device.
  */
-void dw_write_reg( uint32_t  reg_addr, uint32_t  reg_len, uint8_t * p_data )
+inline void dw_write_reg( uint32_t  reg_addr, uint16_t  reg_len, uint8_t * p_data )
 {
   dw_write_subreg(reg_addr, 0, reg_len, p_data);
 }
@@ -1940,244 +1897,7 @@ uint32_t dw_read_otp_32( uint16_t otp_addr )
 }
 
 /*-----------------------------------------------------------------------------
-   Rx / Tx
------------------------------------------------------------------------------*/
-
-/**
- * \brief Receive a frame either asyncronously or syncronoulsy. The DW1000
- * must be configured with function dw_write_tx_conf( data_len, tx_conf ) before
- * running dw_transmit().
- *
- * \param receive_type  [in]    Specifies whether to use asyncronous or syncronous communication.
- *
- */
-void dw_receive( dw1000_tranceive_t receive_type )
-{
-  // TODO: Fast receive / transmit
-
-  if ( (dw1000.state == DW_STATE_RECEIVING) || (dw1000.state == DW_STATE_TRANSMITTING) )
-    {
-      PRINTF("dw1000 error: already using antenna.\r\n");
-      return;
-    }
-
-  switch ( receive_type )
-    {
-    case DW_TRANCEIVE_ASYNC:
-      {
-  // TODO dw_hal_enable_interrupt();
-  //  Start reception
-  // uint32_t mask = DW_RXDFR_MASK; //Mask receiver FCS good event.
-  // dw_enable_interrupt(mask);
-  dw_clear_receive_status();
-  dw_init_rx();
-  PRINTF("Start reception\r\n");
-  break;
-      }
-    case DW_TRANCEIVE_SYNC:
-      {
-  const uint32_t wait_mask_lo = DW_RXDFR_MASK
-    | DW_RXPHE_MASK
-    | DW_RXRFTO_MASK
-    | DW_RXPTO_MASK
-    | DW_RXSFDTO_MASK
-    | DW_RXRFSL_MASK;  
-  uint64_t status_reg;
-  uint64_t has_received;
-
-  //  Start reception
-  dw_disable_rx_timeout();
-  dw_init_rx();
-  PRINTF("Start reception\r\n");
-  int i = 0;
-  do
-    {
-
-      // Wait until data received
-      status_reg = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS );
-      // has_received = (status_reg & DW_RXSFDD_MASK) &&  (status_reg & DW_RXDFR_MASK) ;
-      has_received = status_reg & wait_mask_lo;
-      // BQU COMMENT - only used for DW1000 debugging (not useful)
-      //has_received |= (status_reg>>31>>1) & DW_RXPREJ_MASK;
-      
-      if (has_received)
-        PRINTF("status_reg receiver 0x%08X, %d\r\n", (unsigned int) status_reg, i);
-
-      if((status_reg & DW_HPDWARN_MASK) >> DW_HPDWARN){
-        PRINTF("Half Period Delay Warning.\r\n");
-          
-        PRINTF("System control %04X\r\n", (unsigned int)  dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL ));
-        if(dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL ) & DW_TXDLYS_MASK){
-          PRINTF("Delayed transmission\r\n");
-        }         
-        if(dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL ) & DW_RXDLYE_MASK){
-          PRINTF("Delayed Reception\r\n");
-        }
-        if(dw_is_receive_CRC(status_reg)){
-          PRINTF("Receive CRC Good\r\n");
-        }
-        //exit(EXIT_FAILURE);
-        //return;
-      }
-      
-      if(status_reg & DW_AFFREJ_MASK) {
-        PRINTF("Automatic Frame Filtering rejection.\r\n");
-        break;
-        //exit(EXIT_FAILURE);
-        return;
-      } 
-      if(status_reg & DW_MRXRFTO_MASK)  {
-        PRINTF("Receive Frame Wait Timeout..\r\n");
-        //exit(EXIT_FAILURE);
-        //return;
-      } 
-      if(status_reg & DW_MRXPHE_MASK) {
-        PRINTF("Receiver PHY Header Error..\r\n");
-        //exit(EXIT_FAILURE);
-        //return;
-      }
-      
-      i++;
-    }
-  while( !has_received );
-  PRINTF("data received\r\n");
-
-  dw_get_rx_buffer();
-  break;
-      }
-    }
-  return;
-}
-
-/**
- * \brief Transmit a frame either syncronously or asyncronously. The DW1000
- * must be configured with function dw_write_tx_conf( data_len, tx_conf ) before
- * running dw_transmit().
- *
- * \param[in] p_data            Pointer to data that is to be transmitted.
- * \param[in] data_len          Length of data pointed to by p_data.
- * \param[in] transmit_type     Specifies whether to use asyncronous or
- *                              syncronous communication.
- */
-void dw_transmit( uint8_t * p_data, uint32_t data_len, dw1000_tranceive_t transmit_type )
-{
-  // TODO: Functionality can be separated so that this function only triggers
-  // a transmission, akin to how reception works. You would then have a
-  // singluar dw_transmit and two upload functions, dw_upload_data and
-  // dw_upload_multiple_data.
-  if (   dw1000.state == DW_STATE_RECEIVING
-         || dw1000.state == DW_STATE_TRANSMITTING )
-  {
-    PRINTF("dw1000 error: already using antenna.\r\n");
-    return;
-  }
-
-  // Place data on DW1000
-  if (data_len > 0 && data_len < 128)
-  {
-    // Copy data to dw1000
-    dw_write_reg( DW_REG_TX_BUFFER, data_len, p_data );
-  }
-  // Initiate transmission
-  dw_init_tx();
-
-  // Handle transmission complete
-  uint64_t status_reg;
-  uint64_t is_sending;
-  int i = 0; // DEBUG
-  switch( transmit_type )
-  {
-    case DW_TRANCEIVE_ASYNC:
-      // TODO dw_hal_enable_interrupt();
-      break;
-    case DW_TRANCEIVE_SYNC:
-      do
-      {
-        dw1000_us_delay(15);
-        // Wait until data sent
-        status_reg = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS );
-        is_sending = !( status_reg & (DW_TXFRS_MASK) );
-        // PRINTF("status_reg sender 0x%08X, %d\r\n", (unsigned int) status_reg, i);
-
-        if((status_reg & DW_HPDWARN_MASK) >> DW_HPDWARN){
-          PRINTF("!!! Half Period Delay Warning.!!!\r\n");
-          
-          PRINTF("Systeme control %04X\r\n", (unsigned int)  dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL ));
-          if(dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL ) & DW_TXDLYS_MASK){
-            PRINTF("Delayed transmission\r\n");
-          }
-          if(dw_read_reg_32( DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL ) & DW_RXDLYE_MASK){
-            PRINTF("Delayed Reception\r\n");
-          }
-          return;
-        }
-        i++;
-      }
-      while( is_sending );
-      dw1000.state = DW_STATE_IDLE;
-      break;
-  }
-  return;
-}
-
-/**
- * \brief Transmit a single data frame spread out over several arrays.
- * Loads all data arrays into dw1000 memory before starting the transmission.
- *
- * \param[in] pp_data           An array of arrays to be transmitted as a
- *                              single frame.
- * \param[in] p_data_len        Length of each element in pp_array.
- * \param[in] length            Length of the pp_data array.
- * \param[in] transmit_type     Signifies asyncronous or syncronous
- *                              communication.
- */
-void dw_transmit_multiple_data( uint8_t  ** pp_data, uint32_t *  p_data_len, uint32_t length, dw1000_tranceive_t transmit_type )
-{
-  if (   dw1000.state == DW_STATE_RECEIVING
-         || dw1000.state == DW_STATE_TRANSMITTING )
-  {
-    PRINTF("dw1000 error: already using antenna.\r\n");
-    return;
-  }
-  // Copy data to dw1000
-  dw_write_reg_multiple_data( DW_REG_TX_BUFFER, DW_LEN_TX_BUFFER, pp_data, p_data_len, length );
-}
-
-/**
- * \brief Configure the transeiver to send a frame and send a frame.
- *      Wait for ACK
- * \return if a ACK has been receive.
- *
- */
-int dw_send_frame(uint8_t* frame, uint8_t frame_len) {
-  dw1000_tx_conf_t tx_conf;
-  tx_conf.data_len = frame_len;
-  tx_conf.is_delayed = 0;
-  tx_conf.dx_timestamp = 0;
-  dw_conf_tx(&tx_conf);
-
-  dw_config_switching_tx_to_rx_ACK(DW_DATA_RATE_850_KBPS);
-  dw_transmit(frame, frame_len, DW_TRANCEIVE_SYNC);
-
-  //wait ACK
-  // BQU WARNING -- platform specific code
-  dw1000_us_delay(100);
-  // BQU WARNING
-  //dw1000_us_delay(100);     //TODO Optimisation
-  dw_get_rx_buffer();
-
-  if(!(dw1000.receive_buffer_len == 5 && (dw1000.p_receive_buffer[2] == frame[2]))) {
-    PRINTF("Receive buffer len = %u\r\n", dw1000.receive_buffer_len);
-    PRINTF("sec num: p_receive_buffer = %04X, frame = %04X\r\n",
-           dw1000.p_receive_buffer[2],
-           frame[2]);
-  }
-
-  return (dw1000.receive_buffer_len == 5 && (dw1000.p_receive_buffer[2] == frame[2]));
-}
-
-/*-----------------------------------------------------------------------------
-   Rx double beffering
+   Rx double buffering
 -----------------------------------------------------------------------------*/
 
 /**
@@ -2201,7 +1921,7 @@ void dw_enable_double_fuffering(void){
  * \return if execpted and effective pointer is same.
  */
 int dw_good_rx_buffer_pointer(void){
-  uint32_t statusReg = dw_read_reg_32(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+  uint64_t statusReg = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
 
   uint32_t hsrbp = (statusReg & DW_HSRBP_MASK) > DW_HSRBP;
   uint32_t icrbp = (statusReg & DW_ICRBP_MASK) > DW_ICRBP;

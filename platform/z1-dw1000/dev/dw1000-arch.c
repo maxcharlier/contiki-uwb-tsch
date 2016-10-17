@@ -1,20 +1,54 @@
 /*
- * Contiki Zolertia Z1 -- DW1000 SPI + interrupt test
+ * Copyright (c) 2016, UMons University & Luleå University of Technology
+ * All rights reserved.
  *
- * (c) 2015, B. Quoitin (bruno.quoitin@umons.ac.be)
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
+/**
+ * \file
+ *         Hardware depends declaration of function for the 
+ *              Decawave DW1000 usage with a Zolertia Z1.
+ *
+ * \author
+ *         Charlier Maximilien  <maximilien-charlier@outlook.com>
+ *         Quoitin Bruno        <bruno.quoitin@umons.ac.be>
+ */
 
+#include "dw1000-arch.h"
+#include "dw1000-driver.h" // link to dw1000_driver_interrupt
 
 #include "contiki.h"
 #include "msp430.h"
 #include "sys/clock.h"
 #include "watchdog.h"
 #include "isr_compat.h"
-
-#include "dw1000-arch.h"
-#include "dw1000-driver.h"
-
+#include "dev/spi.h"
  
 #if DEBUG
   #include <stdio.h>
@@ -56,10 +90,11 @@ void dw1000_arch_init()
   /* Enable interrupts on INT pin */
   /* Note : DW1000's IRQ output is active high by default
    * but can be configured otherwize */
-  dint();
+  dint(); // Disable interrupt
   P2IES &= ~BV(DW1000_INT_PIN); /* low to high edge */
   P2IE |= BV(DW1000_INT_PIN); /* enabled */
-  eint();
+  eint(); // Re enable interrupt
+
 
   /* UCCKPL=0   (clock active au niveau haut)
    * UCCKPH=1  (capture sur première transition -- i.e. rising edge,
@@ -93,47 +128,42 @@ void dw1000_us_delay(int ms){
  *                           DW_SUBLEN_* defines.
  * \param[out] p_data       Data read from the device.
  */
-void dw_read_subreg( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t * p_data)
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, uint8_t * p_data)
 {
-  int reg_inst = 3;
-  int i;
-  int n_len = subreg_len + reg_inst;
-
-  // Check if 3-octet header is requried or if 2 will do
-  uint8_t isThreeOctet = (uint8_t) (subreg_addr > 0x7FUL ? (1UL << 7) : 0);
-  // Prepare instruction
-  uint8_t instruction[3] = {0x00, 0x00, 0x00};
-  instruction[0] = (uint8_t) (0x40UL | (reg_addr & 0x3FUL)); /* write bit = 0, subreg present bit = 1 */
-  instruction[1] = (uint8_t) (isThreeOctet | (subreg_addr & 0x7FUL)); /* isThreeOctet is the extended address bit */
-
-  // Read instruction
-  if (isThreeOctet != 0) {
-    instruction[2] = (uint8_t) ((subreg_addr & 0x7F80UL) >> 7);
-    reg_inst = 3;
-  } else {
-    reg_inst = 2;
-    n_len--;
-  }
 
   // SPI communications
+
+  // Disable interrupt
+  dint();
 
   // Asserting CS
   DW1000_SPI_ENABLE();
 
   // Read instruction
-  for (i = 0; i < reg_inst; i++){
-    SPI_WRITE((char) instruction[i]);
+  // write bit = 0, subreg present bit = 1
+  SPI_WRITE_FAST((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      // extended address bit = 1
+      SPI_WRITE_FAST(0x80 | (subreg_addr & 0x7F));
+      SPI_WRITE_FAST((subreg_addr >> 7) | 0xFF);
+    } else {
+      // extended address bit = 0
+      SPI_WRITE_FAST(0x00 | (subreg_addr & 0x7F));
+    }
   }
+  SPI_WAITFORTx_ENDED();
 
   SPI_FLUSH(); /* discard data read during previous write*/
 
-  // Read data
-  for (i = reg_inst; i < n_len; i++){
+  while (subreg_len-- > 0)
     SPI_READ(*(p_data++));
-  }
-
+  
   // De-asserting CS
   DW1000_SPI_DISABLE();
+
+  // Re enable interrupt
+  eint();
 }
 
 /**
@@ -147,101 +177,35 @@ void dw_read_subreg( uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_le
  *                           DW_SUBLEN_* defines.
  * \param[in] p_data        A stream of bytes to write to device.
  */
-void dw_write_subreg(uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t *p_data)
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, const uint8_t *p_data)
 {
-  int reg_inst = 3;
-  int i;
-  int n_len = subreg_len + reg_inst;
-
-  // Check if 3-octet header is required or if 2 will do
-  uint8_t isThreeOctet = (uint8_t) (subreg_addr > 0x7F ? (1 << 7) : 0);
-  // Prepare instruction
-  uint8_t instruction[3] = {0x00, 0x00, 0x00};
-  instruction[0] = (uint8_t) (0xC0 | (reg_addr & 0x3FUL)); /* write bit = 1, subreg present bit = 1 */
-  instruction[1] = (uint8_t) (isThreeOctet | (subreg_addr & 0x7F)); /* isThreeOctet is the extended address bit */
-
-  // Write instruction
-  if (isThreeOctet != 0) {
-    instruction[2] = (uint8_t) ((subreg_addr & 0x7F80UL) >> 7);
-    reg_inst = 3;
-  } else {
-    reg_inst = 2;
-    n_len--;
-  }
-
   // SPI communications
 
+  // Disable interrupt
+  dint();
   // Asserting CS
   DW1000_SPI_ENABLE();
 
-
-  //write instruction
-  for (i = 0; i < reg_inst; i++){
-    SPI_WRITE( (char) instruction[i]);
-  }
-
-  //write data
-  for (i = reg_inst; i < n_len; i++){
-    SPI_WRITE( (char) *(p_data++));
-  }
-
-  // De-asserting CS
-  DW1000_SPI_DISABLE();
-
-}
-
-/**
- * \brief Takes several arrays and writes them as a single one to the device.
- * This can be used to write nested data frame structures easily.
- *
- * The following pattern is used in the demo ranging application.
- *     \code
- *     uint32_t   n_data_segments = 2;
- *     uint32_t   data_len[2]     = { DW_FRAME_RANGE_LEN, DW_MSG_RANGE_INIT_LEN };
- *     uint8_t  * pp_data[2];
- *     pp_data[0] = (uint8_t *)&frameRange;
- *     pp_data[1] = (uint8_t *)&msgRangeInit;
- *     dw_transmit_multiple_data( pp_data, data_len, n_data_segments, DW_TRANCEIVE_SYNC );
- *     \endcode
- *
- * \param[in] reg_addr          Destination register on dw1000.
- * \param[in] reg_len           Length of register on dw1000.
- * \param[in] pp_data           Array of data segments.
- * \param[in] p_data_len        Length of each data segment.
- * \param[in] len_pp_data       Length of pp_data.
- */
-void dw_write_reg_multiple_data( uint32_t reg_addr, uint32_t reg_len, uint8_t  ** pp_data, uint32_t * p_data_len, uint32_t len_pp_data )
-{
-  // Get total length of data.
-  uint32_t data_len = 0;
-  uint32_t length = len_pp_data;
-  while (length-- ) {data_len += *p_data_len++;}
-  p_data_len-=len_pp_data;
-
-
-  // Bounds check
-  if (data_len > reg_len) {return;}
-
-  // Asserting CS
-  DW1000_SPI_ENABLE();
-  SPI_WRITE(0x80UL | (reg_addr & 0x3FUL));
-
-  int i_transaction, j_transaction;
-  for (i_transaction = 0; i_transaction < len_pp_data-1; ++i_transaction)
-  {
-    // dw_spi_write_n_bytes2( *p_data_len++, *pp_data++, DW_SPI_TRANSFER_CONT);
-    uint8_t* pData = *pp_data++;
-    uint32_t pDataLen = *p_data_len++;
-    for (j_transaction = 0; j_transaction < pDataLen; j_transaction++){
-      SPI_WRITE((unsigned char) *pData++);
+  // write bit = 1, subreg present bit = 1
+  SPI_WRITE_FAST(0x80 | (subreg_addr > 0 ?0x40:0x00) | (reg_addr & 0x3F));
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      // extended address bit = 1
+      SPI_WRITE_FAST(0x80 | (subreg_addr & 0x7F));
+      SPI_WRITE_FAST((subreg_addr >> 7) | 0xFF);
+    } else {
+      // extended address bit = 0
+      SPI_WRITE_FAST(0x00 | (subreg_addr & 0x7F));
     }
   }
-
-  uint8_t* pData = *pp_data;
-  for (i_transaction = 0; i_transaction < *p_data_len; i_transaction++){
-    SPI_WRITE( (unsigned char) *pData++);
-  }
-
+  
+  while (subreg_len-- > 0)
+    SPI_WRITE_FAST( *(p_data++) );
+  SPI_WAITFORTx_ENDED();
+        
   // De-asserting CS
   DW1000_SPI_DISABLE();
+
+  // Re enable interrupt
+  eint();
 }

@@ -97,8 +97,9 @@ void dw1000_init() {
   dw1000.auto_ack = 0;
   uint8_t tempRead1[8] ;
   dw_read_reg(DW_REG_DEV_ID, DW_LEN_DEV_ID, tempRead1);
-  print_u8_Array_inHex ( "REG ID:", tempRead1 , DW_LEN_DEV_ID );
-  // Check SPI communication works, by reading device ID
+  print_u8_Array_inHex( "REG ID:", tempRead1 , DW_LEN_DEV_ID );
+
+  // Check if SPI communication works by reading device ID
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
   // Init dw1000
@@ -388,30 +389,26 @@ void dw_disable_gpio_led(void){
  */
 void dw_soft_reset(void){
   // Set SYSCLKS to 01 > Force system clock to be the 19.2 MHz XTI clock.
-  uint32_t ctrlReg = dw_read_reg_32( DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0 );
-  ctrlReg |= (0x01 << DW_SYSCLKS) & DW_SYSCLKS_MASK;
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *) &ctrlReg);
+  uint32_t ctrlReg;
+  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &ctrlReg);
+  ctrlReg &= ~DW_SYSCLKS_MASK; 
+  ctrlReg |= (0x01 << DW_SYSCLKS) & DW_SYSCLKS_MASK; 
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &ctrlReg);
 
-  //Clear SOFTRESET to all zero’s
-  ctrlReg = dw_read_reg_32( DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0 );
-  ctrlReg &= ~ DW_SYSCLKS_MASK;
-  ctrlReg &= ~ DW_SOFTRESET_MASK;
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *) &ctrlReg);  
+  //Clear SOFTRESET >> all zero’s
+  ctrlReg &= ~DW_SOFTRESET_MASK; 
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *) &ctrlReg);  
 
   //Source: 10us sleep > https://github.com/lab11/dw1000-driver/blob/master/deca_device.c
   // DW1000 needs a 10us sleep to let clk PLL lock after reset - the PLL will automatically lock after the reset
   dw1000_us_delay(10);
+
   //Set SOFTRESET to all ones
-  ctrlReg = dw_read_reg_32( DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0 );
-  ctrlReg |= DW_SOFTRESET_MASK;
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *) &ctrlReg);
+  ctrlReg &= ~DW_SYSCLKS_MASK; // Set SYSCLKS to 00 > Auto system clock.
+  ctrlReg |= DW_SOFTRESET_MASK; //Set SOFTRESET to all ones
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *) &ctrlReg);
 
-  // Set SYSCLKS to 00 > Auto system clock.
-  ctrlReg = dw_read_reg_32( DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0 );
-  ctrlReg &= ~ DW_SYSCLKS_MASK;
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *) &ctrlReg);
-
-  dw_trxoff(); //force to idle
+  dw_idle(); //force to idle
 }
 
 /**
@@ -1472,13 +1469,15 @@ uint64_t dw_generate_extendedUniqueID(){
 -----------------------------------------------------------------------------*/
 
 /**
- * \brief Aborts current transmission or reception and returns device to idle.
+ * \brief Aborts current transmission or reception and returns device to idle mode.
  */
-void dw_trxoff(void)
+void dw_idle(void)
 {
-  uint32_t sys_ctrl_val = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
+  // read and write only one bit > DW_TRXOFF is the 6nd bit.
+  uint8_t sys_ctrl_val;
+  dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val); 
   sys_ctrl_val |= (1<<DW_TRXOFF) & DW_TRXOFF_MASK;
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl_val);
+  dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val);
 
   dw1000.state = DW_STATE_IDLE;
 }
@@ -1491,9 +1490,11 @@ void dw_init_rx(void)
 {
   dw1000.state = DW_STATE_RECEIVING;
   // Enable antenna
-  uint32_t sys_ctrl_val = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
-  sys_ctrl_val |= (1<<DW_RXENAB) & DW_RXENAB_MASK;
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl_val);
+  // RXENAB is the 8nd bit (first in the second byte)
+  uint8_t sys_ctrl_val;
+  dw_read_subreg(DW_REG_SYS_CTRL, 1, 1, &sys_ctrl_val); 
+  sys_ctrl_val |= (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
+  dw_write_subreg(DW_REG_SYS_CTRL, 1, 1, &sys_ctrl_val);
 }
 
 /**
@@ -1504,7 +1505,7 @@ void dw_init_tx(void)
 {
   dw1000.state = DW_STATE_TRANSMITTING;
   // Start transmission
-  // Only read et write the first bytes of the register
+  // Only read and write the first byte of the register
   uint8_t sys_ctrl_lo;
   dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
   sys_ctrl_lo|= DW_TXSTRT_MASK;
@@ -1521,7 +1522,7 @@ void dw_init_tx_ack(void)
 {
   dw1000.state = DW_STATE_TRANSMITTING;
   // Start transmission
-  // Only read et write the first bytes of the register
+  // Only read and write the first byte of the register
   uint8_t sys_ctrl_lo;
   dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
   sys_ctrl_lo|= DW_TXSTRT_MASK | DW_WAIT4RESP_MASK;
@@ -1532,7 +1533,7 @@ void dw_init_tx_ack(void)
  * \brief Suppress auto-FCS Transmission (on this next frame). 
  * This control works in conjunction with dw_init_tx() 
  *
- * Usage: call dw_suppress_auto_FCS_tx() before dw_init_tx()/
+ * Usage: call dw_suppress_auto_FCS_tx() before dw_init_tx().
  */
 void dw_suppress_auto_FCS_tx(void)
 {
@@ -1905,7 +1906,7 @@ uint32_t dw_read_otp_32( uint16_t otp_addr )
  *      See Figure 14: Flow chart for using double RX buffering
  *      Of the manual
  */
-void dw_enable_double_fuffering(void){
+void dw_enable_double_buffering(void){
   // enable double-buffered with DIS_DRXB to 0.
   uint32_t cfgReg  = dw_read_reg_32( DW_REG_SYS_CFG, DW_LEN_SYS_CFG );
   cfgReg &= ~DW_DIS_DRXB_MASK;
@@ -1986,7 +1987,7 @@ void dw_trxoff_db_mode(void){
 
   /* Set TXRXOFF bit = 1, in reg:0D,
       to disable the receiver */
-  dw_trxoff();
+  dw_idle();
 
   /* Clear RX event flags in SYS_STATUS reg:0F; bits FCE,
       FCG, DFR, LDE_DONE */
@@ -1998,7 +1999,7 @@ void dw_trxoff_db_mode(void){
 
   /* Unmask Double buffered status
       bits; FCE, FCG, DFR, LDE_DONE */
-  maskReg  = dw_read_reg_32(DW_REG_SYS_MASK, DW_LEN_SYS_MASK);
+  maskReg = dw_read_reg_32(DW_REG_SYS_MASK, DW_LEN_SYS_MASK);
   maskReg &= ~(DW_MRXFCE_MASK
               | DW_MRXFCG_MASK
               | DW_MRXDFR_MASK

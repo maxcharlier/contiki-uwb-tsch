@@ -545,7 +545,7 @@ void dw_set_tx_extended_frame_length(uint32_t frame_len);
 int dw_get_rx_extended_len(void);
 
 // RX double buffering
-void dw_enable_double_fuffering(void);
+void dw_enable_double_buffering(void);
 int dw_good_rx_buffer_pointer(void);
 int dw_is_overrun(void);
 void dw_trxsoft_reset(void);
@@ -574,7 +574,7 @@ int dw_is_receive_timeout(uint64_t status);
 /*=========================== Private Functions =============================*/
 void dw_enable_interrupt( uint32_t mask );
 
-void dw_trxoff();
+void dw_idle();
 
 void dw_init_tx();
 void dw_suppress_auto_FCS_tx(void);

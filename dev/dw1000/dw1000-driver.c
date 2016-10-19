@@ -257,6 +257,7 @@ int dw1000_driver_init(void){
   dw1000_arch_init();
 
   dw1000_init();
+
   #if DW1000_IEEE802154_EXTENDED
     PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, extended frame max 265 bytes.\r\n");
     dw_enable_extended_frame();
@@ -268,7 +269,7 @@ int dw1000_driver_init(void){
   dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE);
 
   // dw1000_driver_set_pan_addr is recall after by contiki.
-  dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL); 
+  // dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL); 
 
   dw1000_driver_enable_interrupt();
 
@@ -280,7 +281,7 @@ int dw1000_driver_init(void){
   dw_disable_rx_timeout();
 
   #ifdef DOUBLE_BUFFERING
-    dw_enable_double_fuffering();
+    dw_enable_double_buffering();
   #else
     dw_enable_automatic_receiver_Re_Enable();
   #endif /* DOUBLE_BUFFERING */
@@ -369,7 +370,7 @@ static int dw1000_driver_transmit(unsigned short payload_len){
   GET_LOCK();
 
   if(receive_on){
-    dw_trxoff();
+    dw_idle();
   }
   if(dw1000_driver_wait_ACK)
     dw1000_driver_disable_interrupt();
@@ -421,7 +422,7 @@ static int dw1000_driver_transmit(unsigned short payload_len){
   }
 
   if(dw1000_driver_wait_ACK){
-    dw_trxoff();  // bug fix of waiting an ACK which 
+    dw_idle();  // bug fix of waiting an ACK which 
                   //  avoid the next transmittion 
     dw1000_driver_enable_interrupt();
   }
@@ -528,7 +529,7 @@ static int dw1000_driver_cca(void){
   PRINTF("dw1000_driver_cca\r\n");
   // GET_LOCK();
 
-  // dw_trxoff();
+  // dw_idle();
   // dw1000_driver_disable_interrupt();
   // dw1000_driver_clear_pending_interrupt();
   // dw_db_init_rx();
@@ -826,7 +827,7 @@ int dw1000_driver_interrupt(void){
       if(status & DW_RXOVRR_MASK){ //Overrun
         PRINTF("dw1000_driver_interrupt() > dw_overrun\r\n");
         dw1000_driver_disable_interrupt();
-        dw_trxoff();        
+        dw_idle();        
         dw1000_driver_enable_interrupt();
         dw_trxsoft_reset();
         dw_change_rx_buffer();
@@ -864,7 +865,7 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
 
 #ifdef DOUBLE_BUFFERING
         if(status & DW_RXOVRR_MASK){
-          dw_trxoff();
+          dw_idle();
           dw_trxsoft_reset();
           dw_change_rx_buffer();
 
@@ -893,7 +894,7 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
            * Of the manual */
           status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
           if(status & DW_RXOVRR_MASK){ //overun may be occurs
-            dw_trxoff();
+            dw_idle();
             dw_trxsoft_reset();
             dw_change_rx_buffer();
 

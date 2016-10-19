@@ -59,6 +59,7 @@ PROCESS_THREAD(frame_sender_process, ev, data)
         if(i > 248){
           etimer_set(&timer, CLOCK_SECOND * 3600 );
           PROCESS_WAIT_EVENT();
+          i = 0;
         }
       }
 

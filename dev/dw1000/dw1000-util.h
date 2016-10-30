@@ -35,6 +35,7 @@
  *         Decawave DW1000 utilitary header file.
  * \author
  *         Charlier Maximilien <maximilien-charlier@outlook.com>
+ *         Quoitin Bruno        <bruno.quoitin@umons.ac.be>
  */
 
 #ifndef __DW1000_UTIL_H__
@@ -43,18 +44,20 @@
 #include <inttypes.h>
 
 uint8_t make_frame_short(uint8_t ACK, uint8_t seq_num,
-			 uint16_t dest_pan_id, uint16_t dest_addr,
-			 uint16_t src_pan_id, uint16_t src_addr,
-			 uint8_t data_len, uint8_t * data,
-			 uint8_t * frame, uint8_t frame_len);
+                         uint16_t dest_pan_id, uint16_t dest_addr,
+                         uint16_t src_pan_id, uint16_t src_addr,
+                         uint8_t data_len, uint8_t *data,
+                         uint8_t *frame, uint8_t frame_len);
 
 uint8_t make_frame_extended(uint8_t ACK, uint8_t seq_num,
-			    uint16_t dest_pan_id, uint64_t dest_addr,
-			    uint16_t src_pan_id, uint64_t src_addr,
-			    uint8_t data_len, uint8_t * data,
-			    uint8_t * frame, uint8_t frame_len);
+                            uint16_t dest_pan_id, uint64_t dest_addr,
+                            uint16_t src_pan_id, uint64_t src_addr,
+                            uint8_t data_len, uint8_t *data,
+                            uint8_t *frame, uint8_t frame_len);
 
-void print_buf(const char * prefix, uint8_t * buf, uint8_t buf_len);
-void print_frame(uint16_t frame_len, uint8_t * frame);
+void print_buf(const char *prefix, uint8_t *buf, uint8_t buf_len);
+void print_frame(uint16_t frame_len, uint8_t *frame);
 void print_sys_status(uint64_t sys_status);
+
+float theorical_speed(uint16_t preamble_lenght, uint16_t data_rate, uint8_t prf, uint16_t data_lenght);
 #endif /* __DW1000_UTIL_H__ */

@@ -32,7 +32,7 @@
 
 /**
  * \file
- *          Decawave DW1000 utilitary file.
+ *          Decawave DW1000 utility file.
  *
  * \author
  *         Charlier Maximilien  <maximilien-charlier@outlook.com>
@@ -57,7 +57,7 @@
  * \param data_len    Len of Frame Payload.
  * \param data        Frame Payload.
  * \param[out]  frame       Pointer to a table containing frame header.
- * \return      The len of the frame.
+ * \return      The length of the frame.
  */
 uint8_t
 make_frame_short(uint8_t ACK, uint8_t seq_num,
@@ -113,7 +113,7 @@ make_frame_short(uint8_t ACK, uint8_t seq_num,
  * \param data_len    Len of Frame Payload.
  * \param data        Frame Payload.
  * \param frame       Pointer to a table containing the frame header.
- * \return            The len of the frame.
+ * \return            The length of the frame.
  */
 uint8_t
 make_frame_extended(uint8_t ACK, uint8_t seq_num,
@@ -219,7 +219,7 @@ static const char *FRAME_TYPES[8] = { "beacon", "data", "ACK", "MAC command",
 /**
  * \brief             Print a frame.
  *
- * \param frame_len   The frame lenght.
+ * \param frame_len   The frame length.
  * \param frame       An 802.15.4 MAC frame.
  */
 void
@@ -476,58 +476,64 @@ print_sys_status(uint64_t sys_status)
 /**
  * \brief Compute the overhead of the Reed–Solomon error correction.
  */
-#define ReedSolomonParityBit(x) (((int(x * 8) / 330) + 1) * 48)
+#define ReedSolomonParityBit(x) (((x * 8 / 330) + 1) * 48)
 
 /**
- * \brief Compute the theorical time of a transmission.
+ * \brief Compute the theoretical time of a transmission.
  *
- * \param preamble_lenght    The preamble lenght (64 to 2048).
+ * \param preamble_lenght    The preamble length (64 to 2048).
  * \param data_rate          The data rate (110, 850 or 8600) in kbps.
- * \param prf                The PRF, 16 or 64 Mhz.
- * \param data_lenght        The data lenght in bytes.
+ * \param prf                The PRF, 16 or 64 MHz.
+ *        Note: The PRF do not impact the approximation of the theoretical time.
+ * \param data_lenght        The data length in bytes.
  *
- * \return The theorical time of a transmission in milli second.
+ * \return An approximation of the theoretical time of a transmission in millisecond.
  */
-float
-theorical_speed(uint16_t preamble_lenght, uint16_t data_rate, uint8_t prf, uint16_t data_lenght)
+long int
+theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, uint8_t prf, uint32_t data_lenght)
 {
+  uint16_t t_shr, t_prf, t_mac;
+  uint32_t s_mac; /* to have a correct precision */
 
-  /* duration of SHR symbol */
-  float s_shr;
-  if(prf == 16) {
-    s_shr = 993.59 / 1000;
-  } else {
-    s_shr = 1017.63 / 1000;
+  /** Duration of the synchronization header and the PRF
+   * SHR is the length of the SFD and the length of the preamble 
+   * multiply by the duration of a symbol (1) */ 
+  if(data_rate == DW_DATA_RATE_110_KBPS) {
+    t_shr = 64 + preamble_lenght; 
+    t_prf = 172; 
   }
-
-  /* lenght and duration of a PRF symbol */
-  float l_sfd;
-  float s_prf;
-  if(data_rate == 110) {
-    l_sfd = 64;
-  }
-  s_prf = 8205.13 / 1000;
   else {
-    l_sfd = 8;
-  }
-  s_prf = 1025.64 / 1000;
-
-  uint8_t l_phr = 21 /* lenght of the PHR */
-
-    /* duration of a data symbol */
-    float s_mac;
-  if(data_rate == 110) {
-    s_mac = 8205.13 / 1000;
-  } else if(data_rate == 850) {
-    s_mac = 1025.64 / 1000;
-  } else { data_rate == 6.8 Mb / s
-           s_mac = 128.21 / 1000;
+    t_shr = 8 + preamble_lenght; 
+    t_prf = 21;
   }
 
-  float t_shr = (preamble_lenght + l_sfd) * s_shr
-    float t_prf = l_phr * s_prf
+  /* duration of a data symbol  (*100 000) */
+  if(data_rate == DW_DATA_RATE_110_KBPS) {
+    s_mac = 820513;
+  } else if(data_rate == DW_DATA_RATE_850_KBPS) {
+    s_mac = 102564;
+  } else { /* data_rate == 6800 kbps */
+    s_mac = 12821;
+  }
 
-      float t_mac = s_mac * ((8 * data_lenght) + ReedSolomonParityBit(data_lenght))
+  t_mac = (s_mac * ((8 * data_lenght) 
+          + ReedSolomonParityBit(data_lenght))) / 100000;
 
-        return t_shr + t_prf + t_mac;
+  return t_shr + t_prf + t_mac;
+}
+
+/**
+ * \brief Convert a duration in micro second to a number of clock ticks
+ * \param duration A delay in micro second.
+ */
+inline rtimer_clock_t microsecond_to_clock_tik(int duration) {
+  return ((( (long int) RTIMER_SECOND) * duration) / 1000000) + 1;
+}
+
+/**
+ * \brief Convert a number of clock ticks to a duration in micro second 
+ * \param clock_tiks A number of clock ticks.
+ */
+inline int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks) {
+  return ((long int) (1000000l * clock_ticks) / ((long int) RTIMER_SECOND)) + 1;
 }

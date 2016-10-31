@@ -32,7 +32,7 @@
 
 /**
  * \file
- *         Decawave DW1000 utilitary header file.
+ *         Decawave DW1000 utility header file.
  * \author
  *         Charlier Maximilien <maximilien-charlier@outlook.com>
  *         Quoitin Bruno        <bruno.quoitin@umons.ac.be>
@@ -40,7 +40,8 @@
 
 #ifndef __DW1000_UTIL_H__
 #define __DW1000_UTIL_H__
-
+ 
+#include "contiki.h"
 #include <inttypes.h>
 
 uint8_t make_frame_short(uint8_t ACK, uint8_t seq_num,
@@ -59,5 +60,10 @@ void print_buf(const char *prefix, uint8_t *buf, uint8_t buf_len);
 void print_frame(uint16_t frame_len, uint8_t *frame);
 void print_sys_status(uint64_t sys_status);
 
-float theorical_speed(uint16_t preamble_lenght, uint16_t data_rate, uint8_t prf, uint16_t data_lenght);
+long int
+theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, uint8_t prf, uint32_t data_lenght);
+
+inline rtimer_clock_t microsecond_to_clock_tik(int duration);
+inline int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks);
+
 #endif /* __DW1000_UTIL_H__ */

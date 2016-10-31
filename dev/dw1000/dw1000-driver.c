@@ -32,8 +32,8 @@
 
 /**
  * \file
- *         Interface for the driver of the Decawave dw1000 on Contiki.
- *          Based on the cc2420 driver.
+ *         Interface for the driver of the Decawave DW1000 on Contiki.
+ *          Based on the CC2420 driver.
  *
  * \author
  *         Charlier Maximilien  <maximilien-charlier@outlook.com>
@@ -75,33 +75,16 @@
 #define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
 #endif /* DW1000_DATA_RATE */
 
-#ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
-#endif
-#if DW1000_DATA_RATE == DW_DATA_RATE_6800_KBPS
-#if DW1000_IEEE802154_EXTENDED
-#define DW1000_TX_TIMEOUT      RTIMER_SECOND / 1250   /* max 800us  */
-#else
-#define DW1000_TX_TIMEOUT      RTIMER_SECOND / 1600   /* max 625us */
-#endif
-#define DW1000_ACK_TIMEOUT       RTIMER_SECOND / 2185 /* max 460us */
-#elif DW1000_DATA_RATE == DW_DATA_RATE_850_KBPS
-#if DW1000_IEEE802154_EXTENDED
-#define DW1000_TX_TIMEOUT      RTIMER_SECOND / 322    /* max 3100us */
-#else
-#define DW1000_TX_TIMEOUT      RTIMER_SECOND / 525    /* max 1900us */
-#endif
-#define DW1000_ACK_TIMEOUT       RTIMER_SECOND / 1561 /* 640us */
-#else /* 110kbps */
-#if DW1000_IEEE802154_EXTENDED
-#define DW1000_TX_TIMEOUT      RTIMER_SECOND / 43     /* max 23000us */
-#else
-#define DW1000_TX_TIMEOUT      RTIMER_SECOND / 76     /* max 13000us */
-#endif
-#define DW1000_ACK_TIMEOUT       0                    /* bug with ACK */
-#define DW1000_CONF_AUTOACK      0
-#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
-#endif
+#ifndef DW1000_PREAMBLE
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_128
+#endif /* DW1000_PREAMBLE */
+
+#ifndef DW1000_PRF
+#define DW1000_PRF               DW_PRF_16_MHZ
+#endif /* DW1000_PRF */
+
+#define DW1000_SPI_DELAY        50l /* the delay induced by the SPI communication */
+#define IEEE802154_TURN_ARROUND_TIME 10l /* max between RX to TX and TX to RX time*/
 
 #if DW1000_IEEE802154_EXTENDED
 #define DW1000_MAX_PACKET_LEN 265
@@ -128,29 +111,39 @@
 #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
-   the driver initialisation */
+   the driver initialization */
 static int dw1000_driver_init_down = 0;
 
-/* define if transmition wait for an ACK. */
+/* define if transmission wait for an ACK. */
 static int dw1000_driver_wait_ACK = 0;
 static int dw1000_driver_wait_ACK_num = 0;
 
+/* store the current DW1000 configuration */
+static dw1000_base_conf_t dw1000_conf;
+
 static uint8_t volatile pending;
 
-#define BUSYWAIT_UNTIL(cond, max_time) \
+/**
+ * \brief Define a loop to wait until the success of "cond" or the expiration of the max_time.
+ * 
+ * \param cond      A boolean condition
+ * \param max_time  A time in micro second
+ */
+#define BUSYWAIT_UNTIL(cond, max_time)  BUSYWAIT_UPDATE_UNTIL("", cond, max_time)
+/**
+ * \brief Define a loop to wait until the success of "cond" or the expiration of the max_time.
+ *
+ * \param update    The update command (typically for update a register).
+ * \param cond      A boolean condition.
+ * \param max_time  A time in micro second.
+ */
+#define BUSYWAIT_UPDATE_UNTIL(update, cond, max_time) \
   do { \
-    rtimer_clock_t t0; \
-    t0 = RTIMER_NOW(); \
-    while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time))) ; \
-  } while(0)
-
-#define BUSYWAIT_UNTIL2(update, cond, max_time) \
-  do { \
-    rtimer_clock_t t0; \
-    t0 = RTIMER_NOW(); \
+    rtimer_clock_t timeout = RTIMER_NOW() + microsecond_to_clock_tik(max_time); \
+    watchdog_periodic(); \
     do { \
       update; \
-    } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time))); \
+    } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), timeout)); \
   } while(0)
 
 volatile uint8_t dw1000_driver_sfd_counter;
@@ -189,8 +182,8 @@ static radio_result_t dw1000_driver_set_object(radio_param_t param,
 
 /* functions defined in platform/[platform]/dev/dw1000-arc.c */
 void dw1000_us_delay(int ms);
-void dw_read_subreg(uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t *p_data);
-void dw_write_subreg(uint32_t reg_addr, uint32_t subreg_addr, uint32_t subreg_len, uint8_t *data);
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, uint8_t *p_data);
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, const uint8_t *data );
 
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_driver_process, "DW1000 driver");
@@ -241,7 +234,7 @@ RELEASE_LOCK()
 /*---------------------------------------------------------------------------*/
 
 /**
- * Initialise SPI configuration for interacting with the DW1000
+ * \brief Initialize SPI configuration for interacting with the DW1000
  *          and configure the DW1000 with the good channel.
  */
 int
@@ -261,17 +254,12 @@ dw1000_driver_init(void)
   dw_disable_extended_frame();
 #endif
 
-  dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE);
+  dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, DW1000_PRF);
 
-  /* dw1000_driver_set_pan_addr is recall after by contiki. */
+  /* dw1000_driver_set_pan_addr is recall after by Contiki. */
   /* dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);  */
 
   dw1000_driver_enable_interrupt();
-
-#if DW1000_CONF_AUTOACK
-  dw_enable_automatic_acknowledge();
-  dw_config_switching_tx_to_rx_ACK(DW1000_DATA_RATE);
-#endif
 
   dw_disable_rx_timeout();
 
@@ -322,10 +310,10 @@ dw1000_driver_prepare(const void *payload,
 #else
   dw_set_tx_frame_length(data_len);
 #endif
-  /* dw_disable_delayed_tx_rx();      /* default value is the same, not usefull */
+  /* dw_disable_delayed_tx_rx();  default value is the same, not useful */
 
   if(payload_len > 0) {
-    /* Copy data to dw1000 */
+    /* Copy data to DW1000 */
     dw_write_reg(DW_REG_TX_BUFFER, payload_len, (uint8_t *)payload);
   }
 
@@ -351,7 +339,7 @@ dw1000_driver_prepare(const void *payload,
  *          of bytes to be transmitted and returns an int that indicates
  *          whether the transmission was successful or not.
  *
- * \return  The state of the transmition at the end of this.
+ * \return  The state of the transmission at the end of this.
  * \retval RADIO_TX_OK          Indicates that the transmission succeeded.
  * \retval RADIO_TX_ERR         Indicates that an error of some description
  *                              has occurred.
@@ -359,7 +347,7 @@ dw1000_driver_prepare(const void *payload,
  *                              This is only used by contikimac (for radios
  *                              that block in TX and do hardware ACK detection)
  *                              and nullrdc.
- * \retval RADIO_TX_NOACK       Indicates that no acknowledgement has been
+ * \retval RADIO_TX_NOACK       Indicates that no acknowledgment has been
  *                              received.
  */
 static int
@@ -385,12 +373,20 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw_init_tx();
   }
 
-  /* only reads low-byte of DW1000's SYS_STATUS (bit 7 is TXFRS) */
-  uint8_t sys_status_lo;
-  BUSYWAIT_UNTIL2(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, &sys_status_lo),
-                  ((sys_status_lo & DW_TXFRS_MASK) != 0),
-                  DW1000_TX_TIMEOUT);
+  if(DW1000_CONF_CHECKSUM) {
+    payload_len += FOOTER_LEN; /* add the FCS size */
+  }
 
+  /* only reads low-byte of DW1000's SYS_STATUS (bit 7 is TXFRS) */
+  uint8_t sys_status_lo = 0x0;
+  uint8_t count = 0; 
+  BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, &sys_status_lo); count++,
+                  ((sys_status_lo & DW_TXFRS_MASK) != 0),
+                  theorical_transmission_approx(dw1000_conf.preamble_length, 
+                  dw1000_conf.data_rate, dw1000_conf.prf, payload_len) + 
+                  DW1000_SPI_DELAY);
+
+  PRINTF("Number of loop waiting Transmit Frame Sent: %d\n", count);
   if((sys_status_lo & DW_TXFRS_MASK) != 0) {
     tx_return = RADIO_TX_OK;
   }
@@ -398,20 +394,27 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* wait ACK */
   if(dw1000_driver_wait_ACK && tx_return == RADIO_TX_OK) {
     tx_return = RADIO_TX_NOACK;
-    BUSYWAIT_UNTIL2(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, &sys_status_lo);
-                    watchdog_periodic(),
+    count = 0;
+    sys_status_lo = 0x0; /* clear the value */
+    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, &sys_status_lo);
+                    watchdog_periodic(); count++,
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
-                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | (DW_RXFCE_MASK >> 8))) != 0)),
-                    DW1000_ACK_TIMEOUT);
+                    ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | (DW_RXFCE_MASK >> 8))) != 0)),
+                    theorical_transmission_approx(dw1000_conf.preamble_length,
+                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                    DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
+  PRINTF("Number of loop waiting ACK %d\n", count);
+
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
       /* (len ACK== 5) and (Seq Num, 3rd byte == ACK num) */
-      if(dw_get_rx_len() == 5) {
+      if(dw_get_rx_len() == DW_ACK_LEN) {
         uint8_t ack_num;
         dw_read_subreg(DW_REG_RX_BUFFER, 2, 1, &ack_num);
         if(ack_num == dw1000_driver_wait_ACK_num) {
           tx_return = RADIO_TX_OK;
         }
       }
+
 #ifdef DOUBLE_BUFFERING
       /* double buffering! swap the buffer */
       if(dw_good_rx_buffer_pointer()) {
@@ -429,11 +432,10 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   if(dw1000_driver_wait_ACK) {
     dw_idle();  /* bug fix of waiting an ACK which
-                   avoid the next transmittion */
+                   avoid the next transmission */
     dw1000_driver_enable_interrupt();
   }
-
-  /* reenable the rx state */
+  /* re-enable the rx state */
   if(receive_on) {
     dw_db_init_rx();
   }
@@ -455,7 +457,6 @@ dw1000_driver_transmit(unsigned short payload_len)
     PRINTF("TX RADIO_TX_ERR \r\n");
   }
 #endif
-
   return tx_return;
 }
 /**
@@ -527,7 +528,7 @@ dw1000_driver_read(void *buf, unsigned short bufsize)
   return len;
 }
 /**
- * \brief  Performs a Channel Clear Assesment to see if there is other
+ * \brief  Performs a Channel Clear Assessment to see if there is other
  *        RF activity on the channel to avoid collisions.
  *
  * \returns The result of the CCA
@@ -544,7 +545,7 @@ dw1000_driver_cca(void)
      dw_idle();
      dw1000_driver_disable_interrupt();
      dw1000_driver_clear_pending_interrupt();
-     dw_db_init_rx();
+     dw_db_init_rx(); */
 
      /*
    * Check if a preamble has been detected.
@@ -588,7 +589,7 @@ dw1000_driver_pending_packet(void)
   return pending > 0;
 }
 /**
- * \breif     Turns "on" the radio. This function should put the radio into
+ * \brief     Turns "on" the radio. This function should put the radio into
  *            Receive mode and is called very frequently as the MAC layer
  *            turns on and off the radio rapidly.
  *
@@ -685,7 +686,7 @@ dw1000_off(void)
  * \param param Defined the type of parameter.
  * \param value The radio parameter value.
  *
- * \return     Retrun the result of the getter.
+ * \return     Return the result of the getter.
  * \retval RADIO_RESULT_OK             The value was set correctly.
  * \retval RADIO_RESULT_INVALID_VALUE  The value was invalid.
  * \retval RADIO_RESULT_NOT_SUPPORTED  The value was not supported.
@@ -707,7 +708,7 @@ dw1000_driver_get_value(radio_param_t param,
     return RADIO_RESULT_OK;
   case RADIO_PARAM_RX_MODE:
     *value = 0;
-    /* radio not set to filterring frame */
+    /* radio not set to filtering frame */
     /*  *value |= RADIO_RX_MODE_ADDRESS_FILTER; */
     if(DW1000_CONF_AUTOACK) {
       *value |= RADIO_RX_MODE_AUTOACK;
@@ -752,7 +753,7 @@ dw1000_driver_get_value(radio_param_t param,
  * \param param Defined the type of parameter.
  * \param value The radio parameter value.
  *
- * \return     Retrun the result of the setter.
+ * \return     Return the result of the setter.
  * \retval RADIO_RESULT_OK             The value was set correctly.
  * \retval RADIO_RESULT_INVALID_VALUE  The value was invalid.
  * \retval RADIO_RESULT_NOT_SUPPORTED  The value was not supported.
@@ -806,9 +807,9 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
  *
  * \param param Defined the type of parameter.
  * \param dest  Defined a point to a memory area.
- * \param size  Defined the size of the readed area.
+ * \param size  Defined the size of the reading area.
  *
- * \return     Retrun the result of the getter.
+ * \return     Return the result of the getter.
  * \retval RADIO_RESULT_OK             The value was set correctly.
  * \retval RADIO_RESULT_INVALID_VALUE  The value was invalid.
  * \retval RADIO_RESULT_NOT_SUPPORTED  The value was not supported.
@@ -827,9 +828,9 @@ dw1000_driver_get_object(radio_param_t param,
  *
  * \param param Defined the type of parameter.
  * \param dest  Defined a point to a memory area.
- * \param size  Defined the size of the writed area.
+ * \param size  Defined the size of the writing area.
  *
- * \return     Retrun the result of the setter.
+ * \return     Return the result of the setter.
  * \retval RADIO_RESULT_OK             The value was set correctly.
  * \retval RADIO_RESULT_INVALID_VALUE  The value was invalid.
  * \retval RADIO_RESULT_NOT_SUPPORTED  The value was not supported.
@@ -844,7 +845,7 @@ dw1000_driver_set_object(radio_param_t param,
 /*---------------------------------------------------------------------------*/
 
 /**
- * \brief Enable interrupt for Frame with good CRC reception and Overrun
+ * \brief Enable interrupt for Frame with good CRC reception or Overrun
  */
 void
 dw1000_driver_enable_interrupt(void)
@@ -858,7 +859,7 @@ dw1000_driver_enable_interrupt(void)
 void
 dw1000_driver_disable_interrupt(void)
 {
-  dw_enable_interrupt(0Ull);
+  dw_enable_interrupt((uint32_t) 0x0);
 }
 /**
  * \brief Clear pending interruption.
@@ -876,7 +877,7 @@ dw1000_driver_interrupt(void)
 {
   PRINTF("dw1000_driver_interrupt()\r\n");
   /*
-     dw1000_driver_init_down is use for fix bug of IRQ call before dw1000 reset
+     dw1000_driver_init_down is use for fix bug of IRQ call before DW1000 reset
    */
   if(dw1000_driver_init_down) {
     uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
@@ -894,18 +895,17 @@ dw1000_driver_interrupt(void)
         dw_db_init_rx();
       }
     } else
-#endif     /* DOUBLE_BUFFERING
-              if(status & DW_RXDFR_MASK){ /* receiver Data Frame Ready. */
+#endif     /* DOUBLE_BUFFERING */
+    if(status & DW_RXDFR_MASK){ /* receiver Data Frame Ready. */
     process_poll(&dw1000_driver_process);
     pending++;
   }
-  /* error catch by RX reenable function. */
+  /* error catch by RX re-enable function. */
 }
 return 1;
 }
 
 /*---------------------------------------------------------------------------*/
-
 PROCESS_THREAD(dw1000_driver_process, ev, data){
   int len;
   PROCESS_BEGIN();
@@ -914,94 +914,95 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
   while(1) {
     PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
-    uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-    while(
+    /* We are not interested by the 5nd bytes */
+    uint32_t status = dw_read_reg_32( DW_REG_SYS_STATUS, 4);
+    while (
 #ifdef DOUBLE_BUFFERING
-      (status & DW_RXOVRR_MASK) ||
+    (status & DW_RXOVRR_MASK) ||
 #endif /* DOUBLE_BUFFERING */
-      (status & DW_RXDFR_MASK)) {
+    (status & DW_RXDFR_MASK)){
 
       PRINTF("dw1000_process: calling receiver callback\r\n");
 
 #ifdef DOUBLE_BUFFERING
-      if(status & DW_RXOVRR_MASK) {
+      if(status & DW_RXOVRR_MASK){
+    
         dw_idle();
         dw_trxsoft_reset();
         dw_change_rx_buffer();
 
         PRINTF("dw1000_process: RX Overrun\n");
-        if(receive_on) {
+        if(receive_on)
           dw_db_init_rx();
-        }
-      } else
+      }
+      else
 #endif /* DOUBLE_BUFFERING */
-      if(status & DW_RXFCG_MASK) { /* no overrun and good CRC */
-
-        packetbuf_clear();
-        /* packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp); */
-
-        len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+  if(status & DW_RXFCG_MASK) { // no overrun and good CRC
+    
+    packetbuf_clear();
+    /* packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp); */
+    
+    len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
 
 #ifndef DOUBLE_BUFFERING
-        dw_clear_pending_interrupt(DW_MRXFCE_MASK
-                                   | DW_MRXFCG_MASK
-                                   | DW_MRXDFR_MASK
-                                   | DW_MLDEDONE_MASK);
-        dw_init_rx();
-
-        /* end of the interrupt */
-        /* See Figure 14: Flow chart for using double RX buffering
-         * Of the manual */
-        status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-        if(status & DW_RXOVRR_MASK) {  /* overun may be occurs */
-          dw_idle();
-          dw_trxsoft_reset();
-          dw_change_rx_buffer();
-
-          PRINTF("dw1000_process: RX Overrun\n");
-          if(receive_on) {
-            dw_db_init_rx();
-          }
-        } else {
-          if(dw_good_rx_buffer_pointer()) {
-            dw_db_mode_clear_pending_interrupt();
-          }
-          dw_change_rx_buffer();
-
-          packetbuf_set_datalen(len);
-
-          PRINTF("dw1000_process: len %i\r\n", len);
-
-          NETSTACK_RDC.input();
-        }
-#else /* DOUBLE_BUFFERING */
-        packetbuf_set_datalen(len);
-
-        PRINTF("dw1000_process: len %i\r\n", len);
-
-        NETSTACK_RDC.input();
-#endif /* DOUBLE_BUFFERING */
-      } else {
-        /**
-           Bad CRC, drop the packet > no read
-           Change the buffer pointer.
-         */
+    dw_clear_pending_interrupt(DW_MRXFCE_MASK
+             | DW_MRXFCG_MASK
+             | DW_MRXDFR_MASK
+             | DW_MLDEDONE_MASK);
+    dw_init_rx();
+#endif /* ! DOUBLE_BUFFERING */
+    
+    /* end of the interrupt */ 
+    /* See Figure 14: Flow chart for using double RX buffering
+     * Of the manual */
 #ifdef DOUBLE_BUFFERING
-        if(dw_good_rx_buffer_pointer()) {
-          dw_db_mode_clear_pending_interrupt();
-        }
-        dw_change_rx_buffer();
-#else
-        dw_clear_pending_interrupt(DW_MRXFCE_MASK
-                                   | DW_MRXFCG_MASK
-                                   | DW_MRXDFR_MASK
-                                   | DW_MLDEDONE_MASK);
-#endif /* DOUBLE_BUFFERING */
-        PRINTF("bad CRC\n\r");
+    status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+    if(status & DW_RXOVRR_MASK){ /* overrun may be occurs */
+            
+      dw_idle();
+      dw_trxsoft_reset();
+      dw_change_rx_buffer();
+      
+      PRINTF("dw1000_process: RX Overrun\n");
+      if(receive_on)
+        dw_db_init_rx();
+    }
+    else{
+      if(dw_good_rx_buffer_pointer()){
+        dw_db_mode_clear_pending_interrupt();
       }
+      dw_change_rx_buffer();
+#endif /* DOUBLE_BUFFERING */
+      packetbuf_set_datalen(len);
+    
+      PRINTF("dw1000_process: len %i\r\n", len);
+      
+      NETSTACK_RDC.input();
+#ifdef DOUBLE_BUFFERING
+    }
+#endif /* DOUBLE_BUFFERING */
+  } else{ 
+    /**
+     * Bad CRC, drop the packet > no read
+     * Change the buffer pointer.
+    */
+#ifdef DOUBLE_BUFFERING
+    if(dw_good_rx_buffer_pointer()){
+      dw_db_mode_clear_pending_interrupt();
+    }
+    dw_change_rx_buffer();
+#else
+    dw_clear_pending_interrupt(DW_MRXFCE_MASK
+             | DW_MRXFCG_MASK
+             | DW_MRXDFR_MASK
+             | DW_MLDEDONE_MASK);
+#endif /* DOUBLE_BUFFERING */
+    printf("bad CRC\n\r");
+    
+  }
 
-      /* Read status register for next iteration */
-      status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+      /* Read status register for the next iteration */
+      status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
     }
   }
   PROCESS_END();
@@ -1010,7 +1011,7 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
 /*-----------------------------------------------------------------------------*/
 
 /**
- * \brief Set the pan id and the address (16bits or IEEE eUID 64bits).
+ * \brief Set the pan id and the address (16 bits or IEEE eUID 64 bits).
  */
 void
 dw1000_driver_set_pan_addr(unsigned pan,
@@ -1041,7 +1042,7 @@ dw1000_driver_set_pan_addr(unsigned pan,
  *
  *          Pulse Repetition Frequency set to 16MHz
  *
- *          Preambule length set to the minimum for data transfert:
+ *          Preamble length set to the minimum for data transfer:
  *          DW_DATA_RATE_110_KBPS  > 1024
  *          DW_DATA_RATE_850_KBPS  > 256
  *          DW_DATA_RATE_6800_KBPS > 128
@@ -1055,16 +1056,24 @@ dw1000_driver_set_pan_addr(unsigned pan,
  *                  DW_DATA_RATE_110_KBPS
  *                  DW_DATA_RATE_850_KBPS
  *                  DW_DATA_RATE_6800_KBPS
+ * \param dw1000_preamble_length_t The wished preamble length.
+ *                  Recommended value:
+ *                  At 110 kbps: 1024 if data, 2048 if ranging;
+ *                  At 850 kbps: 256 if data, 512 if ranging;
+ *                  At 6800 kbps: 128 if data, 256 if ranging.
+ * \param dw1000_prf_t The withed pulse repetition frequency.
+ *                  DW_PRF_16_MHZ is best for data.
+ *                  DW_PRF_64_MHZ is best for ranging: improve the first 
+ *                  path detection, but increase the power consumption.
  *
  */
 void
-dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate)
+dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate, dw1000_preamble_length_t preamble_length, dw1000_prf_t prf)
 {
-
-  dw1000_base_conf_t dw1000_conf;
-
-  dw1000_conf.prf = DW_PRF_16_MHZ;
+  dw1000_conf.prf = prf;
   dw1000_conf.sfd_type = DW_SFD_STANDARD;
+  dw1000_conf.preamble_length = preamble_length;
+
   if(channel == DW_CHANNEL_1) {
     dw1000_conf.channel = DW_CHANNEL_1;
     dw1000_conf.preamble_code = DW_PREAMBLE_CODE_1;
@@ -1087,15 +1096,12 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate)
 
   if(data_rate == DW_DATA_RATE_110_KBPS) {
     dw1000_conf.data_rate = DW_DATA_RATE_110_KBPS;
-    dw1000_conf.preamble_length = DW_PREAMBLE_LENGTH_1024;
     dw1000_conf.pac_size = DW_PAC_SIZE_32;
   } else if(data_rate == DW_DATA_RATE_850_KBPS) {
     dw1000_conf.data_rate = DW_DATA_RATE_850_KBPS;
-    dw1000_conf.preamble_length = DW_PREAMBLE_LENGTH_256;
     dw1000_conf.pac_size = DW_PAC_SIZE_16;
   } else { /* 6800 kbps */
     dw1000_conf.data_rate = DW_DATA_RATE_6800_KBPS;
-    dw1000_conf.preamble_length = DW_PREAMBLE_LENGTH_128;
     dw1000_conf.pac_size = DW_PAC_SIZE_8;
   }
 
@@ -1103,7 +1109,7 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate)
 
   /* BQU -- SFD initialization: This can be done by writing
      to the system control register Register file: 0x0D – System
-     Control Register with both the transmission startbit TXSTRT
+     Control Register with both the transmission start-bit TXSTRT
      and the transceiver off bit TRXOFF set at the same time. */
   uint32_t sys_ctrl;
   dw_read_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
@@ -1112,4 +1118,9 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate)
   sys_ctrl &= ~(DW_TXSTRT_MASK);
   sys_ctrl |= (DW_RXENAB_MASK);
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+
+#if DW1000_CONF_AUTOACK
+  dw_enable_automatic_acknowledge();
+  dw_config_switching_tx_to_rx_ACK(dw1000_conf.data_rate);
+#endif
 }

@@ -67,6 +67,11 @@
 #define DW_RX_BUFFER_MAX_LEN 128
 
 /**
+ * \brief Defines the len of an ACK 
+ */
+#define DW_ACK_LEN 5
+
+/**
  * \brief Used to align delayed timestamps.
  * \details Whenever a variable is called dx_timestamp the low order nine bits
  * are ignored by the device, thus to get the correct manual timestamping
@@ -481,27 +486,22 @@ void dw_set_short_addr(uint16_t short_addr);
 void dw_set_extendedUniqueID(uint64_t euid);
 void print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength);
 void dw_soft_reset(void);
-/* ADC */
-float   dw_get_temperature(dw_adc_src_t temp_source);
-float   dw_get_voltage(dw_adc_src_t voltage_source);
 
 /* Diagnostics */
 float dw_get_noise_level();
 float dw_get_fp_ampl();
-float dw_get_rx_power();
-float dw_get_fp_power();
 
 /* RX/TX */
 void dw_enable_automatic_receiver_Re_Enable();
 void dw_disable_automatic_receiver_Re_Enable();
 void dw_get_rx_error();
-int dw_get_rx_len(void);
+int  dw_get_rx_len(void);
 void dw_set_tx_frame_length(uint32_t frame_len);
 void dw_enable_delayed_tx(uint64_t dx_timestamp);
 void dw_enable_delayed_rx(uint64_t dx_timestamp);
 void dw_disable_delayed_tx_rx(void);
 
-void   dw_set_rx_timeout(uint16_t timeout);
+void     dw_set_rx_timeout(uint16_t timeout);
 uint16_t dw_get_rx_timeout();
 void     dw_enable_rx_timeout();
 void     dw_disable_rx_timeout();
@@ -512,7 +512,7 @@ void     dw_set_antenna_delay(uint16_t delay);
 uint16_t dw_get_antenna_delay();
 
 uint64_t dw_get_dx_timestamp();
-void   dw_set_dx_timestamp(uint64_t timestamp);
+void     dw_set_dx_timestamp(uint64_t timestamp);
 
 void dw_clear_pending_interrupt(uint64_t mask);
 
@@ -520,12 +520,12 @@ void dw_clear_pending_interrupt(uint64_t mask);
 void dw_enable_extended_frame(void);
 void dw_disable_extended_frame(void);
 void dw_set_tx_extended_frame_length(uint32_t frame_len);
-int dw_get_rx_extended_len(void);
+int  dw_get_rx_extended_len(void);
 
 /* RX double buffering */
 void dw_enable_double_buffering(void);
-int dw_good_rx_buffer_pointer(void);
-int dw_is_overrun(void);
+int  dw_good_rx_buffer_pointer(void);
+int  dw_is_overrun(void);
 void dw_trxsoft_reset(void);
 void dw_change_rx_buffer(void);
 void dw_trxoff_db_mode(void);
@@ -540,11 +540,11 @@ void dw_init_tx_ack(void);
 
 void dw_clear_receive_status();
 void dw_clear_transmit_status();
-int dw_is_receive_status(uint64_t status);
-int dw_is_receive_done(uint64_t status);
-int dw_is_receive_CRC(uint64_t status);
-int dw_is_receive_failed(uint64_t status);
-int dw_is_receive_timeout(uint64_t status);
+int  dw_is_receive_status(uint64_t status);
+int  dw_is_receive_done(uint64_t status);
+int  dw_is_receive_CRC(uint64_t status);
+int  dw_is_receive_failed(uint64_t status);
+int  dw_is_receive_timeout(uint64_t status);
 
 /*===========================================================================*/
 /*=========================== Private Functions =============================*/

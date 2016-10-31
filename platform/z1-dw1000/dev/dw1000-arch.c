@@ -65,7 +65,7 @@
  * to more specific ISRs 
  */
 ISR(DW1000_IRQ, dw1000_irq_handler){
-  PRINTF("dw1000-driver ISR \r\n");
+  PRINTF("DW1000-driver ISR \r\n");
 
   ENERGEST_ON(ENERGEST_TYPE_IRQ);
   if (P2IFG & BV(DW1000_INT_PIN)) {
@@ -90,7 +90,7 @@ void dw1000_arch_init()
 
   /* Enable interrupts on INT pin */
   /* Note : DW1000's IRQ output is active high by default
-   * but can be configured otherwize */
+   * but can be configured otherwise */
   dint(); /* Disable interrupt */
   P2IES &= ~BV(DW1000_INT_PIN); /* low to high edge */
   P2IE |= BV(DW1000_INT_PIN); /* enabled */
@@ -121,14 +121,14 @@ void dw1000_us_delay(int ms){
 }
 
 /**
- * \brief                 Reads the value from a subregister on the dw1000 as 
+ * \brief                 Reads the value from a sub-register on the DW1000 as 
  *                        a byte stream.
 
  * \param[in] reg_addr    Register address as specified in the manual and by
  *                        the DW_REG_* defines.
- * \param[in] subreg_addr Subregister address as specified in the manual and
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
  *                        by the DW_SUBREG_* defines.
- * \param[in] subreg_len  Nunmber of bytes to read. Should not be longer than
+ * \param[in] subreg_len  Number of bytes to read. Should not be longer than
  *                        the length specified in the manual or the
  *                        DW_SUBLEN_* defines.
  * \param[out] p_data     Data read from the device.
@@ -145,7 +145,7 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len
   DW1000_SPI_ENABLE();
 
   /* Read instruction */
-  /* write bit = 0, subreg present bit = 1 */
+  /* write bit = 0, sub-reg present bit = 1 */
   SPI_WRITE_FAST((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
   if (subreg_addr > 0) {
     if (subreg_addr > 0x7F) {
@@ -172,14 +172,14 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len
 }
 
 /**
- * \brief                 Writes a value to a subregister on the dw1000 as a 
+ * \brief                 Writes a value to a sub-register on the DW1000 as a 
  *                        byte stream.
  *
  * \param[in] reg_addr    Register address as specified in the manual and by
  *                        the DW_REG_* defines.
- * \param[in] subreg_addr Subregister address as specified in the manual and
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
  *                        by the DW_SUBREG_* defines.
- * \param[in] subreg_len  Nunmber of bytes to write. Should not be longer
+ * \param[in] subreg_len  Number of bytes to write. Should not be longer
  *                        than the length specified in the manual or the
  *                        DW_SUBLEN_* defines.
  * \param[in] p_data      A stream of bytes to write to device.
@@ -193,7 +193,7 @@ void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_le
   /* Asserting CS */
   DW1000_SPI_ENABLE();
 
-  /* write bit = 1, subreg present bit = 1 */
+  /* write bit = 1, sub-reg present bit = 1 */
   SPI_WRITE_FAST(0x80 | (subreg_addr > 0 ?0x40:0x00) | (reg_addr & 0x3F));
   if (subreg_addr > 0) {
     if (subreg_addr > 0x7F) {

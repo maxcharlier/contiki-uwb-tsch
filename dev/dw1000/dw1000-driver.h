@@ -45,10 +45,6 @@
 #include "dev/radio.h"
 #include "dw1000.h"
 
-#define DW_DATA_RATE_110_KBPS   110
-#define DW_DATA_RATE_850_KBPS   850
-#define DW_DATA_RATE_6800_KBPS  6800
-
 int dw1000_driver_init(void);
 
 int dw1000_driver_on(void);
@@ -63,4 +59,4 @@ void dw1000_driver_set_pan_addr(unsigned pan,
                                 unsigned addr,
                                 const uint8_t *ieee_addr);
 
-void dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate);
+void dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate, dw1000_preamble_length_t preamble_length, dw1000_prf_t prf);

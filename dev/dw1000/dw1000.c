@@ -154,7 +154,7 @@ dw1000_init()
 
   print_u8_Array_inHex("Reading EID:", tempRead, DW_LEN_EID);
 
-  /* ref datasheet: Mode 6 */
+  /* ref data-sheet: Mode 6 */
   dw1000.conf.prf = DW_PRF_16_MHZ;
   dw1000.conf.channel = DW_CHANNEL_5;
   dw1000.conf.preamble_length = DW_PREAMBLE_LENGTH_128;
@@ -174,7 +174,7 @@ dw1000_init()
   dw_enable_automatic_receiver_Re_Enable();
 
   /* Print information about the board */
-  PRINTF("Initialising device: %lx\r\n", (unsigned long)dw_get_device_id());
+  PRINTF("Initializing device: %lx\r\n", (unsigned long)dw_get_device_id());
 
   dw1000.state = DW_STATE_IDLE;
 }
@@ -276,8 +276,11 @@ dw_turn_frame_filtering_on(void)
   /* send new filtering configuration */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&frameFilteringData);
 
+#if DEBUG
   frameFilteringData = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  /* PRINTF("Reading new frameFilteringData: %08x\r\n", frameFilteringData); */
+  PRINTF("Reading new frameFilteringData: %08x\r\n", frameFilteringData); 
+#endif /* DEBUG */
+
 }
 /**
  * \brief Turn off frame filtering and automatic ACK.
@@ -338,7 +341,7 @@ dw_enable_gpio_led(void)
   data |= (1UL << DW_MSGP2) & DW_MSGP2_MASK; /* set GPIO2 as the RXLED output. */
   data |= (1UL << DW_MSGP3) & DW_MSGP3_MASK; /* set GPIO3 as the TXLED output. */
   dw_write_subreg(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE, (uint8_t *)&data);
-  /* required: see manuel p.182 */
+  /* required: see manual p.182 */
   data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
   data |= (1UL << DW_GPDCE) & DW_GPDCE_MASK; /* GPIO De-bounce Clock Enable. */
   data |= (1UL << DW_KHZCLKEN) & DW_KHZCLKEN_MASK; /* Kilohertz clock Enable. */
@@ -372,7 +375,7 @@ dw_disable_gpio_led(void)
   data &= ~DW_MSGP3_MASK; /* reset GPIO3. */
   dw_write_subreg(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE, (uint8_t *)&data);
 
-  /* required: see manuel p.182 */
+  /* required: see manual p.182 */
   data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
   data &= ~DW_GPDCE_MASK; /* reset GPIO De-bounce Clock. */
   data &= ~DW_KHZCLKEN_MASK; /* reset Kilohertz clock. */
@@ -398,7 +401,7 @@ dw_soft_reset(void)
   ctrlReg |= (0x01 << DW_SYSCLKS) & DW_SYSCLKS_MASK;
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
 
-  /* Clear SOFTRESET >> all zero’s */
+  /* Clear SOFTRESET >> all zeros */
   ctrlReg &= ~DW_SOFTRESET_MASK;
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
 
@@ -621,7 +624,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   }
 
   if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
-    lde_repc >>= 3; /* sse page 170. */
+    lde_repc >>= 3; /* see page 170. */
   }
 
   /* === Configure PAC size */
@@ -737,8 +740,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* DW_LOG("Configuration complete."); */
 }
 /**
- * \brief
- * \param[in] rx_conf
+ * \brief Configures the DW1000 to be ready to receive message. 
+ *        See \ref dw1000_tx_conf_t.
+ * \param[in] rx_conf   Configuration specification.
  */
 void
 dw_conf_rx(dw1000_rx_conf_t *rx_conf)
@@ -764,7 +768,8 @@ dw_conf_rx(dw1000_rx_conf_t *rx_conf)
 /*  enableFiltering(); */
 }
 /**
- * \brief Configures the DW1000 to be ready to transmit message. See \ref dw1000_tx_conf_t.
+ * \brief Configures the DW1000 to be ready to transmit message. 
+ *        See \ref dw1000_tx_conf_t.
  *
  * \param[in] tx_conf   Configuration specification.
  */
@@ -775,7 +780,7 @@ dw_conf_tx(dw1000_tx_conf_t *tx_conf)
   /* TODO: Cache data..? */
   /* TODO: Should check dw1000 configuration for FCS enable and add the 2 conditionally. */
   uint32_t data_len = tx_conf->data_len;
-  data_len += 2; /* The +2 is for fcs */
+  data_len += 2; /* The +2 is for FCS */
   dw_set_tx_frame_length(data_len);
 
   /* Delayed transmission */
@@ -790,7 +795,7 @@ dw_conf_tx(dw1000_tx_conf_t *tx_conf)
  * Standard IEEE 802.15.4 UWB frames can be up to 127 bytes long.
  * The value specified here determines the length of the data portion
  * of the transmitted frame. This length includes the two-octet CRC
- * appended automatically (iff this not disable for this send)
+ * appended automatically (if this not disable for this send)
  * at the end of the frame
  *
  * \param frame_len the Transmit Frame Length.
@@ -808,7 +813,7 @@ dw_set_tx_frame_length(uint32_t frame_len)
  * Extended IEEE 802.15.4 UWB frames can be up to 1023 bytes long.
  * The value specified here determines the length of the data portion
  * of the transmitted frame. This length includes the two-octet CRC
- * appended automatically (iff this not disable for this send)
+ * appended automatically (if this not disable for this send)
  * at the end of the frame
  *
  * \param frame_len the Transmit Frame Length.
@@ -902,8 +907,6 @@ dw_conf_print()
   fs_pllcfg_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG);
   fs_plltune_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE);
 
-  float temperature = dw_get_temperature(DW_ADC_SRC_LATEST);
-  float voltage = dw_get_voltage(DW_ADC_SRC_LATEST);
 
   printf("============================\r\n");
   printf("DW1000 Current Configuration\r\n");
@@ -927,9 +930,6 @@ dw_conf_print()
   printf("tc_pgdelay : %08" PRIx32 "\r\n", tc_pgdelay_val);
   printf("fs_pllcfg  : %08" PRIx32 "\r\n", fs_pllcfg_val);
   printf("fs_plltune : %08" PRIx32 "\r\n", fs_plltune_val);
-  printf("============================\r\n");
-  printf("temperature : %f\r\n", (double)temperature);
-  printf("voltage     : %4f\r\n", (double)voltage);
 }
 /*===========================================================================*/
 /* Utility                                                                   */
@@ -1020,8 +1020,8 @@ dw_set_pan_id(uint16_t pan_id)
   dw_write_subreg(DW_REG_PANADR, 0x02, 2, (uint8_t *)&pan_id);
 }
 /**
- * \brief Get the component short adress.
- * \return the component short adress.
+ * \brief Get the component short address.
+ * \return the component short address.
  */
 uint16_t
 dw_get_short_addr()
@@ -1031,8 +1031,8 @@ dw_get_short_addr()
   return panIdShortAddress;
 }
 /**
- * \brief Set the component short adress.
- * \param[in] short_addr the component short adress.
+ * \brief Set the component short address.
+ * \param[in] short_addr the component short address.
  */
 void
 dw_set_short_addr(uint16_t short_addr)
@@ -1072,121 +1072,7 @@ dw_disable_adc()
   pmsc_val &= ~DW_ADCCE_MASK;
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&pmsc_val);
 }
-/**
- * \brief Private function. Forces the ADC to update sensor samples.
- *
- * \bug Seems like the values of tc_sarl are either not updated or updated
- * incorrectly. See DW1000-User_Manual-V2.00.pdf page 56 - "Measuring IC
- * temperature and voltage" for details on how sampling is performed.
- *
- * \todo Make private in documentation.
- */
-void
-dw_adc_sample()
-{
-  /* todo décommenté */
-  /* // Make sure adc clock is enabled */
-  /* dw_enable_adc(); */
 
-  /* // Undocumented procedure to take a sample */
-  /* uint8_t val; */
-  /* val = 0x80; */
-  /* dw_write_subreg(0x28, 0x11, 1, &val); */
-  /* val = 0x0A; */
-  /* dw_write_subreg(0x28, 0x12, 1, &val); */
-  /* val = 0x0F; */
-  /* dw_write_subreg(0x28, 0x12, 1, &val); */
-
-  /* // Take sample. */
-  /* // Wait for reading to complete. */
-  /* // Disable sampling */
-  /* uint8_t tc_sarc_val; */
-  /* tc_sarc_val = DW_SAR_CTRL_MASK; */
-  /* dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_SARC, 1, &tc_sarc_val); */
-  /* clock_delay_usec(200); */
-  /* // old udelay(200); */
-  /* tc_sarc_val = 0; */
-  /* dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_SARC, 1, &tc_sarc_val); */
-
-  return;
-}
-/**
- * \brief Gets a temperature reading from the dw1000.
- *
- * \param[in] temp_source     If given as DW_ADC_SRC_LATEST a new senors
- *                          sample will be taken and reported.
- *                          If given as DW_ADC_SRC_WAKEUP the reading from
- *                          the last wakeup will be used.
- *
- * \return Temperature measurement from adc
- *
- * \bug The values generated by these functions are not to be trusted! There
- * seems to be an error in the \ref dw_adc_sample function.
- */
-float
-dw_get_temperature(dw_adc_src_t temp_source)
-{
-  /* Get calibration data from otp. Tmeas @ 23 degrees resides in addr 0x9. */
-  uint32_t otp_temp = dw_read_otp_32(0x009) & 0xFF;
-  uint32_t read_temp = 0;
-
-  /* Load to CPU sample */
-  switch(temp_source) {
-  case DW_ADC_SRC_LATEST:
-    dw_adc_sample();
-    read_temp = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARL, DW_SUBLEN_TC_SARL);
-    read_temp &= DW_SAR_LTEMP_MASK;
-    read_temp >>= DW_SAR_LTEMP;
-    break;
-
-  case DW_ADC_SRC_WAKEUP:
-    read_temp = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARW, DW_SUBLEN_TC_SARW);
-    read_temp &= DW_SAR_WTEMP_MASK;
-    read_temp >>= DW_SAR_WTEMP;
-    break;
-  }
-
-  return ((float)read_temp - (float)otp_temp) * 1.14f + 23.f;
-}
-/**
- * \brief Gets a voltage reading from the dw1000.
- *
- * \param[in] voltage_source  If given as DW_ADC_SRC_LATEST a new senors
- *                          sample will be taken and reported.
- *                          If given as DW_ADC_SRC_WAKEUP the reading from
- *                          the last wakeup will be used.
- *
- * NOTE: The effective range of measurement is 2.25 V to 3.76 V.
- *
- * \return Voltage measurement from adc
- *
- * \bug The values generated by these functions are not to be trusted! There
- * seems to be an error in the \ref dw_adc_sample function.
- */
-float
-dw_get_voltage(dw_adc_src_t voltage_source)
-{
-  /* Get calibration data from otp. Vmeas @ 3.3V residies in addr 0x8. */
-  uint32_t otp_voltage = dw_read_otp_32(0x008) & 0xFF;
-  uint32_t read_voltage = 0;
-
-  switch(voltage_source) {
-  case DW_ADC_SRC_LATEST:
-    dw_adc_sample();
-    read_voltage = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARL, DW_SUBLEN_TC_SARL);
-    read_voltage &= DW_SAR_LVBAT_MASK;
-    read_voltage >>= DW_SAR_LVBAT;
-    break;
-
-  case DW_ADC_SRC_WAKEUP:
-    read_voltage = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARW, DW_SUBLEN_TC_SARW);
-    read_voltage &= DW_SAR_WVBAT_MASK;
-    read_voltage >>= DW_SAR_WVBAT;
-    break;
-  }
-
-  return ((float)read_voltage - (float)otp_voltage) / 173.f + 3.3f;
-}
 /*===========================================================================*/
 /* Communication quality assessment                                          */
 /*===========================================================================*/
@@ -1215,84 +1101,16 @@ dw_get_fp_ampl()
 {
   return (float)((dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL) & (DW_FP_AMPL2_MASK)) >> DW_FP_AMPL2);
 }
-/**
- * \brief Estimate total power received in all paths.
- *
- * \r\note The function used to calculate this requires a logarithm. Thus this
- * value needs to be post processed. Use 10 * log_10( dw_get_rx_power() ) - a
- * where a is a constant 115.72 for 16 MHZ PRF and 121.74 for 64 MHZ PRF.
- */
-float
-dw_get_rx_power()
-{
-/*   uint64_t rx_fqual_val = dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL); */
-/*   uint32_t rx_finfo_val = dw_read_reg_32(DW_REG_RX_FINFO, DW_LEN_RX_FINFO); */
-/*   float c = (rx_fqual_val & (DW_CIR_PWR_MASK)) >> DW_CIR_PWR; */
-/*   float n = (rx_finfo_val & (DW_RXPACC_MASK)) >> DW_RXPACC; */
-/* //  float a; */
-/*   float rx_power; */
 
-/* //  switch (dw1000.conf.prf) */
-/* //  { */
-/* //    case DW_PRF_16_MHZ: a = 115.72; break; */
-/* //    case DW_PRF_64_MHZ: a = 121.74; break; */
-/* //  } */
 
-/*   // If you have access to logarithm... */
-/*   //rx_power = 10.f * log10( (float)(c * powf(2,17)) / (float)(n*n) ) - a; */
-/*   // This value needs external processing */
-/*   rx_power = (float)(c * powf(2,17)) / (float)(n*n); */
-/*   return rx_power; */
-  return 0;
-}
-/**
- * \brief Calculates the estimated signal power in the first path.
- * \return Estimated reception signal power in the first path. [dBmW]
- *
- * \r\note The function used to calculate this requires a logarithm. Thus this
- * value needs to be post processed. Use 10 * log_10( dw_get_rx_power() ) - a
- * where a is a constant 115.72 for 16 MHZ PRF and 121.74 for 64 MHZ PRF.
- */
-float
-dw_get_fp_power()
-{
-  uint64_t rx_fqual_val = dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL);
-  uint32_t rx_finfo_val = dw_read_reg_32(DW_REG_RX_FINFO, DW_LEN_RX_FINFO);
-  /* Special way to read fp_ampl1, not following ordinary definitions. */
-  uint32_t fp_ampl1_val = dw_read_subreg_32(DW_REG_RX_TIME, 0x7, 0x2);
-
-  float fp_ampl1 = (float)fp_ampl1_val;
-  float fp_ampl2 = (float)((rx_fqual_val & (DW_FP_AMPL2_MASK)) >> DW_FP_AMPL2);
-  float fp_ampl3 = (float)((rx_fqual_val & (DW_FP_AMPL3_MASK)) >> DW_FP_AMPL3);
-  float n = (float)((rx_finfo_val & (DW_RXPACC_MASK)) >> DW_RXPACC);
-/*  float a; */
-  float fp_power;
-
-/*  switch (dw1000.conf.prf) */
-/*  { */
-/*    case DW_PRF_16_MHZ: a = 115.72; break; */
-/*    case DW_PRF_64_MHZ: a = 121.74; break; */
-/*  } */
-
-  float fp_ampl1_2 = (float)(fp_ampl1 * fp_ampl1);
-  float fp_ampl2_2 = (float)(fp_ampl2 * fp_ampl2);
-  float fp_ampl3_2 = (float)(fp_ampl3 * fp_ampl3);
-  float n_2 = (float)(n * n);
-
-  /* Use this if you have math lib. */
-  /* fp_power = 10 * log10( (fp_ampl1_2+fp_ampl2_2+fp_ampl3_2)/(n_2) ) - a; */
-  /* Else, we compute logarithm externally. */
-  fp_power = (fp_ampl1_2 + fp_ampl2_2 + fp_ampl3_2) / (n_2);
-  return fp_power;
-}
 /*===========================================================================*/
 /* RX/TX                                                                     */
 /*===========================================================================*/
 
 /**
- * \brief Get the len of the last frame received.
+ * \brief Get the length of the last frame received.
  * If she is too long return 128
- * \return The len of the last frame received.
+ * \return The length of the last frame received.
  */
 int
 dw_get_rx_len(void)
@@ -1305,9 +1123,9 @@ dw_get_rx_len(void)
   return rx_len;
 }
 /**
- * \brief Get the len of the last frame received.
+ * \brief Get the length of the last frame received.
  * If she is too long return 1024
- * \return The len of the last frame received.
+ * \return The length of the last frame received.
  */
 int
 dw_get_rx_extended_len(void)
@@ -1387,7 +1205,7 @@ dw_disable_rx_timeout()
   PRINTF("CFG: %" PRIx32 "\r\n", cfgReg);
 }
 /**
- * \brief Gets the timestamp for the latest received frame.
+ * \brief Gets the timestamps for the latest received frame.
  */
 uint64_t
 dw_get_rx_timestamp()
@@ -1395,7 +1213,7 @@ dw_get_rx_timestamp()
   return dw_read_reg_64(DW_REG_RX_TIME, 8) & 0x000000FFFFFFFFFFULL;
 }
 /**
- * \brief Gets the timestamp for the latest transmitted frame.
+ * \brief Gets the timestamps for the latest transmitted frame.
  */
 uint64_t
 dw_get_tx_timestamp()
@@ -1424,7 +1242,7 @@ dw_get_antenna_delay()
 }
 /**
  * \brief Setter for the delayed transmit/receive register. If delayed operation
- * is enabled the transmission/receeption will not take place until the system
+ * is enabled the transmission / reception will not take place until the system
  * time has exceeded this value.
  *
  * \r\note The low order nine bits are ignored. Thus, when working with
@@ -1753,7 +1571,7 @@ dw1000_test_RW_longbits()
   if(error == 0) {
     PRINTF("READ WRITE TEST on 1024 tx_buffer: SUCCESS\r\n");
   } else {
-    PRINTF("READ WRITE TEST on 1024 tx_buffer: error: %i disconcordance\r\n", error);
+    PRINTF("READ WRITE TEST on 1024 tx_buffer: error: %i dis-concordance\r\n", error);
   }
 }
 /**
@@ -1849,10 +1667,10 @@ dw_read_reg_64(uint32_t reg_addr, uint16_t reg_len)
   return result;
 }
 /**
- * \brief Reads the value from a subregister on the dw1000 as 32-bit integer.
+ * \brief Reads the value from a sub-register on the dw1000 as 32-bit integer.
  * \param[in] reg_addr      Register address as specified in the manual and by
  *                           the DW_REG_* defines.
- * \param[in] subreg_addr   Subregister address as specified in the manual and
+ * \param[in] subreg_addr   Sub-register address as specified in the manual and
  *                           by the DW_SUBREG_* defines.
  * \param[in] subreg_len    Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the
@@ -1868,10 +1686,10 @@ dw_read_subreg_32(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len)
   return result;
 }
 /**
- * \brief Reads the value from a subregister on the dw1000 as 64-bit integer.
+ * \brief Reads the value from a sub-register on the dw1000 as 64-bit integer.
  * \param[in] reg_addr      Register address as specified in the manual and by
  *                           the DW_REG_* defines.
- * \param[in] subreg_addr   Subregister address as specified in the manual and
+ * \param[in] subreg_addr   Sub-register address as specified in the manual and
  *                           by the DW_SUBREG_* defines.
  * \param[in] subreg_len    Number of bytes to read. Should not be longer than
  *                           the length specified in the manual or the
@@ -1963,7 +1781,7 @@ dw_good_rx_buffer_pointer(void)
   return hsrbp == icrbp;
 }
 /**
- * \brief   Chek if an overrun condition occur in the IC receiver.
+ * \brief   Check if an overrun condition occur in the IC receiver.
  *          If an overrun occur reset the receiver with trxoff and rxon.
  *
  * \return if an overrun condition occur in the IC receiver.
@@ -1976,7 +1794,7 @@ dw_is_overrun(void)
 }
 /**
  * \brief   Apply a receiver-only soft reset.
- *          Call this function if an overrun occur in double beffering mode.
+ *          Call this function if an overrun occur in double buffering mode.
  *          If an overrun occur reset the receiver.
  */
 void

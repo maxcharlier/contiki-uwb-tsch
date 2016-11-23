@@ -133,7 +133,8 @@ void dw1000_us_delay(int ms){
  *                        DW_SUBLEN_* defines.
  * \param[out] p_data     Data read from the device.
  */
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, uint8_t * p_data)
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                    uint16_t subreg_len, uint8_t * p_data)
 {
 
   /* SPI communications */ 
@@ -184,7 +185,8 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len
  *                        DW_SUBLEN_* defines.
  * \param[in] p_data      A stream of bytes to write to device.
  */
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, const uint8_t *p_data)
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                      uint16_t subreg_len, const uint8_t *p_data)
 {
   /* SPI communications */
 

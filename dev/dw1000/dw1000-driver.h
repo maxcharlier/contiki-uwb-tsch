@@ -59,4 +59,18 @@ void dw1000_driver_set_pan_addr(unsigned pan,
                                 unsigned addr,
                                 const uint8_t *ieee_addr);
 
-void dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate, dw1000_preamble_length_t preamble_length, dw1000_prf_t prf);
+void dw1000_driver_config(dw1000_channel_t channel, 
+                          dw1000_data_rate_t data_rate, 
+                          dw1000_preamble_length_t preamble_length, 
+                          dw1000_prf_t prf);
+/*===========================================================================*/
+/* Ranging                                                                   */
+/*===========================================================================*/
+
+void dw1000_driver_ranging_request(void);
+uint64_t dw1000_driver_get_round_time(void);
+uint32_t dw1000_driver_get_reply_time(void);
+void dw1000_driver_set_reply_time(uint32_t reply_time);
+inline void dw1000_schedule_reply(void);
+void dw1000_compute_propagation_time(void);
+uint64_t dw1000_driver_get_propagation_time(void);

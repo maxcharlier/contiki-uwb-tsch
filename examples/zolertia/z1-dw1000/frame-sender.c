@@ -24,7 +24,7 @@ AUTOSTART_PROCESSES(&frame_sender_process);
 PROCESS_THREAD(frame_sender_process, ev, data)
 {
   static struct etimer timer;
-  static struct timer timer_count;
+  // static struct timer timer_count;
   static unsigned long tx_count= 0;
 
   
@@ -47,7 +47,7 @@ PROCESS_THREAD(frame_sender_process, ev, data)
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 #endif
 
-  etimer_set(&timer, CLOCK_SECOND / 80);
+  etimer_set(&timer, CLOCK_SECOND * 2);
   // timer_set(&timer_count, CLOCK_SECOND *10);
   static uint16_t i =0;
   while (1) {
@@ -76,6 +76,7 @@ PROCESS_THREAD(frame_sender_process, ev, data)
       addr.u8[0]= 10;
       addr.u8[1]= 0;
       // rtimer_clock_t t1 = RTIMER_NOW();
+      i = 90;
       packetbuf_copyfrom("Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello Wo", i); //max110 //max248
       /*printf("sending %s message %d to %d.%d\r\n",
 	RIME_TYPE, tx_count, addr.u8[0], addr.u8[1]);*/

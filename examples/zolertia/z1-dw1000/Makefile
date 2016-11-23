@@ -66,6 +66,8 @@ screen-10:
 
 sender:
 	make frame-sender.upload MOTES=$(PORT_Z1_6)
+anchor:
+	make anchor.upload MOTES=$(PORT_Z1_6)
 sender-debug:
 	make frame-sender-debug.upload MOTES=$(PORT_Z1_6)
 

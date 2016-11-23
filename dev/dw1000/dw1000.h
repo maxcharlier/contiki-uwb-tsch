@@ -54,7 +54,8 @@
 /*================================ Defines ==================================*/
 
 /* frame filtering bits */
-#define DW_CFG_FF_ALL_EN       0x000001FEUL    /* Frame filtering options all frames allowed */
+#define DW_CFG_FF_ALL_EN  0x000001FEUL /* Frame filtering options all 
+                                          frames allowed */
 #define DW_FFAR 6
 #define DW_FFA4 7
 #define DW_FFA5 8
@@ -77,7 +78,7 @@
  * are ignored by the device, thus to get the correct manual timestamping
  * behaviour this needs to be accounted for.
  */
-#define DX_TIMESTAMP_CLEAR_LOW_9 (0xFFFFFFFFFFFFFE00ULL)
+#define DX_TIMESTAMP_CLEAR_LOW_9 ((uint64_t) 0xFFFFFFFFFFFFFE00ULL)
 
 /**
  * \def DW_ERROR(...)
@@ -103,7 +104,8 @@ typedef enum {
  */
 typedef enum {
   DW_STATE_UNINITIALIZED = 0, /* \brief DW1000 uninitialized state. */
-  DW_STATE_INITIALIZING,      /* \brief DW1000 currently running initialization.*/
+  DW_STATE_INITIALIZING,      /* \brief DW1000 currently running 
+                               *  initialization.*/
   DW_STATE_IDLE,              /* \brief DW1000 idle state.*/
   DW_STATE_SLEEP,             /* \brief DW1000 has enetered sleep mode.*/
   DW_STATE_DEEP_SLEEP,        /* \brief DW1000 has enetered deep sleep mode.*/
@@ -192,7 +194,8 @@ typedef enum {
 } dw1000_preamble_length_t;
 
 /**
- * \brief The preamble code determines the specific pulse sequence of the preamble.
+ * \brief The preamble code determines the specific pulse sequence of 
+ *        the preamble.
  */
 typedef enum {
   DW_PREAMBLE_CODE_1 = 1,
@@ -456,12 +459,12 @@ extern dw1000_base_driver dw1000;
 
 /*===========================================================================*/
 /*============================ Public Functions =============================*/
-void dw1000_init();
+void dw1000_init(void);
 
 /* Configuration */
 void dw_conf(dw1000_base_conf_t *dw_conf);
 void dw_conf_rx(dw1000_rx_conf_t *rx_conf);
-void dw_conf_print();
+void dw_conf_print(void);
 void dw_turn_frame_filtering_off(void);
 void dw_turn_frame_filtering_on(void);
 void dw_enable_gpio_led(void);
@@ -476,11 +479,11 @@ void dw_init_rx(void);
 uint64_t dw_ms_to_device_time(float t);
 
 /* Device dependent */
-uint16_t dw_get_pan_id();
-uint16_t dw_get_short_addr();
-uint64_t dw_get_extendedUniqueID();
-uint32_t dw_get_device_id();
-uint64_t dw_get_device_time();
+uint16_t dw_get_pan_id(void);
+uint16_t dw_get_short_addr(void);
+uint64_t dw_get_extendedUniqueID(void);
+uint32_t dw_get_device_id(void);
+uint64_t dw_get_device_time(void);
 void dw_set_pan_id(uint16_t pan_id);
 void dw_set_short_addr(uint16_t short_addr);
 void dw_set_extendedUniqueID(uint64_t euid);
@@ -488,38 +491,42 @@ void print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength);
 void dw_soft_reset(void);
 
 /* Diagnostics */
-float dw_get_noise_level();
-float dw_get_fp_ampl();
+float dw_get_noise_level(void);
+float dw_get_fp_ampl(void);
 
 /* RX/TX */
-void dw_enable_automatic_receiver_Re_Enable();
-void dw_disable_automatic_receiver_Re_Enable();
-void dw_get_rx_error();
+void dw_enable_automatic_receiver_Re_Enable(void);
+void dw_disable_automatic_receiver_Re_Enable(void);
+void dw_get_rx_error(void);
 int  dw_get_rx_len(void);
-void dw_set_tx_frame_length(uint32_t frame_len);
+void dw_set_tx_frame_length(uint16_t frame_len);
 void dw_enable_delayed_tx(uint64_t dx_timestamp);
 void dw_enable_delayed_rx(uint64_t dx_timestamp);
 void dw_disable_delayed_tx_rx(void);
 
 void     dw_set_rx_timeout(uint16_t timeout);
-uint16_t dw_get_rx_timeout();
-void     dw_enable_rx_timeout();
-void     dw_disable_rx_timeout();
+uint16_t dw_get_rx_timeout(void);
+void     dw_enable_rx_timeout(void);
+void     dw_disable_rx_timeout(void);
 
-uint64_t dw_get_rx_timestamp();
-uint64_t dw_get_tx_timestamp();
+/* Ranging  / timestamps */
+uint64_t dw_get_rx_timestamp(void);
+inline uint64_t dw_get_rx_raw_timestamp(void);
+uint64_t dw_get_tx_timestamp(void);
+inline void  dw_get_tx_raw_timestamp(uint64_t timestamp);
 void     dw_set_antenna_delay(uint16_t delay);
-uint16_t dw_get_antenna_delay();
-
-uint64_t dw_get_dx_timestamp();
+uint16_t dw_get_antenna_delay(void);
+uint64_t dw_get_dx_timestamp(void);
 void     dw_set_dx_timestamp(uint64_t timestamp);
+void     dw_enable_ranging_frame(void);
+void     dw_disable_ranging_frame(void);
+uint8_t is_ranging_frame(void);
 
 void dw_clear_pending_interrupt(uint64_t mask);
 
 /* Extended frame format. */
 void dw_enable_extended_frame(void);
 void dw_disable_extended_frame(void);
-void dw_set_tx_extended_frame_length(uint32_t frame_len);
 int  dw_get_rx_extended_len(void);
 
 /* RX double buffering */
@@ -533,13 +540,12 @@ void dw_db_mode_clear_pending_interrupt(void);
 void dw_db_init_rx(void);
 
 /* ACK */
-void dw_enable_automatic_acknowledge();
-void dw_disable_automatic_acknowledge();
+void dw_enable_automatic_acknowledge(void);
+void dw_disable_automatic_acknowledge(void);
 void dw_config_switching_tx_to_rx_ACK(dw1000_data_rate_t speed);
-void dw_init_tx_ack(void);
 
-void dw_clear_receive_status();
-void dw_clear_transmit_status();
+void dw_clear_receive_status(void);
+void dw_clear_transmit_status(void);
 int  dw_is_receive_status(uint64_t status);
 int  dw_is_receive_done(uint64_t status);
 int  dw_is_receive_CRC(uint64_t status);
@@ -550,16 +556,16 @@ int  dw_is_receive_timeout(uint64_t status);
 /*=========================== Private Functions =============================*/
 void dw_enable_interrupt(uint32_t mask);
 
-void dw_idle();
+void dw_idle(void);
 
-void dw_init_tx();
+void dw_init_tx(uint8_t wait_ack, uint8_t delayed);
 void dw_suppress_auto_FCS_tx(void);
 
 /*===========================================================================*/
 /*============================ Test Functions ===============================*/
-void dw1000_test_tx_del_on();
-void dw1000_test_RW_longbits();
-void dw1000_test();
+void dw1000_test_tx_del_on(void);
+void dw1000_test_RW_longbits(void);
+void dw1000_test(void);
 
 /*===========================================================================*/
 /*========================== Device communication ===========================*/
@@ -570,8 +576,10 @@ inline void dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data);
 uint32_t dw_read_reg_32(uint32_t reg_addr, uint16_t reg_len);
 uint64_t dw_read_reg_64(uint32_t reg_addr, uint16_t reg_len);
 /* Sub registers */
-uint32_t dw_read_subreg_32(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len);
-uint64_t dw_read_subreg_64(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len);
+uint32_t dw_read_subreg_32(uint32_t reg_addr, uint16_t subreg_addr, 
+                           uint16_t subreg_len);
+uint64_t dw_read_subreg_64(uint32_t reg_addr, uint16_t subreg_addr, 
+                           uint16_t subreg_len);
 
 /* OTP */
 uint32_t dw_read_otp_32(uint16_t otp_addr);
@@ -588,7 +596,8 @@ uint32_t dw_read_otp_32(uint16_t otp_addr);
  */
 typedef enum {
   DW_SPI_TRANSFER_DONE = 0, /* Indicates this is last transfer in transaction */
-  DW_SPI_TRANSFER_CONT = 1  /* Indicates that there are more transfers to be done. */
+  DW_SPI_TRANSFER_CONT = 1  /* Indicates that there are more transfers to be 
+                               done. */
 } dw_spi_transfer_flag_t;
 
 #endif /* DW1000_H_ */

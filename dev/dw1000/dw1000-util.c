@@ -46,117 +46,168 @@
 #include "dw1000.h"
 
 /**
- * \brief Make a 802.15.4 data frame with short (16-bit) address.
+ * \brief     Make a 802.15.4 data frame.
+ *            If the PANID source and destination are the same, we use the PANID
+ *            compression to reduction the length of the frame.
  *
- * \param ACK         ACK Request.
- * \param seq_num     Sequence Number.
- * \param dest_pan_id Destination PAN Identifier.
- * \param dest_addr   Destination Address  (16-bit) address.
- * \param src_pan_id  Source PAN Identifier.
- * \param src_addr    Source Address (16-bit) address.
- * \param data_len    Len of Frame Payload.
- * \param data        Frame Payload.
- * \param[out]  frame       Pointer to a table containing frame header.
- * \return      The length of the frame.
+ * \param ack           ACK Request.
+ * \param seq_num       Sequence Number.
+ * \param dest_pan_id   Destination PAN Identifier.
+ * \param dest_add_type Destination type, 64 or 16 bits address.
+ *                        IEEE_SHORT_ADDR define an 16-bit address.
+ *                        IEEE_EXTENDED_ADDR define an 64-bit address.
+ * \param dest_addr     Destination address field.
+ * \param src_pan_id    Source PAN Identifier.
+ * \param src_add_type  Source type, 64 or 16 bits address.
+ *                        IEEE_SHORT_ADDR define an 16-bit address.
+ *                        IEEE_EXTENDED_ADDR define an 64-bit address.
+ * \param src_addr      Source address field.
+ * \param data_len      Len of the frame payload.
+ * \param data          The frame payload.
+ * \param frame_len     Len of the all frame.
+ * \param frame         Pointer to a table containing the frame header.
+ * \return              The length of the frame.
  */
 uint8_t
-make_frame_short(uint8_t ACK, uint8_t seq_num,
-                 uint16_t dest_pan_id, uint16_t dest_addr,
-                 uint16_t src_pan_id, uint16_t src_addr,
-                 uint8_t data_len, uint8_t *data,
-                 uint8_t *frame, uint8_t frame_len)
+make_frame(uint8_t ack, uint8_t seq_num,
+           uint16_t dest_pan_id, uint8_t dest_add_type, uint64_t dest_addr,
+           uint16_t src_pan_id, uint8_t src_add_type, uint64_t src_addr,
+           uint8_t data_len, uint8_t *data,
+           uint8_t frame_len, uint8_t *frame)
 {
-  /* assert(data_len < 128 - 15); */
-  uint8_t len = 11 + data_len;
+  uint8_t header = 11, dest_len = 2, src_len = 2;
+  /* if we use an extended address we use 8 bytes in place of 2 bytes*/
+  if(dest_add_type == IEEE_EXTENDED_ADDR){
+    header += 6;
+    dest_len = 8;
+  }
+  if(src_add_type == IEEE_EXTENDED_ADDR){
+    header += 6;
+    src_len = 8;
+  }
+  if(src_pan_id == dest_pan_id){
+    /* PAN ID compression */
+    header -= 2;
+  }
+  uint8_t len = header + data_len;
   if(frame_len < len) {
     return len;
   }
 
+  /* for debugging
+  assert(data_len < 128 - 15);*/
+
   uint16_t frame_control = 0;
   frame_control |= 1;     /* Frame type field: data */
-  if(ACK) {
-    frame_control |= 1 << 5; /* ACK Request */
+  if(ack) {
+    frame_control |= 1 << IEEE_ACK_FIELD_OFSSET; /* ACK Request */
   }
-  frame_control |= 0x02 << 10; /* Destination address field is a short (16-bit) address. */
-  frame_control |= 0x01 << 12; /* Frame version field: indicate an IEEE 802.15.4 frame */
-  frame_control |= 0x02 << 14; /* The source address field is a short (16-bit) address. */
+  /* Destination address field. */
+  frame_control |= dest_add_type << IEEE_DEST_ADRESS_FIELD_OFSSET; 
+  /* Frame version field: indicate an IEEE 802.15.4 frame */
+  frame_control |= 0x01 << IEEE_VERSION_FIELD_OFSSET; 
+  /* The source address field. */
+  frame_control |= src_add_type << IEEE_SOURCE_ADRESS_FIELD_OFFSET; 
 
   frame[0] = frame_control & 0xFF;
   frame[1] = frame_control >> 8;
   frame[2] = seq_num;
-  frame[3] = (uint8_t)dest_pan_id & 0xFF;
-  frame[4] = (uint8_t)(dest_pan_id >> 8);
-  frame[5] = (uint8_t)dest_addr & 0xFF;
-  frame[6] = (uint8_t)(dest_addr >> 8);
-  frame[7] = (uint8_t)src_pan_id & 0xFF;
-  frame[8] = (uint8_t)(src_pan_id >> 8);
-  frame[9] = (uint8_t)src_addr & 0xFF;
-  frame[10] = (uint8_t)(src_addr >> 8);
-  int i;
-  for(i = 0; i < data_len; i++) {
-    frame[i + 11] = data[i];
+
+  /* dest pan id */
+  frame[3] = (uint8_t) (dest_pan_id & 0xFF);
+  frame[4] = (uint8_t) (dest_pan_id >> 8);
+  uint8_t i;
+  /* dest addr */
+  for(i = 0; i < dest_len; i++) {
+    frame[5 + i] = (uint8_t) ((dest_addr >> (i * 8)) & 0xFF);
   }
+
+  uint8_t offset = 5 + dest_len;
+  /* src pan id */
+  if(src_pan_id == dest_pan_id){
+    /* PAN ID compression */ 
+    frame[0] |= (1 << 6);
+  } else{
+    frame[offset] = (uint8_t) (src_pan_id & 0xFF);
+    frame[offset + 1] = (uint8_t) (src_pan_id >> 8);
+    offset += 2;
+  }
+  /* src addr */
+  for(i = 0; i < src_len; i++) {
+    frame[offset + i] = (uint8_t) ((src_addr >> (i * 8)) & 0xFF);
+  }
+  offset += src_len;
+
+  /* copy the data payload */
+  for(i = 0; i < data_len; i++) {
+    frame[offset + i] = data[i];
+  }
+
   return len;
 }
 /**
- * \brief             Make a 802.15.4 data frame with
- *                    extended (64-bit) address.
+ * \brief   Make a 802.15.4 data frame in response of an 802.15.4 
+ *          data frame.
  *
- * \param ACK         ACK Request.
- * \param seq_num     Sequence Number.
- * \param dest_pan_id Destination PAN Identifier.
- * \param dest_addr   Destination address field is an extended
- *                           (64-bit) address.
- * \param src_pan_id  Source PAN Identifier.
- * \param src_addr    Source address field is an extended
- *                           (64-bit) address.
- * \param data_len    Len of Frame Payload.
- * \param data        Frame Payload.
- * \param frame       Pointer to a table containing the frame header.
- * \return            The length of the frame.
+ * \param ack           ACK Request.
+ * \param seq_num       Sequence Number.
+ * \param src_frame_len Len of the source data frame.
+ * \param src_frame     The source data frame.
+ * \param resp_data_len Len of the frame payload.
+ * \param resp_data     The frame payload.
+ * \param frame_len     Len of the all frame.
+ * \param frame         Pointer to a table containing the frame header.
+ * \return              The length of the frame.
  */
 uint8_t
-make_frame_extended(uint8_t ACK, uint8_t seq_num,
-                    uint16_t dest_pan_id, uint64_t dest_addr,
-                    uint16_t src_pan_id, uint64_t src_addr,
-                    uint8_t data_len, uint8_t *data,
-                    uint8_t *frame, uint8_t frame_len)
+make_response(uint8_t ack, uint8_t seq_num,
+           uint8_t src_frame_len, uint8_t *src_frame,
+           uint8_t resp_data_len, uint8_t *resp_data,
+           uint8_t frame_len, uint8_t *frame)
 {
-  /* assert(data_len < 128 - 15); */
-  uint8_t len = 23 + data_len;
-  if(frame_len < len) {
-    return len;
+  uint16_t frame_control = src_frame[1] << 8 | src_frame[0];
+
+  uint8_t dest_add_type = (frame_control & IEEE_DEST_ADRESS_FIELD_MASK) 
+                          >> IEEE_DEST_ADRESS_FIELD_OFSSET;
+  uint16_t dest_pan_id = src_frame[3] | src_frame[4] << 8;
+  uint8_t src_add_type = (frame_control & IEEE_SOURCE_ADRESS_FIELD_MASK) 
+                          >> IEEE_SOURCE_ADRESS_FIELD_OFFSET;
+  uint64_t dest_addr = 0x0;
+  uint64_t src_addr = 0x0;
+  uint8_t dest_len = 2, src_len = 2;
+  /* if we use an extended address we use 8 bytes in place of 2 bytes*/
+  if(dest_add_type == IEEE_EXTENDED_ADDR){
+    dest_len = 8;
+  }
+  if(src_add_type == IEEE_EXTENDED_ADDR){
+    src_len = 8;
   }
 
-  uint16_t frame_control = 0;
-  frame_control |= 1;     /* Frame type field: data */
-  if(ACK) {
-    frame_control |= 1 << 5; /* ACK Request */
-  }
-  frame_control |= 0x03 << 10; /* Destination address field is a extended (64-bit) address. */
-  frame_control |= 0x01 << 12; /* Frame version field: indicate an IEEE 802.15.4 frame */
-  frame_control |= 0x03 << 14; /* The source address field is a extended (64-bit) address. */
-
-  frame[0] = frame_control & 0xFF;
-  frame[1] = frame_control >> 8;
-  frame[2] = seq_num;
-
-  frame[3] = (uint8_t)dest_pan_id & 0xFF;
-  frame[4] = (uint8_t)(dest_pan_id >> 8);
-  int i;
-  for(i = 0; i < 8; i++) {
-    frame[5 + i] = (uint8_t)((dest_addr >> (i * 8)) & 0xFF);
+  uint8_t i;
+  /* destination address */
+  for(i = 0; i < dest_len; i++) {
+    dest_addr |= src_frame[5 + i] << i * 8;
   }
 
-  frame[13] = (uint8_t)src_pan_id & 0xFF;
-  frame[14] = (uint8_t)(src_pan_id >> 8);
-  for(i = 0; i < 8; i++) {
-    frame[15 + i] = (uint8_t)((src_addr >> (i * 8)) & 0xFF);
+  uint8_t offset = 5 + dest_len;
+  /* source pan id */
+  uint16_t src_pan_id = dest_pan_id;
+  if(!(frame_control & (1 << 6))){
+    /* if the PANID compression was not triggered */
+    src_pan_id = src_frame[offset] | src_frame[offset + 1] << 8;
+    offset += 2;
   }
-  for(i = 0; i < data_len; i++) {
-    frame[i + 23] = data[i];
+  
+  /* source address */
+  for(i = 0; i < src_len; i++) {
+    src_addr |= src_frame[offset + i] << i * 8;
   }
-  return len;
+  return make_frame(ack, seq_num, 
+                    src_pan_id, src_add_type, src_addr,
+                    dest_pan_id, dest_add_type, dest_addr,
+                    resp_data_len, resp_data,
+                    frame_len, frame);
+
 }
 /**
  * \brief  Print a buffer with a prefix.
@@ -214,7 +265,8 @@ print_ext_id(uint8_t *frame)
 }
 /* Declare all possible frame type */
 static const char *FRAME_TYPES[8] = { "beacon", "data", "ACK", "MAC command",
-                                      "reserved", "reserved", "reserved", "reserved" };
+                                      "reserved", "reserved", "reserved", 
+                                      "reserved" };
 
 /**
  * \brief             Print a frame.
@@ -225,7 +277,7 @@ static const char *FRAME_TYPES[8] = { "beacon", "data", "ACK", "MAC command",
 void
 print_frame(uint16_t frame_len, uint8_t *frame)
 {
-  if(frame_len >= 11) {
+  if(frame_len >= 9) {
     print_buf("  ", frame, frame_len);
 
     printf("802.15.4 MAC Frame\r\n");
@@ -235,7 +287,8 @@ print_frame(uint16_t frame_len, uint8_t *frame)
     printf("  Frame ctrl.  : %.4X\r\n", frame_control);
     printf("  Type         : %s\r\n", FRAME_TYPES[frame_control & 7]);
     printf("  ACK req.     : %s\r\n", (frame[0] & (1 << 5)) ? "true" : "false");
-    printf("  PAN ID compress.     : %s\r\n", (frame[0] & (1 << 6)) ? "true" : "false");
+    printf("  PAN ID compress.     : %s\r\n", 
+                                      (frame[0] & (1 << 6)) ? "true" : "false");
     printf("  Seq. num.    : %d\r\n", frame[2]);
 
     int i = 3;
@@ -262,12 +315,12 @@ print_frame(uint16_t frame_len, uint8_t *frame)
     }
     if((frame_control & (0x03 << 14)) == (0x03 << 14)) {
       printf("\r\n      EID    : ");
-      print_ext_id(frame + i + 2);
+      print_ext_id(frame + i);
       printf("\r\n");
       i += 8;
     } else if((frame_control & (0x02 << 14)) == (0x02 << 14)) {
       printf("\r\n      addr   : ");
-      print_short_id(frame + i + 2);
+      print_short_id(frame + i);
       printf("\r\n");
       i += 2;
     }
@@ -284,7 +337,8 @@ print_frame(uint16_t frame_len, uint8_t *frame)
     }
     printf("\r\n");
     if(frame[0] & (1 << 5)) {
-      printf("  CRC     : %02X%02X\r\n", frame[frame_len + 1], frame[frame_len]);
+      printf("  CRC     : %02X%02X\r\n", 
+                                        frame[frame_len + 1], frame[frame_len]);
     }
   } else if(frame_len == 5) {
     printf("ACK received.\r\n");
@@ -487,10 +541,12 @@ print_sys_status(uint64_t sys_status)
  *        Note: The PRF do not impact the approximation of the theoretical time.
  * \param data_lenght        The data length in bytes.
  *
- * \return An approximation of the theoretical time of a transmission in millisecond.
+ * \return An approximation of the theoretical time of a transmission 
+ *         in millisecond.
  */
 long int
-theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, uint8_t prf, uint32_t data_lenght)
+theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, 
+                              uint8_t prf, uint32_t data_lenght)
 {
   uint16_t t_shr, t_prf, t_mac;
   uint32_t s_mac; /* to have a correct precision */
@@ -521,19 +577,19 @@ theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, uint
 
   return t_shr + t_prf + t_mac;
 }
-
 /**
  * \brief Convert a duration in micro second to a number of clock ticks
  * \param duration A delay in micro second.
  */
-inline rtimer_clock_t microsecond_to_clock_tik(int duration) {
+inline rtimer_clock_t 
+microsecond_to_clock_tik(int duration) {
   return ((( (long int) RTIMER_SECOND) * duration) / 1000000) + 1;
 }
-
 /**
  * \brief Convert a number of clock ticks to a duration in micro second 
  * \param clock_tiks A number of clock ticks.
  */
-inline int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks) {
+inline int16_t 
+clock_ticks_to_microsecond(rtimer_clock_t clock_ticks) {
   return ((long int) (1000000l * clock_ticks) / ((long int) RTIMER_SECOND)) + 1;
 }

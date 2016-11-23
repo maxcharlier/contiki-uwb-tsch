@@ -60,16 +60,20 @@
 #endif
 
 /**
- * \brief Used to convert a timestamp read from the device using
+ * \brief Used to convert a timestamps read from the device using
  * \ref dw_get_rx_timestamp or \ref dw_get_tx_timestamp to real seconds.
  */
 #define DW_MS_TO_DEVICE_TIME_SCALE 62.6566416e6f
 
-/* PLATFORM DEPENDENT */
-/* these following functions are defined in platform/[platform]/dev/dw1000-arc.c */
+/** PLATFORM DEPENDENT
+ *  these following functions are defined in 
+ *  platform/[platform]/dev/dw1000-arc.c
+ */
 void dw1000_us_delay(int ms);
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, uint8_t *p_data);
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len, const uint8_t *data);
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                    uint16_t subreg_len, uint8_t *p_data);
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                    uint16_t subreg_len, const uint8_t *data);
 /* end PLATFORM DEPENDENT */
 
 /*===========================================================================*/
@@ -262,15 +266,21 @@ void
 dw_turn_frame_filtering_on(void)
 {
   uint32_t frameFilteringData = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  /* PRINTF("Reading frameFilteringData:  %llx\r\n",  (unsigned long long)  frameFilteringData); */
+  /* PRINTF("Reading frameFilteringData:  %llx\r\n",  
+              (unsigned long long)  frameFilteringData); */
 
   frameFilteringData &= 0xFFFFFE00;   /* Clear Filtering bit */
   frameFilteringData |= DW_FFEN_MASK; /* Frame Filtering Enable. */
-  frameFilteringData |= DW_FFBC_MASK; /* Frame Filtering Behave as a Coordinator. */
-  frameFilteringData |= DW_FFAB_MASK; /* Frame Filtering Allow Beacon frame reception. */
-  frameFilteringData |= DW_FFAD_MASK; /* Frame Filtering Allow Data frame reception. */
-  frameFilteringData |= DW_FFAA_MASK; /* Frame Filtering Allow Acknowledgment frame reception. */
-  frameFilteringData |= DW_FFAM_MASK; /* Frame Filtering Allow MAC command frame reception. */
+  frameFilteringData |= DW_FFBC_MASK; /* Frame Filtering Behave as a 
+                                          Coordinator. */
+  frameFilteringData |= DW_FFAB_MASK; /* Frame Filtering Allow Beacon frame 
+                                          reception. */
+  frameFilteringData |= DW_FFAD_MASK; /* Frame Filtering Allow Data frame 
+                                          reception. */
+  frameFilteringData |= DW_FFAA_MASK; /* Frame Filtering Allow Acknowledgment 
+                                          frame reception. */
+  frameFilteringData |= DW_FFAM_MASK; /* Frame Filtering Allow MAC command frame
+                                          reception. */
   /* PRINTF("Modified frameFilteringData: %08x\r\n", frameFilteringData); */
 
   /* send new filtering configuration */
@@ -292,16 +302,16 @@ dw_turn_frame_filtering_off(void)
   /* read current value from system configuration register */
   uint32_t frameFilteringData = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   /* switch all filtering off and disable filtering */
-  frameFilteringData &= ~(DW_CFG_FF_ALL_EN | DW_FFEN_MASK); /* switch it all off */
-  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&frameFilteringData);
+  /* switch it all off */
+  frameFilteringData &= ~(DW_CFG_FF_ALL_EN | DW_FFEN_MASK); 
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &frameFilteringData);
 }
 /**
  * \brief Enable the extended frame format.
- *    The default setting gives IEEE standard PHR encoding and a maximum data
+ *      The default setting gives IEEE standard PHR encoding and a maximum data
  *      payload of 127 octets. The other option enables the proprietary long
  *      frames mode which allows a data payload of up to 1023 octets.
  *      In this mode the PHR encoding does not follow the IEEE standard.
- *
  */
 void
 dw_enable_extended_frame(void)
@@ -312,11 +322,10 @@ dw_enable_extended_frame(void)
 }
 /**
  * \brief Disable the extended frame format.
- *    The default setting gives IEEE standard PHR encoding and a maximum data
+ *      The default setting gives IEEE standard PHR encoding and a maximum data
  *      payload of 127 octets. The other option enables the proprietary long
  *      frames mode which allows a data payload of up to 1023 octets.
  *      In this mode the PHR encoding does not follow the IEEE standard.
- *
  */
 void
 dw_disable_extended_frame(void)
@@ -335,58 +344,80 @@ dw_enable_gpio_led(void)
 {
   uint32_t data;
   /* set GPIO to LED */
-  data = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE);
-  data |= (1UL << DW_MSGP0) & DW_MSGP0_MASK;  /* set GPIO0 as the RXOKLED output. */
-  data |= (1UL << DW_MSGP1) & DW_MSGP1_MASK; /* set GPIO1 as the SFDLED output. */
-  data |= (1UL << DW_MSGP2) & DW_MSGP2_MASK; /* set GPIO2 as the RXLED output. */
-  data |= (1UL << DW_MSGP3) & DW_MSGP3_MASK; /* set GPIO3 as the TXLED output. */
-  dw_write_subreg(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE, (uint8_t *)&data);
+  data = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, 
+                            DW_SUBLEN_GPIO_MODE);
+  data |= (1UL << DW_MSGP0) & DW_MSGP0_MASK; /* set GPIO0 as the RXOKLED
+                                                  output. */
+  data |= (1UL << DW_MSGP1) & DW_MSGP1_MASK; /* set GPIO1 as the SFDLED
+                                                  output. */
+  data |= (1UL << DW_MSGP2) & DW_MSGP2_MASK; /* set GPIO2 as the RXLED
+                                                  output. */
+  data |= (1UL << DW_MSGP3) & DW_MSGP3_MASK; /* set GPIO3 as the TXLED
+                                                  output. */
+  dw_write_subreg(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE, 
+                  (uint8_t *)&data);
   /* required: see manual p.182 */
-  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
+  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 
+                            DW_SUBLEN_PMSC_CTRL0);
   data |= (1UL << DW_GPDCE) & DW_GPDCE_MASK; /* GPIO De-bounce Clock Enable. */
   data |= (1UL << DW_KHZCLKEN) & DW_KHZCLKEN_MASK; /* Kilohertz clock Enable. */
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&data);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&data);
 
   /* active blinking mode */
-  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC);
+  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, 
+                            DW_SUBLEN_PMSC_LEDC);
   data |= (1UL << DW_BLNKEN) & DW_BLNKEN_MASK; /* enable blink mode */
-  data |= (0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK; /* force leds to blink once */
+  data |= (0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK; /* force leds to blink 
+                                                      once */
   data &= ~DW_BLINK_TIM_MASK; /* set Blink time count value to 0 */
-  data |= (0xF << DW_BLINK_TIM) & DW_BLINK_TIM_MASK; /* blink time to 20ms (default 400ms) */
+  data |= (0xF << DW_BLINK_TIM) & DW_BLINK_TIM_MASK; /* blink time to 20ms 
+                                                        (default 400ms) */
 
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, (uint8_t *)&data);
-  data &= ~((0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK); /* reset force blink bits. needed to make the leds blinking */
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, (uint8_t *)&data);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
+                  (uint8_t *)&data);
+
+  /* reset force blink bits. Needed to make the leds blinking */
+  data &= ~((0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK); 
+
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
+                  (uint8_t *)&data);
 }
 /**
- * Configure GPIO mode:
- *    Disable interrupt TX, RX,
- *    DIsable RX, TX, SFD and RK0 LED.
+ * \brief Configure GPIO mode:
+ *        Disable interrupt TX, RX,
+ *        DIsable RX, TX, SFD and RK0 LED.
  */
 void
 dw_disable_gpio_led(void)
 {
   uint32_t data;
   /* set GPIO to LED */
-  data = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE);
+  data = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, 
+                            DW_SUBLEN_GPIO_MODE);
   data &= ~DW_MSGP0_MASK; /* reset GPIO0 */
   data &= ~DW_MSGP1_MASK; /* reset GPIO1 */
   data &= ~DW_MSGP2_MASK; /* reset GPIO2 */
   data &= ~DW_MSGP3_MASK; /* reset GPIO3. */
-  dw_write_subreg(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE, (uint8_t *)&data);
+  dw_write_subreg(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, DW_SUBLEN_GPIO_MODE, 
+                  (uint8_t *)&data);
 
   /* required: see manual p.182 */
-  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
+  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 
+                            DW_SUBLEN_PMSC_CTRL0);
   data &= ~DW_GPDCE_MASK; /* reset GPIO De-bounce Clock. */
   data &= ~DW_KHZCLKEN_MASK; /* reset Kilohertz clock. */
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&data);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&data);
 
   /* disable blinking mode */
-  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC);
+  data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, 
+                            DW_SUBLEN_PMSC_LEDC);
   data &= ~DW_BLNKEN_MASK; /* reset blink mode */
   data &= ~DW_BLNKNOW_MASK; /* force leds to blink once */
   data &= ~DW_BLINK_TIM_MASK; /* reset Blink time count value */
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, (uint8_t *)&data);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
+                  (uint8_t *)&data);
 }
 /**
  * \brief apply a soft reset
@@ -396,28 +427,34 @@ dw_soft_reset(void)
 {
   /* Set SYSCLKS to 01 > Force system clock to be the 19.2 MHz XTI clock. */
   uint32_t ctrlReg;
-  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
+  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                 (uint8_t *)&ctrlReg);
   ctrlReg &= ~DW_SYSCLKS_MASK;
   ctrlReg |= (0x01 << DW_SYSCLKS) & DW_SYSCLKS_MASK;
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&ctrlReg);
 
   /* Clear SOFTRESET >> all zeros */
   ctrlReg &= ~DW_SOFTRESET_MASK;
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&ctrlReg);
 
-  /* Source: 10us sleep > https://github.com/lab11/dw1000-driver/blob/master/deca_device.c */
-  /* DW1000 needs a 10us sleep to let clk PLL lock after reset - the PLL will automatically lock after the reset */
+  /* Source: 10us sleep : 
+   * https://github.com/lab11/dw1000-driver/blob/master/deca_device.c
+   * The DW1000 needs a 10us sleep to let clk PLL lock after reset - 
+   * the PLL will automatically lock after the reset */
   dw1000_us_delay(10);
 
   /* Set SOFTRESET to all ones */
   ctrlReg &= ~DW_SYSCLKS_MASK; /* Set SYSCLKS to 00 > Auto system clock. */
   ctrlReg |= DW_SOFTRESET_MASK; /* Set SOFTRESET to all ones */
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&ctrlReg);
 
   dw_idle(); /* force to idle */
 }
 /**
- * \brief Uploads and applies a given configuration to the dw1000.
+ * \brief Uploads and applies a given configuration to the DW1000.
  *
  * \param[in] dw_conf   Configuration to be applied.
  */
@@ -722,20 +759,34 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&sys_cfg_val);
   dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *)&tx_fctrl_val);
   dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *)&chan_ctrl_val);
-  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1, (uint8_t *)&agc_tune1_val);
-  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2, (uint8_t *)&agc_tune2_val);
-  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE3, DW_SUBLEN_AGC_TUNE3, (uint8_t *)&agc_tune3_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b, DW_SUBLEN_DRX_TUNE0b, (uint8_t *)&drx_tune0b_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a, DW_SUBLEN_DRX_TUNE1a, (uint8_t *)&drx_tune1a_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b, (uint8_t *)&drx_tune1b_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2, (uint8_t *)&drx_tune2_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h, (uint8_t *)&drx_tune4h_val);
-  dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH, (uint8_t *)&rf_rxctrl_val);
-  dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL, (uint8_t *)&rf_txctrl_val);
-  dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY, (uint8_t *)&tc_pgdelay_val);
-  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG, (uint8_t *)&fs_pllcfg_val);
-  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE, (uint8_t *)&fs_plltune_val);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC, (uint8_t *)&lde_repc);
+  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1,
+                  (uint8_t *)&agc_tune1_val);
+  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2,
+                  (uint8_t *)&agc_tune2_val);
+  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE3, DW_SUBLEN_AGC_TUNE3,
+                  (uint8_t *)&agc_tune3_val);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b, DW_SUBLEN_DRX_TUNE0b,
+                  (uint8_t *)&drx_tune0b_val);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a, DW_SUBLEN_DRX_TUNE1a,
+                  (uint8_t *)&drx_tune1a_val);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b,
+                  (uint8_t *)&drx_tune1b_val);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2,
+                  (uint8_t *)&drx_tune2_val);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
+                  (uint8_t *)&drx_tune4h_val);
+  dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
+                  (uint8_t *)&rf_rxctrl_val);
+  dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
+                  (uint8_t *)&rf_txctrl_val);
+  dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY,
+                  (uint8_t *)&tc_pgdelay_val);
+  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
+                  (uint8_t *)&fs_pllcfg_val);
+  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
+                  (uint8_t *)&fs_plltune_val);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
+                  (uint8_t *)&lde_repc);
 
   /* DW_LOG("Configuration complete."); */
 }
@@ -778,7 +829,8 @@ dw_conf_tx(dw1000_tx_conf_t *tx_conf)
 {
   /* TODO: Handling of long data frames (length > 128 or whatever.) */
   /* TODO: Cache data..? */
-  /* TODO: Should check dw1000 configuration for FCS enable and add the 2 conditionally. */
+  /* TODO: Should check dw1000 configuration for FCS enable and add the 2 
+   *       conditionally. */
   uint32_t data_len = tx_conf->data_len;
   data_len += 2; /* The +2 is for FCS */
   dw_set_tx_frame_length(data_len);
@@ -796,39 +848,29 @@ dw_conf_tx(dw1000_tx_conf_t *tx_conf)
  * The value specified here determines the length of the data portion
  * of the transmitted frame. This length includes the two-octet CRC
  * appended automatically (if this not disable for this send)
- * at the end of the frame
+ * at the end of the frame.
+ * If the length is bigger than 127 the transceiver use a Extended 
+ * (no standard) IEEE 802.15.4 UWB frames (it can be up to 1023 bytes long).
  *
  * \param frame_len the Transmit Frame Length.
  */
 void
-dw_set_tx_frame_length(uint32_t frame_len)
+dw_set_tx_frame_length(uint16_t frame_len)
 {
-  uint32_t tx_frame_control_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
-  tx_frame_control_val &= ~(DW_TFLEN_MASK | DW_TFLE_MASK); /* reseting the length param */
-  tx_frame_control_val |= (frame_len << DW_TFLEN) & DW_TFLEN_MASK;
-  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *)&tx_frame_control_val);
-}
-/**
- * \brief Set the Transmit Frame Length.
- * Extended IEEE 802.15.4 UWB frames can be up to 1023 bytes long.
- * The value specified here determines the length of the data portion
- * of the transmitted frame. This length includes the two-octet CRC
- * appended automatically (if this not disable for this send)
- * at the end of the frame
- *
- * \param frame_len the Transmit Frame Length.
- */
-void
-dw_set_tx_extended_frame_length(uint32_t frame_len)
-{
-  uint32_t tx_frame_control_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
-  tx_frame_control_val &= ~(DW_TFLEN_MASK | DW_TFLE_MASK); /* reseting the length param */
-  tx_frame_control_val |= (frame_len << DW_TFLEN) & (DW_TFLEN_MASK | DW_TFLE_MASK);
-  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *)&tx_frame_control_val);
+  uint16_t tx_frame_control_val;
+  dw_read_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t*) &tx_frame_control_val);
+
+  /* reseting the length */
+  tx_frame_control_val &= ~(DW_TFLEN_MASK | DW_TFLE_MASK); 
+
+  tx_frame_control_val |= (frame_len << DW_TFLEN) 
+                            & (DW_TFLEN_MASK | DW_TFLE_MASK);
+  dw_write_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t *)&tx_frame_control_val);
 }
 /**
  * \brief Enable delayed transmission.
- * \param dx_timestamp Value to be programmed into DW1000 dx_timestamp register.
+ * \param dx_timestamp Value to be programmed into DW1000 dx_timestamp 
+ *                     register.
  */
 void
 dw_enable_delayed_tx(uint64_t dx_timestamp)
@@ -837,11 +879,12 @@ dw_enable_delayed_tx(uint64_t dx_timestamp)
 
   uint32_t ctrl_reg_val = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
   ctrl_reg_val |= DW_TXDLYS_MASK;   /* sender */
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&ctrl_reg_val);
+  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *) &ctrl_reg_val);
 }
 /**
  * \brief Enable delayed reception.
- * \param dx_timestamp Value to be programmed into DW1000 dx_timestamp register.
+ * \param dx_timestamp Value to be programmed into DW1000 dx_timestamp 
+ *                     register.
  */
 void
 dw_enable_delayed_rx(uint64_t dx_timestamp)
@@ -893,26 +936,40 @@ dw_conf_print()
   sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
   chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
-  agc_tune1_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1);
-  agc_tune2_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2);
-  agc_tune3_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE3, DW_SUBLEN_AGC_TUNE3);
-  drx_tune0b_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b, DW_SUBLEN_DRX_TUNE0b);
-  drx_tune1a_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a, DW_SUBLEN_DRX_TUNE1a);
-  drx_tune1b_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b);
-  drx_tune2_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2);
-  drx_tune4h_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h);
-  rf_rxctrl_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH);
-  rf_txctrl_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL);
-  tc_pgdelay_val = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY);
-  fs_pllcfg_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG);
-  fs_plltune_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE);
+  agc_tune1_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1,
+                                    DW_SUBLEN_AGC_TUNE1);
+  agc_tune2_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2,
+                                    DW_SUBLEN_AGC_TUNE2);
+  agc_tune3_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE3,
+                                    DW_SUBLEN_AGC_TUNE3);
+  drx_tune0b_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b,
+                                    DW_SUBLEN_DRX_TUNE0b);
+  drx_tune1a_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a,
+                                    DW_SUBLEN_DRX_TUNE1a);
+  drx_tune1b_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b,
+                                    DW_SUBLEN_DRX_TUNE1b);
+  drx_tune2_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2,
+                                    DW_SUBLEN_DRX_TUNE2);
+  drx_tune4h_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h,
+                                    DW_SUBLEN_DRX_TUNE4h);
+  rf_rxctrl_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH,
+                                    DW_SUBLEN_RF_RXCTRLH);
+  rf_txctrl_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL,
+                                    DW_SUBLEN_RF_TXCTRL);
+  tc_pgdelay_val = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY,
+                                    DW_SUBLEN_TC_PGDELAY);
+  fs_pllcfg_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG,
+                                    DW_SUBLEN_FS_PLLCFG);
+  fs_plltune_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE,
+                                    DW_SUBLEN_FS_PLLTUNE);
 
 
   printf("============================\r\n");
   printf("DW1000 Current Configuration\r\n");
   printf("============================\r\n");
   printf("Device id   : %08" PRIx32 "\r\n", dw_get_device_id());
-  printf("sys_status  : %016" PRIx64 "\r\n", (unsigned long long)dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+  printf("sys_status  : %016" PRIx64 "\r\n", (unsigned long long) 
+                        dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
   printf("============================\r\n");
   printf("sys_cfg    : %08" PRIx32 "\r\n", sys_cfg_val);
   printf("tx_fctrl   : %08" PRIx32 "\r\n", tx_fctrl_val);
@@ -1058,9 +1115,11 @@ dw_get_device_time()
 void
 dw_enable_adc()
 {
-  uint32_t pmsc_val = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
+  uint32_t pmsc_val = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 
+                      DW_SUBLEN_PMSC_CTRL0);
   pmsc_val |= DW_ADCCE_MASK;
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&pmsc_val);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&pmsc_val);
 }
 /**
  * \brief Disables power to the ADC circuitry.
@@ -1068,9 +1127,11 @@ dw_enable_adc()
 void
 dw_disable_adc()
 {
-  uint32_t pmsc_val = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
+  uint32_t pmsc_val = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 
+                      DW_SUBLEN_PMSC_CTRL0);
   pmsc_val &= ~DW_ADCCE_MASK;
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&pmsc_val);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&pmsc_val);
 }
 
 /*===========================================================================*/
@@ -1089,7 +1150,8 @@ dw_disable_adc()
 float
 dw_get_noise_level()
 {
-  return (float)((dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL) & (DW_STD_NOISE_MASK)) >> DW_STD_NOISE);
+  return (float)((dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL) 
+        & (DW_STD_NOISE_MASK)) >> DW_STD_NOISE);
 }
 /**
  * \brief Returns the estimated receive signal amplitude in the first path.
@@ -1099,7 +1161,8 @@ dw_get_noise_level()
 float
 dw_get_fp_ampl()
 {
-  return (float)((dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL) & (DW_FP_AMPL2_MASK)) >> DW_FP_AMPL2);
+  return (float)((dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL) 
+        & (DW_FP_AMPL2_MASK)) >> DW_FP_AMPL2);
 }
 
 
@@ -1148,7 +1211,8 @@ dw_get_rx_error()
   uint64_t status_reg_64;
   uint32_t isError;
 
-  const uint32_t error_mask_lo = DW_RXPHE_MASK | DW_RXRFTO_MASK | DW_RXPTO_MASK | DW_RXSFDTO_MASK | DW_RXRFSL_MASK;
+  const uint32_t error_mask_lo = DW_RXPHE_MASK | DW_RXRFTO_MASK | 
+                DW_RXPTO_MASK | DW_RXSFDTO_MASK | DW_RXRFSL_MASK;
   const uint32_t error_mask_hi = DW_RXPREJ_MASK;
   status_reg_64 = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
   status_reg = (uint32_t *)&status_reg_64;
@@ -1204,21 +1268,113 @@ dw_disable_rx_timeout()
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&cfgReg);
   PRINTF("CFG: %" PRIx32 "\r\n", cfgReg);
 }
+
 /**
  * \brief Gets the timestamps for the latest received frame.
+ * \note  This is the Raw Timestamp for the received frame.
+ *        This is the value of the system clock (125 MHz) captured at 
+ *        the time of the first chip of the first PHR symbol. The 
+ *        precision here is approximately 125 MHz, i.e. the 9 least 
+ *        significant bits are zero.
+ * \return The reeded timestamps. 
+ */
+inline uint64_t
+dw_get_rx_raw_timestamp(void)
+{
+  uint64_t value = 0x0;
+  dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
+                  (uint8_t *) &value);
+  return value;
+}
+/**
+ * \brief Gets the timestamps for the latest received frame.
+ * \note  This is the fully adjusted time of reception.
  */
 uint64_t
-dw_get_rx_timestamp()
+dw_get_rx_timestamp(void)
 {
-  return dw_read_reg_64(DW_REG_RX_TIME, 8) & 0x000000FFFFFFFFFFULL;
+  uint64_t value = 0x0;
+  dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_STAMP, DW_SUBLEN_RX_STAMP, 
+                  (uint8_t*) &value);
+  return value;
 }
 /**
  * \brief Gets the timestamps for the latest transmitted frame.
+ * \note  This is the Raw Timestamp for the transmitted frame.
+ *        This is the value of the system clock (125 MHz) captured at 
+ *        the time of the first chip of the first PHR symbol. The 
+ *        precision here is approximately 125 MHz, i.e. the 9 least 
+ *        significant bits are zero.
+ * \param timestamp The reeded timestamps will be placed here. 
+ */
+inline void 
+dw_get_tx_raw_timestamp(uint64_t timestamp)
+{
+  dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
+                  (uint8_t*) &timestamp);
+}
+/**
+ * \brief Gets the timestamps for the latest transmitted frame.
+ * \note  This is the fully adjusted time of transmission.
  */
 uint64_t
-dw_get_tx_timestamp()
+dw_get_tx_timestamp(void)
 {
-  return dw_read_reg_64(DW_REG_TX_TSTAMP, 8) & 0x000000FFFFFFFFFFULL;
+  uint64_t value = 0x0;
+  dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_STAMP, DW_SUBLEN_TX_STAMP, 
+                  (uint8_t*) &value);
+  return value;
+}
+/**
+ * \brief Set the ranging bit in the PHY header (PHR) of the transmitted 
+ *        frame to 1. Identifying the frame as a ranging frame.
+ *        In some receiver implementations this may be used to enable hardware 
+ *        or software associated with time-stamping the frame. In the DW1000 
+ *        receiver the time-stamping of the receive frame does not depend or use
+ *        the ranging bit in the received PHR.
+ */
+void
+dw_enable_ranging_frame(void)
+{
+  uint8_t value;
+  /* TR bit is the 15nd bit */
+  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value); 
+  value |= (DW_TR_MASK >> 8);
+  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value);
+}
+/**
+ * \brief Disable the ranging bit in the PHY header (PHR) of the transmitted 
+ *        frame. Identifying the frame as not a ranging frame.
+ *        In some receiver implementations this may be used to enable hardware 
+ *        or software associated with time-stamping the frame. In the DW1000 
+ *        receiver the time-stamping of the receive frame does not depend or use
+ *        the ranging bit in the received PHR.
+ */
+void
+dw_disable_ranging_frame(void)
+{
+  uint8_t value;
+  /* TR bit is the 15nd bit */
+  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value); 
+  value &= !(DW_TR_MASK >> 8);
+  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value);
+}
+/**
+ * \brief Check if the last received frame is a ranging frame. This reflects the
+ *        ranging bit in the received PHY header identifying the frame as a 
+ *        ranging packet. This value is updated when a good PHR is detected 
+ *        (when the RXPHD status bit is set).
+ * \return if the last received frame is a ranging frame.
+ */
+uint8_t 
+is_ranging_frame(void)
+{
+  uint8_t value = 0x0;
+  /* RNG bit is the 15nd bit */
+  dw_read_subreg(DW_REG_RX_FINFO, 1, 1, (uint8_t *) &value);
+  /* bug the value must be 1 when this is a ranging frame bit this value is 0
+      and if you would use a not ranging frame this value is 1. */
+  return (value & (DW_RNG_MASK >> 8)) == 0;
 }
 /**
  * \brief Specifies the antenna delay used to calculate the tx and rx
@@ -1229,7 +1385,8 @@ dw_get_tx_timestamp()
 void
 dw_set_antenna_delay(uint16_t delay)
 {
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, (uint8_t *)&delay);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
+                  (uint8_t *)&delay);
   dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *)&delay);
 }
 /**
@@ -1238,7 +1395,7 @@ dw_set_antenna_delay(uint16_t delay)
 uint16_t
 dw_get_antenna_delay()
 {
-  return (uint16_t)dw_read_reg_32(DW_REG_TX_ANTD, DW_LEN_TX_ANTD);
+  return (uint16_t) dw_read_reg_32(DW_REG_TX_ANTD, DW_LEN_TX_ANTD);
 }
 /**
  * \brief Setter for the delayed transmit/receive register. If delayed operation
@@ -1251,7 +1408,7 @@ dw_get_antenna_delay()
 void
 dw_set_dx_timestamp(uint64_t timestamp)
 {
-  dw_write_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&timestamp);
+  dw_write_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *) &timestamp);
 }
 /**
  * \brief Getter for the delayed transmit/receive register.
@@ -1304,10 +1461,11 @@ dw_generate_extendedUniqueID()
 }
 /*-----------------------------------------------------------------------------
    Private functions
-   -----------------------------------------------------------------------------*/
+   ---------------------------------------------------------------------------*/
 
 /**
- * \brief Aborts current transmission or reception and returns device to idle mode.
+ * \brief Aborts current transmission or reception and returns device to idle 
+ *        mode.
  */
 void
 dw_idle(void)
@@ -1337,10 +1495,14 @@ dw_init_rx(void)
 }
 /**
  * \brief Starts a new transmission. Data must either already be uploaded to
- * DW1000 or be uploaded VERY shortly.
+ *        DW1000 or be uploaded VERY shortly.
+ *
+ * \param wait_ack If wait_ack is true, program the transmitter to wait for 
+ *                  response.
+ * \param delayed If delayed is true, program a delayed transmission.
  */
 void
-dw_init_tx(void)
+dw_init_tx(uint8_t wait_ack, uint8_t delayed)
 {
   dw1000.state = DW_STATE_TRANSMITTING;
   /* Start transmission */
@@ -1348,29 +1510,18 @@ dw_init_tx(void)
   uint8_t sys_ctrl_lo;
   dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
   sys_ctrl_lo |= DW_TXSTRT_MASK;
+  if(wait_ack)
+    sys_ctrl_lo |= DW_WAIT4RESP_MASK; /* Wait for Response bit */
+  if(delayed)
+    sys_ctrl_lo |= DW_TXDLYS_MASK; /* Transmitter Delayed Sending bit */
   dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
 }
-/**
- * \brief Starts a new transmission. Data must either already be uploaded to
- *      DW1000 or be uploaded VERY shortly.
- *      Set the Wait for Response bit to wait the ACK.
- */
-void
-dw_init_tx_ack(void)
-{
-  dw1000.state = DW_STATE_TRANSMITTING;
-  /* Start transmission */
-  /* Only read and write the first byte of the register */
-  uint8_t sys_ctrl_lo;
-  dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
-  sys_ctrl_lo |= DW_TXSTRT_MASK | DW_WAIT4RESP_MASK;
-  dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
-}
+
 /**
  * \brief Suppress auto-FCS Transmission (on this next frame).
- * This control works in conjunction with dw_init_tx()
+ *        This control works in conjunction with dw_init_tx()
  *
- * Usage: call dw_suppress_auto_FCS_tx() before dw_init_tx().
+ *        Usage: call dw_suppress_auto_FCS_tx() before dw_init_tx().
  */
 void
 dw_suppress_auto_FCS_tx(void)
@@ -1393,7 +1544,7 @@ dw_suppress_auto_FCS_tx(void)
  *            Receive Frame Wait Timeout.
  */
 void
-dw_clear_receive_status()
+dw_clear_receive_status(void)
 {
   dw_clear_transmit_status(); /* because auto ACK send trame. */
   uint64_t sys_status = DW_RXPRD_MASK
@@ -1521,7 +1672,7 @@ dw_is_receive_timeout(uint64_t status)
 }
 /*-----------------------------------------------------------------------------
    Test functions
-   -----------------------------------------------------------------------------*/
+   ---------------------------------------------------------------------------*/
 
 /**
  * \brief Prints a message if SPI-communication is working properly.
@@ -1531,12 +1682,14 @@ dw1000_test()
 {
   uint32_t canTalk = 0;
 
-  canTalk = (uint32_t)(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+  canTalk = (uint32_t)(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, 
+                                                    DW_LEN_DEV_ID));
 
   if(canTalk) {
     PRINTF("You can now talk with the device!\r\n");
   } else {
-    PRINTF("ERROR for talk with the device! %08X\r\n", (unsigned int)dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+    PRINTF("ERROR for talk with the device! %08X\r\n", (unsigned int)
+            dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
   }
 }
 /**
@@ -1571,7 +1724,8 @@ dw1000_test_RW_longbits()
   if(error == 0) {
     PRINTF("READ WRITE TEST on 1024 tx_buffer: SUCCESS\r\n");
   } else {
-    PRINTF("READ WRITE TEST on 1024 tx_buffer: error: %i dis-concordance\r\n", error);
+    PRINTF("READ WRITE TEST on 1024 tx_buffer: error: %i dis-concordance\r\n", 
+            error);
   }
 }
 /**
@@ -1738,17 +1892,19 @@ dw_read_otp_32(uint16_t otp_addr)
   };
 
   uint32_t read_data = 0;
-  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_ADDR, DW_SUBLEN_OTP_ADDR, (uint8_t *)&otp_addr);
+  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_ADDR, DW_SUBLEN_OTP_ADDR, 
+                  (uint8_t *)&otp_addr);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[0]);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[1]);
-  read_data = dw_read_subreg_32(DW_REG_OTP_IF, DW_SUBREG_OTP_RDAT, DW_SUBLEN_OTP_RDAT);
+  read_data = dw_read_subreg_32(DW_REG_OTP_IF, DW_SUBREG_OTP_RDAT, 
+                                DW_SUBLEN_OTP_RDAT);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[2]);
 
   return read_data;
 }
 /*-----------------------------------------------------------------------------
    Rx double buffering
-   -----------------------------------------------------------------------------*/
+   ---------------------------------------------------------------------------*/
 
 /**
  * \brief Enabling double-buffered operation.

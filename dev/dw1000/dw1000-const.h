@@ -117,9 +117,21 @@
 
 #define DW_REG_RX_TIME      0x15        /* \brief dummy */
 #define DW_LEN_RX_TIME      14          /* \brief dummy */
+#define DW_SUBREG_RX_STAMP  0x00        /* \brief dummy */
+#define DW_SUBLEN_RX_STAMP  5           /* \brief dummy */
+#define DW_SUBREG_FP_INDEX  0x05        /* \brief dummy */
+#define DW_SUBLEN_FP_INDEX  2           /* \brief dummy */
+#define DW_SUBREG_FP_AMPL1  0x07        /* \brief dummy */
+#define DW_SUBLEN_FP_AMPL1  2           /* \brief dummy */
+#define DW_SUBREG_RX_RAWST  0x09        /* \brief dummy */
+#define DW_SUBLEN_RX_RAWST  5           /* \brief dummy */
 
-#define DW_REG_TX_TSTAMP    0x17        /* \brief dummy */
-#define DW_LEN_TX_TSTAMP    10          /* \brief dummy */
+#define DW_REG_TX_TIME      0x17        /* \brief dummy */
+#define DW_LEN_TX_TIME      10          /* \brief dummy */
+#define DW_SUBREG_TX_STAMP  0x00        /* \brief dummy */
+#define DW_SUBLEN_TX_STAMP  5           /* \brief dummy */
+#define DW_SUBREG_TX_RAWST  0x05        /* \brief dummy */
+#define DW_SUBLEN_TX_RAWST  5           /* \brief dummy */
 
 #define DW_REG_TX_ANTD      0x18        /* \brief dummy */
 #define DW_LEN_TX_ANTD      2           /* \brief dummy */
@@ -341,7 +353,7 @@
 #define DW_MAFFREJ       29             /* \brief dummy */
 #define DW_MAFFREJ_MASK  (0x1UL << 29)  /* \brief dummy */
 
-/* DW_REG_SYS_STATUS LOW */
+/* DW_REG_SYS_STATUS 0x0F LOW */
 #define DW_IRQS          0              /* \brief dummy */
 #define DW_IRQS_MASK     (0x1UL << 0)   /* \brief dummy */
 #define DW_TXFRB         4              /* \brief dummy */
@@ -394,7 +406,7 @@
 #define DW_HSRBP_MASK    (0x1UL << 30)  /* \brief dummy */
 #define DW_ICRBP         31             /* \brief dummy */
 #define DW_ICRBP_MASK    (0x1UL << 31)  /* \brief dummy */
-/* DW_REG_SYS_STATUS HIGH */
+/* DW_REG_SYS_STATUS 0x0F HIGH */
 #define DW_RXRSCS      0                /* \brief dummy */
 #define DW_RXRSCS_MASK (0x1ULL << 0)    /* \brief dummy */
 #define DW_RXPREJ      1                /* \brief dummy */
@@ -454,7 +466,8 @@
 #define DW_RX_PCODE      27             /* \brief dummy */
 #define DW_RX_PCODE_MASK (0x3FUL << 27) /* \brief dummy */
 
-/* DW_REG_GPIO_MODE */
+/* DW_REG_GPIO_CTRL 0x26 */
+/* DW_SUBREG_GPIO_MODE 0x26:00*/
 #define DW_MSGP8_MASK (0x3 << 22)   /* \brief dummy */
 #define DW_MSGP8      22            /* \brief dummy */
 #define DW_MSGP7_MASK (0x3 << 20)   /* \brief dummy */
@@ -474,7 +487,8 @@
 #define DW_MSGP0_MASK (0x3 << 6)    /* \brief dummy */
 #define DW_MSGP0      6             /* \brief dummy */
 
-/* DW_REG_GPIO_DIR */
+/* DW_REG_GPIO_CTRL 0x26 */
+/* DW_SUBREG_GPIO_DIR  0x26:08 */
 #define DW_GDP0        0          /* \brief dummy */
 #define DW_GDP1        1          /* \brief dummy */
 #define DW_GDP2        2          /* \brief dummy */
@@ -494,7 +508,8 @@
 #define DW_GDM7        15         /* \brief dummy */
 #define DW_GDM8        20         /* \brief dummy */
 
-/* DW_REG_GPIO_DOUT */
+/* DW_REG_GPIO_CTRL 0x26 */
+/* DW_REG_DW_SUBREG_GPIO_DOUT 0x26:0C */
 #define DW_GOP0        0          /* \brief dummy */
 #define DW_GOP1        1          /* \brief dummy */
 #define DW_GOP2        2          /* \brief dummy */
@@ -513,10 +528,6 @@
 #define DW_GOM6        14         /* \brief dummy */
 #define DW_GOM7        15         /* \brief dummy */
 #define DW_GOM8        20         /* \brief dummy */
-
-/* PMSC_CTRL0 – PMSC Control Register 0 */
-#define DW_ADCCE          10            /* \brief dummy */
-#define DW_ADCCE_MASK     (0x1UL << 10) /* \brief dummy */
 
 /* DW_REG_TX_CAL 0x2A */
 /* DW_SUBREG_SARC 0x2A:00 */
@@ -568,5 +579,7 @@
 /* DW_REG_PMSC_CTRL0 0x36:00 */
 #define DW_SYS_CLKS       0             /* \brief dummy */
 #define DW_SYS_CLKS_MASK  (0x3UL << 0)  /* \brief dummy */
+#define DW_ADCCE          10            /* \brief dummy */
+#define DW_ADCCE_MASK     (0x1UL << 10) /* \brief dummy */
 
 #endif /* DW1000_CONST_H */

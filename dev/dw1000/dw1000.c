@@ -1356,7 +1356,7 @@ dw_disable_ranging_frame(void)
   uint8_t value;
   /* TR bit is the 15nd bit */
   dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value); 
-  value &= !(DW_TR_MASK >> 8);
+  value &= ~(DW_TR_MASK >> 8);
   dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value);
 }
 /**
@@ -1510,10 +1510,16 @@ dw_init_tx(uint8_t wait_ack, uint8_t delayed)
   uint8_t sys_ctrl_lo;
   dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
   sys_ctrl_lo |= DW_TXSTRT_MASK;
+
   if(wait_ack)
     sys_ctrl_lo |= DW_WAIT4RESP_MASK; /* Wait for Response bit */
+  else
+    sys_ctrl_lo &= ~DW_WAIT4RESP_MASK;
   if(delayed)
     sys_ctrl_lo |= DW_TXDLYS_MASK; /* Transmitter Delayed Sending bit */
+  else
+    sys_ctrl_lo &= ~DW_TXDLYS_MASK;
+
   dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
 }
 
@@ -1915,9 +1921,10 @@ void
 dw_enable_double_buffering(void)
 {
   /* enable double-buffered with DIS_DRXB to 0. */
-  uint32_t cfgReg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  cfgReg &= ~DW_DIS_DRXB_MASK;
-  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&cfgReg);
+  uint8_t cfgReg;
+  dw_read_subreg(DW_REG_SYS_CFG, 1, 1, &cfgReg);
+  cfgReg &= ~(DW_DIS_DRXB_MASK >> 8); /* 12nd bit */
+  dw_write_subreg(DW_REG_SYS_CFG, 1, 1, &cfgReg);
 
   dw_enable_automatic_receiver_Re_Enable();
 }
@@ -1930,11 +1937,12 @@ dw_enable_double_buffering(void)
 int
 dw_good_rx_buffer_pointer(void)
 {
-  uint64_t statusReg = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-
-  uint32_t hsrbp = (statusReg & DW_HSRBP_MASK) > DW_HSRBP;
-  uint32_t icrbp = (statusReg & DW_ICRBP_MASK) > DW_ICRBP;
-  return hsrbp == icrbp;
+  uint8_t statusReg;
+  dw_read_subreg(DW_REG_SYS_STATUS, 3, 1, &statusReg);
+  /* HSRBP is the 30nd bit */
+  /* ICRBP is the 31nd bit */
+  return (((statusReg & (DW_HSRBP_MASK >> 24)) >> (DW_HSRBP - 24)) ==  
+          ((statusReg & (DW_ICRBP_MASK >> 24)) >> (DW_ICRBP - 24))); 
 }
 /**
  * \brief   Check if an overrun condition occur in the IC receiver.
@@ -1945,8 +1953,10 @@ dw_good_rx_buffer_pointer(void)
 int
 dw_is_overrun(void)
 {
-  uint64_t statusReg = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-  return statusReg & DW_RXOVRR_MASK;
+  uint8_t statusReg;
+  /* DW_RXOVRR is the 20nd bit > in the 3nd byte */
+  dw_read_subreg(DW_REG_SYS_STATUS, 2, 1, &statusReg);
+  return statusReg & (DW_RXOVRR_MASK >> 16);
 }
 /**
  * \brief   Apply a receiver-only soft reset.
@@ -1960,14 +1970,16 @@ dw_trxsoft_reset(void)
 
   /* Clear */
   uint32_t ctrlReg = dw_read_reg_32(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
-  ctrlReg &= ~DW_SYSCLKS_MASK;
-  ctrlReg &= ~((0x01UL << 28) & DW_SOFTRESET_MASK);
+  ctrlReg &= ~DW_SYSCLKS_MASK; /*3nd bit */
+  ctrlReg &= ~((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK);
   dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
 
   /* Set */
-  ctrlReg = dw_read_reg_32(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
-  ctrlReg |= ((0x01UL << 28) & DW_SOFTRESET_MASK);
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
+  uint8_t ctrlRegHigh;
+  dw_read_subreg(DW_SUBREG_PMSC_CTRL0, 3, 1, &ctrlRegHigh);
+  /* SOFTRESET is the 28nd bit  >> 4nd byte*/
+  ctrlReg |= ((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK) >> 24; 
+  dw_write_subreg(DW_SUBREG_PMSC_CTRL0, 3, 1, &ctrlRegHigh);
 }
 /**
  * \brief   Change the Receive Buffer Pointer.
@@ -1976,9 +1988,10 @@ void
 dw_change_rx_buffer(void)
 {
   /* Host Side Receive Buffer Pointer Toggle to 1. */
-  uint32_t ctrlReg = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
-  ctrlReg |= DW_HRBPT_MASK;
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&ctrlReg);
+  uint8_t ctrlReg;
+  dw_read_subreg(DW_REG_SYS_CTRL, 3, 1, &ctrlReg);
+  ctrlReg |= DW_HRBPT_MASK >> 24; /* 24nd bit > first bit of the 4nd byte */
+  dw_write_subreg(DW_REG_SYS_CTRL, 3, 1, &ctrlReg);
 }
 /**
  * \brief   TRXOFF in Double-Buffered Mode.
@@ -1990,12 +2003,14 @@ dw_trxoff_db_mode(void)
 {
   /* Mask Double buffered status bits; FCE, FCG, DFR, LDE_DONE
       to prevent glitch when cleared */
-  uint32_t maskReg = dw_read_reg_32(DW_REG_SYS_MASK, DW_LEN_SYS_MASK);
-  maskReg |= DW_MRXFCE_MASK
-    | DW_MRXFCG_MASK
-    | DW_MRXDFR_MASK
-    | DW_MLDEDONE_MASK;
-  dw_write_reg(DW_REG_SYS_MASK, DW_LEN_SYS_MASK, (uint8_t *)&maskReg);
+  uint8_t maskReg;
+  /* read/write only one byte */
+  dw_read_subreg(DW_REG_SYS_MASK, 1, 1, &maskReg);
+  maskReg |= (DW_MRXFCE_MASK          /* 15nd bit */
+    | DW_MRXFCG_MASK                  /* 14nd bit */
+    | DW_MRXDFR_MASK                  /* 13nd bit */
+    | DW_MLDEDONE_MASK) >> 8;         /* 10nd bit */
+  dw_write_subreg(DW_REG_SYS_MASK, 1, 1, (uint8_t *) &maskReg);
 
   /* Set TXRXOFF bit = 1, in reg:0D,
       to disable the receiver */
@@ -2003,20 +2018,20 @@ dw_trxoff_db_mode(void)
 
   /* Clear RX event flags in SYS_STATUS reg:0F; bits FCE,
       FCG, DFR, LDE_DONE */
-  uint32_t statusReg = DW_RXFCE_MASK
-    | DW_RXFCG_MASK
-    | DW_RXDFR_MASK
-    | DW_LDEDONE_MASK;
-  dw_write_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *)&statusReg);
+  uint8_t statusReg = (DW_RXFCE_MASK  /* 15nd bit */
+    | DW_RXFCG_MASK                   /* 14nd bit */
+    | DW_RXDFR_MASK                   /* 13nd bit */
+    | DW_LDEDONE_MASK) >> 8;          /* 10nd bit */
+  dw_write_subreg(DW_REG_SYS_STATUS, 1, 1, (uint8_t *)&statusReg);
 
   /* Unmask Double buffered status
       bits; FCE, FCG, DFR, LDE_DONE */
-  maskReg = dw_read_reg_32(DW_REG_SYS_MASK, DW_LEN_SYS_MASK);
-  maskReg &= ~(DW_MRXFCE_MASK
-               | DW_MRXFCG_MASK
-               | DW_MRXDFR_MASK
-               | DW_MLDEDONE_MASK);
-  dw_write_reg(DW_REG_SYS_MASK, DW_LEN_SYS_MASK, (uint8_t *)&maskReg);
+  dw_read_subreg(DW_REG_SYS_MASK, 1, 1, &maskReg);
+  maskReg &= ~((DW_MRXFCE_MASK        /* 15nd bit */
+    | DW_MRXFCG_MASK                  /* 14nd bit */
+    | DW_MRXDFR_MASK                  /* 13nd bit */
+    | DW_MLDEDONE_MASK) >> 8);        /* 10nd bit */
+  dw_write_subreg(DW_REG_SYS_MASK, 1, 1, (uint8_t *) &maskReg);
 }
 /**
  * \brief Initiates a new reception on the dw1000.

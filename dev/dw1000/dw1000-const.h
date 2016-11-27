@@ -394,6 +394,10 @@
 #define DW_GPIOIRQ_MASK  (0x1UL << 22)  /* \brief dummy */
 #define DW_SLP2INIT      23             /* \brief dummy */
 #define DW_SLP2INIT_MASK (0x1UL << 23)  /* \brief dummy */
+#define DW_RFPLL_LL      24             /* \brief dummy */
+#define DW_RFPLL_LL_MASK (0x1UL << 24)  /* \brief dummy */
+#define DW_CLKPLL_LL      25             /* \brief dummy */
+#define DW_CLKPLL_LL_MASK (0x1UL << 25)  /* \brief dummy */
 #define DW_RXSFDTO       26             /* \brief dummy */
 #define DW_RXSFDTO_MASK  (0x1UL << 26)  /* \brief dummy */
 #define DW_HPDWARN       27             /* \brief dummy */

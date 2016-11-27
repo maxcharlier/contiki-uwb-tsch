@@ -357,7 +357,9 @@ void
 print_sys_status(uint64_t sys_status)
 {
   printf("-- SYS_STATUS --\r\n");
-  printf("   %016X\r\n", (unsigned int)sys_status);
+  printf("   %02X - %04X%04X\r\n", (unsigned int) (sys_status >> 32), 
+                                 (unsigned int) (sys_status >> 16), 
+                                 ((unsigned int) sys_status));
   if(sys_status & DW_IRQS_MASK) {
     printf("-- ");
     printf(" 1");
@@ -475,42 +477,53 @@ print_sys_status(uint64_t sys_status)
     printf("   ");
     printf("RXPTO Preamble detection timeout.\r\n");
   }
+  if(sys_status & DW_GPIOIRQ) {
+    printf("   ");
+    printf("22");
+    printf("   ");
+    printf("GPIOIRQ GPIO interrupt.\r\n");
+  }
+  if(sys_status & DW_SLP2INIT_MASK) {
+    printf("   ");
+    printf("23");
+    printf("   ");
+    printf("SLP2INIT SLEEP to INIT.\r\n");
+  }
+  if(sys_status & DW_RFPLL_LL_MASK) {
+    printf("   ");
+    printf("24");
+    printf("   ");
+    printf("RFPLL_LL RF PLL Losing Lock.\r\n");
+  }
+  if(sys_status & DW_CLKPLL_LL_MASK) {
+    printf("   ");
+    printf("25");
+    printf("   ");
+    printf("CLKPLL_LL Clock PLL Losing Lock.\r\n");
+  }
   if(sys_status & DW_RXSFDTO_MASK) {
     printf("   ");
     printf("26");
     printf("   ");
     printf("RXSFDTO Receive SFD timeout.\r\n");
   }
-  if(sys_status & DW_AFFREJ_MASK) {
-    printf("   ");
-    printf("29");
-    printf("   ");
-    printf("AFFREJ Automatic Frame Filtering rejection.\r\n");
-  }
-  if((sys_status >> 31) & DW_RXRSCS_MASK) {
-    printf("   ");
-    printf("-0");
-    printf("   ");
-    printf("RXRSCS Receiver Reed-Solomon Correction Status.\r\n");
-  }
-  if((sys_status >> 31) & DW_RXPREJ_MASK) {
-    printf("   ");
-    printf("-1");
-    printf("   ");
-    printf("RXPREJ Receiver Preamble Rejection.\r\n");
-  }
-
   if(sys_status & DW_HPDWARN_MASK) {
     printf("-- ");
     printf("27");
     printf("   ");
     printf("HPDWARN Half Period Delay Warning.\r\n");
   }
-  if(sys_status & DW_GPIOIRQ_MASK) {
+  if(sys_status & DW_TXBERR_MASK) {
     printf("-- ");
-    printf("22");
+    printf("28");
     printf("   ");
-    printf("GPIOIRQ Preamble detection timeout.\r\n");
+    printf("DW_TXBERR Transmit Buffer Error..\r\n");
+  }
+  if(sys_status & DW_AFFREJ_MASK) {
+    printf("   ");
+    printf("29");
+    printf("   ");
+    printf("AFFREJ Automatic Frame Filtering rejection.\r\n");
   }
   printf("Double buffering RX: \r\n");
   if(sys_status & DW_HSRBP_MASK) {
@@ -524,6 +537,25 @@ print_sys_status(uint64_t sys_status)
     printf("31");
     printf("   ");
     printf("ICRBP IC side Receive Buffer Pointer.\r\n");
+  }
+  printf("High: \n");
+  if((sys_status >> 32) & DW_RXRSCS_MASK) {
+    printf("   ");
+    printf("0");
+    printf("   ");
+    printf("RXRSCS Receiver Reed-Solomon Correction Status.\r\n");
+  }
+  if((sys_status >> 32) & DW_RXPREJ_MASK) {
+    printf("   ");
+    printf("1");
+    printf("   ");
+    printf("RXPREJ Receiver Preamble Rejection.\r\n");
+  }
+  if((sys_status >> 32) & DW_TXPUTE_MASK) {
+    printf("   ");
+    printf("2");
+    printf("   ");
+    printf("TXPUTE Transmit power up time error.\r\n");
   }
   printf("-- SYS_STATUS -- END.\r\n");
 }

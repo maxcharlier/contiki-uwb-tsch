@@ -68,6 +68,7 @@ void dw1000_driver_config(dw1000_channel_t channel,
 /*===========================================================================*/
 
 void dw1000_driver_ranging_request(void);
+uint8_t dw1000_driver_is_ranging_request(void);
 uint64_t dw1000_driver_get_round_time(void);
 uint32_t dw1000_driver_get_reply_time(void);
 void dw1000_driver_set_reply_time(uint32_t reply_time);

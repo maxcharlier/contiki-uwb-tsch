@@ -324,7 +324,7 @@ dw1000_driver_init(void)
 
   uint16_t delay_antenna = 0;
   dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
-  delay_antenna += 8476;
+  delay_antenna += 8476 + 0xDEAD;
   dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
 
   dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);

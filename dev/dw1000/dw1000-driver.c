@@ -315,21 +315,27 @@ dw1000_driver_init(void)
      must be enough for a data rate of 6.8 mbps */
   dw1000_driver_set_reply_time(600);
 
-  process_start(&dw1000_driver_process, NULL);
-
+  /* We equalize the tx and RX antenna delay but we have a big discordance 
+      in the meseareament ==> need calibration
+      We can't change the value of the RX antenna delay > it is fixed at 0xDEAD
+      This is a bug...
+      In this case, we change the value of the TX antenna delay */
   dw_equalize_antenna_delay();
 
   uint16_t delay_antenna = 0;
-
+  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
+  delay_antenna += 8476;
+  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
 
   dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
   printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
-  delay_antenna = 0XDFFF;
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
-                  (uint8_t *) &delay_antenna);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &delay_antenna);
   printf("delay antenna RX %04X\n", (unsigned int) delay_antenna);
+
+  process_start(&dw1000_driver_process, NULL);
+
+
   dw1000_driver_init_down = 1;
   return 1;
 }
@@ -362,7 +368,7 @@ dw1000_driver_prepare(const void *payload,
   dw_set_tx_frame_length(data_len);
 
   if(dw1000_driver_sstwr){
-    printf("demande de ranging\n");
+    PRINTF("Ranging request\n");
     dw_enable_ranging_frame();
     /* we can not wait for an ACK if we are in a ranging protocol */
 #if DW1000_CONF_AUTOACK
@@ -445,11 +451,11 @@ dw1000_driver_transmit(unsigned short payload_len)
   }
 
   /* wait the start of the transmission */
-  // uint8_t sys_ctrl_lo;
-  // BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0, 1, &sys_ctrl_lo);
-  //                 watchdog_periodic(); count_txtrt++;, 
-  //                 ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
-  //                 10000);
+  uint8_t sys_ctrl_lo;
+  BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0, 1, &sys_ctrl_lo);
+                  watchdog_periodic(); count_txtrt++;, 
+                  ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
+                  10000);
 
   if(DW1000_CONF_CHECKSUM) {
     payload_len += FOOTER_LEN; /* add the FCS size */
@@ -466,9 +472,9 @@ dw1000_driver_transmit(unsigned short payload_len)
                   // dw1000_conf.data_rate, dw1000_conf.prf, payload_len) << 1 )+ 
                   // DW1000_SPI_DELAY);
 
-  PRINTF("Number of loop waiting IDLE: %d\n", count_idle);
-  PRINTF("Number of loop waiting Tx on: %d\n", count_txtrt);
-  PRINTF("Number of loop waiting Transmit Frame Sent: %d\n", count);
+  // printf("Number of loop waiting IDLE: %d\n", count_idle);
+  // printf("Number of loop waiting Tx on: %d\n", count_txtrt);
+  // printf("Number of loop waiting Transmit Frame Sent: %d\n", count);
   if((sys_status_lo & DW_TXFRS_MASK) != 0) {
     tx_return = RADIO_TX_OK;
   }
@@ -518,25 +524,30 @@ dw1000_driver_transmit(unsigned short payload_len)
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0)), 
-                    40000);
+                    10000);
                     // theorical_transmission_approx(dw1000_conf.preamble_length,
                     // dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
                     // DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                     // (dw1000_driver_reply_time  << 2));
+  // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
-    PRINTF("Number of loop waiting the ranging response %d\n", count);
+    // printf("Number of loop waiting the ranging response %d\n", count);
 
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
       tx_return = RADIO_TX_OK;
-
+      count = 0;
+      BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, 
+                    &sys_status_lo); watchdog_periodic(); count++,
+                    ((sys_status_lo & (DW_LDEDONE_MASK >> 8)) != 0), 
+                    30);
+      // printf("Number of loop waiting the LDE done %d\n", count);
       // printf("lenght of the ranging response %d\n", dw_get_rx_len());
       clear_rx_buffer = 1; /* true */
       dw1000_compute_propagation_time();
     }
   }
 
-  // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
   if(dw1000_driver_wait_ACK | dw1000_driver_sstwr) {
     dw_idle();  /* bug fix of waiting an ACK which

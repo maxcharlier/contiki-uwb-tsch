@@ -465,11 +465,12 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
   uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
   uint16_t lde_repc = 0;
+  uint16_t lde_cfg2 = 0;
   uint32_t agc_tune1_val;
   const uint32_t agc_tune2_val = 0x2502A907;  /* Always use this */
-  const uint32_t agc_tune3_val = 0x0055;    /* Always use this */
+  const uint16_t agc_tune3_val = 0x0035;    /* Always use this */
   uint32_t drx_tune0b_val;
-  uint32_t drx_tune1a_val;
+  uint16_t drx_tune1a_val;
   uint32_t drx_tune1b_val;
   uint32_t drx_tune2_val;
   uint32_t drx_tune4h_val;
@@ -488,6 +489,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     drx_tune1a_val = 0x0087;
     tx_fctrl_val |= (0x01UL << DW_TXPRF) & DW_TXPRF_MASK;
     chan_ctrl_val |= (0x01UL << DW_RXPRF) & DW_RXPRF_MASK;
+    lde_cfg2 = 0x1607;
     break;
 
   case DW_PRF_64_MHZ:
@@ -495,6 +497,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     drx_tune1a_val = 0x008D;
     tx_fctrl_val |= (0x02UL << DW_TXPRF) & DW_TXPRF_MASK;
     chan_ctrl_val |= (0x02UL << DW_RXPRF) & DW_RXPRF_MASK;
+    lde_cfg2 = 0x0607;
     break;
   }
 
@@ -756,37 +759,39 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   }
 
   /* Commit configuration to device */
-  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&sys_cfg_val);
-  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *)&tx_fctrl_val);
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *)&chan_ctrl_val);
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
+  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
+  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1,
-                  (uint8_t *)&agc_tune1_val);
+                  (uint8_t *) &agc_tune1_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2,
-                  (uint8_t *)&agc_tune2_val);
+                  (uint8_t *) &agc_tune2_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE3, DW_SUBLEN_AGC_TUNE3,
-                  (uint8_t *)&agc_tune3_val);
+                  (uint8_t *) &agc_tune3_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b, DW_SUBLEN_DRX_TUNE0b,
-                  (uint8_t *)&drx_tune0b_val);
+                  (uint8_t *) &drx_tune0b_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a, DW_SUBLEN_DRX_TUNE1a,
-                  (uint8_t *)&drx_tune1a_val);
+                  (uint8_t *) &drx_tune1a_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b,
-                  (uint8_t *)&drx_tune1b_val);
+                  (uint8_t *) &drx_tune1b_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2,
-                  (uint8_t *)&drx_tune2_val);
+                  (uint8_t *) &drx_tune2_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
-                  (uint8_t *)&drx_tune4h_val);
+                  (uint8_t *) &drx_tune4h_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
-                  (uint8_t *)&rf_rxctrl_val);
+                  (uint8_t *) &rf_rxctrl_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
-                  (uint8_t *)&rf_txctrl_val);
+                  (uint8_t *) &rf_txctrl_val);
   dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY,
-                  (uint8_t *)&tc_pgdelay_val);
+                  (uint8_t *) &tc_pgdelay_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
-                  (uint8_t *)&fs_pllcfg_val);
+                  (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
-                  (uint8_t *)&fs_plltune_val);
+                  (uint8_t *) &fs_plltune_val);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
+                  (uint8_t *) &lde_cfg2);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
-                  (uint8_t *)&lde_repc);
+                  (uint8_t *) &lde_repc);
 
   /* DW_LOG("Configuration complete."); */
 }
@@ -1386,8 +1391,8 @@ void
 dw_set_antenna_delay(uint16_t delay)
 {
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
-                  (uint8_t *)&delay);
-  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *)&delay);
+                  (uint8_t *) &delay);
+  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay);
 }
 /**
  * Get the current antenna delay. (~15.65 ps per tick)
@@ -1396,6 +1401,28 @@ uint16_t
 dw_get_antenna_delay()
 {
   return (uint16_t) dw_read_reg_32(DW_REG_TX_ANTD, DW_LEN_TX_ANTD);
+}
+/**
+ * \brief Get the RX et TX antenna delay and change the TX and RX delay 
+ *      with the maximum of the initial TX and RX delay.
+ *      The resulting RX and TX antenna are the same and this allow a good 
+ *      ranging measure.
+ */
+void
+dw_equalize_antenna_delay(void){
+  uint16_t rx_delay_antenna, tx_delay_antenna;
+
+  /* get rx and tx antenna delay */
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
+                  (uint8_t *) &rx_delay_antenna);
+  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay_antenna);
+
+  /* set the maximum delay value */
+  if(rx_delay_antenna >= tx_delay_antenna){
+    dw_set_antenna_delay(rx_delay_antenna);
+  } else {
+    dw_set_antenna_delay(tx_delay_antenna);
+  }
 }
 /**
  * \brief Setter for the delayed transmit/receive register. If delayed operation
@@ -1497,12 +1524,12 @@ dw_init_rx(void)
  * \brief Starts a new transmission. Data must either already be uploaded to
  *        DW1000 or be uploaded VERY shortly.
  *
- * \param wait_ack If wait_ack is true, program the transmitter to wait for 
+ * \param wait_4_resp If true, program the transmitter to wait for 
  *                  response.
  * \param delayed If delayed is true, program a delayed transmission.
  */
 void
-dw_init_tx(uint8_t wait_ack, uint8_t delayed)
+dw_init_tx(uint8_t wait_4_resp, uint8_t delayed)
 {
   dw1000.state = DW_STATE_TRANSMITTING;
   /* Start transmission */
@@ -1511,7 +1538,7 @@ dw_init_tx(uint8_t wait_ack, uint8_t delayed)
   dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
   sys_ctrl_lo |= DW_TXSTRT_MASK;
 
-  if(wait_ack)
+  if(wait_4_resp)
     sys_ctrl_lo |= DW_WAIT4RESP_MASK; /* Wait for Response bit */
   else
     sys_ctrl_lo &= ~DW_WAIT4RESP_MASK;

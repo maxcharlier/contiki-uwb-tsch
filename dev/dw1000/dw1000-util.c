@@ -45,6 +45,12 @@
 #include "dw1000-util.h"
 #include "dw1000.h"
 
+/* Declare all possible frame type */
+static const char *FRAME_TYPES[8] = { "beacon", "data", "ACK", "MAC command",
+                                      "reserved", "reserved", "reserved", 
+                                      "reserved" };
+
+
 /**
  * \brief     Make a 802.15.4 data frame.
  *            If the PANID source and destination are the same, we use the PANID
@@ -208,6 +214,23 @@ make_response(uint8_t ack, uint8_t seq_num,
                     resp_data_len, resp_data,
                     frame_len, frame);
 
+}/**
+ * \brief   Make a 802.15.4 ACK frame in response of an 802.15.4 
+ *          data frame.
+ *
+ * \param seq_num       Sequence Number.
+ * \param frame_len     Max length of the buffer "frame".
+ * \param frame         Pointer to a buffer.
+ * \return              The length of the frame (without FCS) => 3.
+ */
+uint8_t
+make_ack(uint8_t seq_num, uint8_t frame_len, uint8_t *frame)
+{
+  uint16_t frame_control = 0x02;
+  frame[0] = frame_control & 0xFF;
+  frame[1] = frame_control >> 8;
+  frame[2] = seq_num;
+  return 3;
 }
 /**
  * \brief  Print a buffer with a prefix.
@@ -263,11 +286,6 @@ print_ext_id(uint8_t *frame)
     }
   }
 }
-/* Declare all possible frame type */
-static const char *FRAME_TYPES[8] = { "beacon", "data", "ACK", "MAC command",
-                                      "reserved", "reserved", "reserved", 
-                                      "reserved" };
-
 /**
  * \brief             Print a frame.
  *

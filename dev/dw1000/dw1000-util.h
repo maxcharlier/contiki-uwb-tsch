@@ -63,6 +63,9 @@ uint8_t make_response(uint8_t ack, uint8_t seq_num,
            uint8_t resp_data_len, uint8_t *resp_data,
            uint8_t frame_len, uint8_t *frame);
 
+uint8_t
+make_ack(uint8_t seq_num, uint8_t frame_len, uint8_t *frame);
+
 void print_buf(const char *prefix, uint8_t *buf, uint8_t buf_len);
 void print_frame(uint16_t frame_len, uint8_t *frame);
 void print_sys_status(uint64_t sys_status);

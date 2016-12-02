@@ -55,7 +55,6 @@ PROCESS_THREAD(frame_receiver_process, ev, data)
   
   PROCESS_BEGIN();
 
-  printf("BQU:0:%u:%u\r\n", RTIMER_NOW(), RTIMER_ARCH_SECOND);
   printf("receiver %d.%d starting...\r\n", linkaddr_node_addr.u8[0],
 	 linkaddr_node_addr.u8[1]);
 

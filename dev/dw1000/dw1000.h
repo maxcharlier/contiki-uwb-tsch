@@ -516,6 +516,7 @@ uint64_t dw_get_tx_timestamp(void);
 inline void  dw_get_tx_raw_timestamp(uint64_t timestamp);
 void     dw_set_antenna_delay(uint16_t delay);
 uint16_t dw_get_antenna_delay(void);
+void dw_equalize_antenna_delay(void);
 uint64_t dw_get_dx_timestamp(void);
 void     dw_set_dx_timestamp(uint64_t timestamp);
 void     dw_enable_ranging_frame(void);
@@ -558,7 +559,7 @@ void dw_enable_interrupt(uint32_t mask);
 
 void dw_idle(void);
 
-void dw_init_tx(uint8_t wait_ack, uint8_t delayed);
+void dw_init_tx(uint8_t wait_4_resp, uint8_t delayed);
 void dw_suppress_auto_FCS_tx(void);
 
 /*===========================================================================*/

@@ -429,8 +429,8 @@
 #define DW_RXBR_MASK   (0x3UL << 13)    /* \brief dummy */
 #define DW_RNG         15               /* \brief dummy */
 #define DW_RNG_MASK    (0x1UL << 15)    /* \brief dummy */
-#define DW_RXPRF       16               /* \brief dummy */
-#define DW_RXPRF_MASK  (0x3UL << 16)    /* \brief dummy */
+#define DW_RXPRFR      16               /* \brief dummy */
+#define DW_RXPRFR_MASK (0x3UL << 16)    /* \brief dummy */
 #define DW_RXPSR       18               /* \brief dummy */
 #define DW_RXPSR_MASK  (0x3UL << 18)    /* \brief dummy */
 #define DW_RXPACC      20               /* \brief dummy */
@@ -459,16 +459,16 @@
 #define DW_RXCHAN_MASK   (0x1FUL << 5)  /* \brief dummy */
 #define DW_DWSFD         17             /* \brief dummy */
 #define DW_DWSFD_MASK    (0x1UL << 17)  /* \brief dummy */
-#define DW_RXPRFR        18             /* \brief dummy */
-#define DW_RXPRFR_MASK   (0x03UL << 18) /* \brief dummy */
+#define DW_RXPRF         18             /* \brief dummy */
+#define DW_RXPRF_MASK    (0x03UL << 18) /* \brief dummy */
 #define DW_TNSSFD        20             /* \brief dummy */
 #define DW_TNSSFD_MASK   (0x1UL << 20)  /* \brief dummy */
 #define DW_RNSSFD        21             /* \brief dummy */
 #define DW_RNSSFD_MASK   (0x1UL << 21)  /* \brief dummy */
 #define DW_TX_PCODE      22             /* \brief dummy */
-#define DW_TX_PCODE_MASK (0x3FUL << 22) /* \brief dummy */
+#define DW_TX_PCODE_MASK (0x1FUL << 22) /* \brief dummy */
 #define DW_RX_PCODE      27             /* \brief dummy */
-#define DW_RX_PCODE_MASK (0x3FUL << 27) /* \brief dummy */
+#define DW_RX_PCODE_MASK (0x1FUL << 27) /* \brief dummy */
 
 /* DW_REG_GPIO_CTRL 0x26 */
 /* DW_SUBREG_GPIO_MODE 0x26:00*/

@@ -68,6 +68,8 @@ sender:
 	make frame-sender.upload MOTES=$(PORT_Z1_6)
 anchor:
 	make anchor.upload MOTES=$(PORT_Z1_6)
+calibrator:
+	make calibrator.upload MOTES=$(PORT_Z1_6)
 sender-debug:
 	make frame-sender-debug.upload MOTES=$(PORT_Z1_6)
 

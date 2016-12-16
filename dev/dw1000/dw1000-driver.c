@@ -78,11 +78,11 @@
 #endif /* DW1000_CHANNEL */
 
 #ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
+#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
 #endif /* DW1000_DATA_RATE */
 
 #ifndef DW1000_PREAMBLE
-#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_128
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_1024
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
@@ -311,26 +311,33 @@ dw1000_driver_init(void)
   dw_disable_gpio_led();
 #endif
   
-  /* set the reply time to 500 µs, 
-     must be enough for a data rate of 6.8 mbps */
-  dw1000_driver_set_reply_time(600);
+  /* set the reply time.
+    For a configuration using data-rate of 6.8 mbps and a preamble of 128 
+    symbols we recommend a reply time of 600 µs. 
+    At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
+    is enough */
+  dw1000_driver_set_reply_time(2300);
 
   /* We equalize the tx and RX antenna delay but we have a big discordance 
       in the meseareament ==> need calibration
-      We can't change the value of the RX antenna delay > it is fixed at 0xDEAD
-      This is a bug...
-      In this case, we change the value of the TX antenna delay */
-  dw_equalize_antenna_delay();
+      In this case, we change the value of the RX antenna delay */
+  
+  // dw_equalize_antenna_delay();
 
   uint16_t delay_antenna = 0;
-  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
-  delay_antenna += 8476 + 0xDEAD;
-  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
+  // dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
+  // delay_antenna += 8476 + 0xDEAD;
+  // dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
+  
 
   dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
   printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &delay_antenna);
+  delay_antenna += 32560;
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
+                  (uint8_t *) &delay_antenna);
+
   printf("delay antenna RX %04X\n", (unsigned int) delay_antenna);
 
   process_start(&dw1000_driver_process, NULL);
@@ -423,15 +430,20 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   int tx_return = RADIO_TX_ERR;
   GET_LOCK();
+#if DEBUG
   uint8_t count_idle = 0, count_txtrt = 0;
+#endif /* DEBUG */
   if(receive_on) {
     dw_idle();
+
+#if DEBUG
     /* wait the effective TRX OFF */
     uint8_t sys_ctrl_lo;
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0, 1, &sys_ctrl_lo);
                   watchdog_periodic(); count_idle++;, 
                   ((sys_ctrl_lo & DW_TRXOFF_MASK) == 0),
-                  1000);
+                  microsecond_to_clock_tik(50));
+#endif /* DEBUG */
   }
 
   if(dw1000_driver_wait_ACK | dw1000_driver_sstwr) {
@@ -450,12 +462,14 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw_init_tx(1, 0); 
   }
 
-  /* wait the start of the transmission */
+#if DEBUG
+  /* wait the effective start of the transmission */
   uint8_t sys_ctrl_lo;
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0, 1, &sys_ctrl_lo);
                   watchdog_periodic(); count_txtrt++;, 
                   ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
-                  10000);
+                  microsecond_to_clock_tik(100));
+#endif /* DEBUG */
 
   if(DW1000_CONF_CHECKSUM) {
     payload_len += FOOTER_LEN; /* add the FCS size */
@@ -463,18 +477,18 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   /* only reads low-byte of DW1000's SYS_STATUS (bit 7 is TXFRS) */
   uint8_t sys_status_lo = 0x0;
-  uint8_t count = 0; 
+  uint8_t count_send = 0; 
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, &sys_status_lo); 
-                  count++; watchdog_periodic();,
+                  count_send++; watchdog_periodic();,
                   ((sys_status_lo & DW_TXFRS_MASK) != 0),
-                  10000);
-                  // (theorical_transmission_approx(dw1000_conf.preamble_length, 
-                  // dw1000_conf.data_rate, dw1000_conf.prf, payload_len) << 1 )+ 
-                  // DW1000_SPI_DELAY);
+                  (theorical_transmission_approx(dw1000_conf.preamble_length, 
+                  dw1000_conf.data_rate, dw1000_conf.prf, payload_len) << 1 )+ 
+                  DW1000_SPI_DELAY);
 
-  // printf("Number of loop waiting IDLE: %d\n", count_idle);
-  // printf("Number of loop waiting Tx on: %d\n", count_txtrt);
-  // printf("Number of loop waiting Transmit Frame Sent: %d\n", count);
+  PRINTF("Number of loop waiting IDLE: %d\n", count_idle);
+  PRINTF("Number of loop waiting Tx on: %d\n", count_txtrt);
+  PRINTF("Number of loop waiting Transmit Frame Sent: %d\n", count_send);
+  
   if((sys_status_lo & DW_TXFRS_MASK) != 0) {
     tx_return = RADIO_TX_OK;
   }
@@ -486,10 +500,10 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* wait ACK */
   if(dw1000_driver_wait_ACK && tx_return == RADIO_TX_OK) {
     tx_return = RADIO_TX_NOACK;
-    count = 0;
+    uint8_t count_ack = 0;
     sys_status_lo = 0x0; /* clear the value */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, 
-                    &sys_status_lo); watchdog_periodic(); count++,
+                    &sys_status_lo); watchdog_periodic(); count_ack++,
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0)),
@@ -497,7 +511,7 @@ dw1000_driver_transmit(unsigned short payload_len)
                     dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                     DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
 
-    PRINTF("Number of loop waiting ACK %d\n", count);
+    PRINTF("Number of loop waiting ACK %d\n", count_ack);
 
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
@@ -516,7 +530,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* we wait for the ranging response */
   if(dw1000_driver_sstwr && tx_return == RADIO_TX_OK){
     tx_return = RADIO_TX_ERR;
-    count = 0;
+    uint8_t count = 0;
     sys_status_lo = 0x0; /* clear the value */
     /* the lenght of the ranging response is 11 */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, 
@@ -524,25 +538,29 @@ dw1000_driver_transmit(unsigned short payload_len)
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0)), 
-                    10000);
-                    // theorical_transmission_approx(dw1000_conf.preamble_length,
-                    // dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
-                    // DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
-                    // (dw1000_driver_reply_time  << 2));
+                    // 10000);
+                    theorical_transmission_approx(dw1000_conf.preamble_length,
+                    dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
+                    DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+                    (dw1000_driver_reply_time  << 2));
   // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
-    // printf("Number of loop waiting the ranging response %d\n", count);
+    PRINTF("Number of loop waiting the ranging response %d\n", count);
 
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
       tx_return = RADIO_TX_OK;
+
+#if DEBUG
       count = 0;
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, 
                     &sys_status_lo); watchdog_periodic(); count++,
                     ((sys_status_lo & (DW_LDEDONE_MASK >> 8)) != 0), 
                     30);
-      // printf("Number of loop waiting the LDE done %d\n", count);
-      // printf("lenght of the ranging response %d\n", dw_get_rx_len());
+      PRINTF("Number of loop waiting the LDE done %d\n", count);
+      PRINTF("lenght of the ranging response %d\n", dw_get_rx_len());
+#endif /* DEBUG */
+
       clear_rx_buffer = 1; /* true */
       dw1000_compute_propagation_time();
     }
@@ -1090,7 +1108,7 @@ dw1000_driver_interrupt(void)
         dw_init_tx(0, 1);
 
         rtimer_clock_t t1 = RTIMER_NOW() - t0;
-        /* wait the end of the stransmission */
+        /* wait the end of the transmission */
         uint8_t sys_status_lo = 0x0;
         BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, 
                       &sys_status_lo); watchdog_periodic();,

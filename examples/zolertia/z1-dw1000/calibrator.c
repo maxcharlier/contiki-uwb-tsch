@@ -54,8 +54,6 @@ PROCESS_THREAD(frame_sender_process, ev, data)
         PROCESS_PAUSE();
       }
 
-      /* the propagation time, this value can be use copied in a excel 
-        document and divided by 1000 to get the shift in the antenna delay */
       sum_propragation_time += dw1000_driver_get_propagation_time();
 
       etimer_reset(&timer);

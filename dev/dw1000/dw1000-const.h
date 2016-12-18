@@ -95,6 +95,12 @@
 #define DW_REG_RX_FQUAL     0x12        /* \brief dummy */
 #define DW_LEN_RX_FQUAL     8           /* \brief dummy */
 
+#define DW_REG_RX_TTCKI     0x13        /* \brief dummy */
+#define DW_LEN_RX_TTCKI     4           /* \brief dummy */
+
+#define DW_REG_RX_TTCKO     0x14        /* \brief dummy */
+#define DW_LEN_RX_TTCKO     5           /* \brief dummy */
+
 #define DW_REG_ACK_RESP     0x1A        /* \brief dummy */
 #define DW_LEN_ACK_RESP     4           /* \brief dummy */
 
@@ -451,6 +457,14 @@
 #define DW_FP_AMPL3_MASK  (0xFFFFULL << 32) /* \brief dummy */
 #define DW_CIR_PWR        48                /* \brief dummy */
 #define DW_CIR_PWR_MASK   (0xFFFFULL << 48) /* \brief dummy */
+
+/* DW_REG_RX_TTCKI 0x13 */
+#define DW_RXTTCKI         0                    /* \brief dummy */
+#define DW_RXTTCKI_MASK    (0xFFFFFFFFULL << 0) /* \brief dummy */
+
+/* DW_REG_RX_TTCKO 0x14 */
+#define DW_RXTOFS         0                 /* \brief dummy */
+#define DW_RXTOFS_MASK    (0x7FFULL << 0)   /* \brief dummy */
 
 /* DW_REG_CHAN_CTRL 0x1F */
 #define DW_TXCHAN        0              /* \brief dummy */

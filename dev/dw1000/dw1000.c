@@ -1395,12 +1395,49 @@ dw_set_antenna_delay(uint16_t delay)
   dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay);
 }
 /**
- * Get the current antenna delay. (~15.65 ps per tick)
+ * \brief Get the current antenna delay. (~15.65 ps per tick)
+ * \return The current antenna delay.
  */
 uint16_t
 dw_get_antenna_delay()
 {
   return (uint16_t) dw_read_reg_32(DW_REG_TX_ANTD, DW_LEN_TX_ANTD);
+}
+/**
+ *  \brief Get the Receiver Time Tracking Offset. This value is provide by 
+ *      analysing the correction made by the phase-lock-loop (PLL) to decode the
+ *      signal, it provide an estimate of the difference between the 
+ *      transmitting and the receiver clock.
+ * \return The Receiver Time Tracking Offset in part per million (ppm).
+ */
+int32_t
+dw_get_clock_offset(){
+  /* Clock offset = RX TOFS / RX TTCKI */
+  int32_t rx_tofs = 0L;
+  uint32_t rx_ttcki = 0UL;
+
+  /* RX TOFS is a signed 19-bit number, the 19nd bit is the sign */
+  dw_read_subreg(DW_REG_RX_TTCKO, 0, 3, (uint8_t *) &rx_tofs);
+  rx_tofs &= DW_RXTOFS_MASK;
+  /* convert a 19 signed bit number to a 32 bits signed number */
+  if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
+      /* a signed int is represented by a two complement representation */
+      /* convert to a unsigned number => 
+          we use a mask because we use 32 bits in place of 19 */
+      rx_tofs = (~rx_tofs & DW_RXTOFS_MASK) + 1; 
+      rx_tofs = -rx_tofs;
+  }
+
+  /* brief dummy : The value in RXTTCKI will take just one of two values 
+      depending on the PRF: 0x01F00000 @ 16 MHz PRF, 
+      and 0x01FC0000 @ 64 MHz PRF. */
+  rx_ttcki = dw_read_reg_32(DW_REG_RX_TTCKI, DW_LEN_RX_TTCKI);
+
+  /*
+  printf("RX TOFS %ld\n", (long int) rx_tofs);
+  printf("RX TTCKI %lu\n", (long unsigned int) rx_ttcki);
+  */
+  return (rx_tofs * 1000000LL) / rx_ttcki;
 }
 /**
  * \brief Get the RX et TX antenna delay and change the TX and RX delay 

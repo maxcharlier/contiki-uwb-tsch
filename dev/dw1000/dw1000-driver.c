@@ -86,7 +86,7 @@
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
-#define DW1000_PRF               DW_PRF_64_MHZ
+#define DW1000_PRF               DW_PRF_16_MHZ
 #endif /* DW1000_PRF */
 
 /* the delay induced by the SPI communication */
@@ -140,6 +140,8 @@ static uint32_t dw1000_driver_reply_time;
 
 static uint64_t dw1000_driver_last_propagation_time;
 
+static uint64_t dw1000_driver_last_propagation_time_corrected;
+
 /* store the current DW1000 configuration */
 static dw1000_base_conf_t dw1000_conf;
 
@@ -180,6 +182,7 @@ static volatile uint16_t last_packet_timestamp;
 /* start private function */
 inline void dw1000_schedule_reply(void);
 void dw1000_compute_propagation_time(void);
+void dw1000_compute_propagation_time_corrected(void);
 /* end private function */
 
 /* PLATFORM DEPENDENT
@@ -318,8 +321,8 @@ dw1000_driver_init(void)
     is enough */
   dw1000_driver_set_reply_time(2300);
 
-  /* We equalize the tx and RX antenna delay but we have a big discordance 
-      in the meseareament ==> need calibration
+  /* We equalize the TX and RX antenna delay but we have a big discordance 
+      in the measurement ==> need calibration
       In this case, we change the value of the RX antenna delay */
   
   // dw_equalize_antenna_delay();
@@ -334,7 +337,10 @@ dw1000_driver_init(void)
   printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &delay_antenna);
-  delay_antenna += 32560;
+  delay_antenna += 28269; /* at 110 kbps channel 5*/
+  // delay_antenna += 37352; /* at 110 kbps channel 5*/
+  // delay_antenna += 31626; /*at 6800 kbps channel 5*/  
+  // delay_antenna += 28240; /* at 110 kbps channel 4*/
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &delay_antenna);
 
@@ -532,13 +538,12 @@ dw1000_driver_transmit(unsigned short payload_len)
     tx_return = RADIO_TX_ERR;
     uint8_t count = 0;
     sys_status_lo = 0x0; /* clear the value */
-    /* the lenght of the ranging response is 11 */
+    /* the length of the ranging response is 11 */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, 
                     &sys_status_lo); watchdog_periodic(); count++,
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0)), 
-                    // 10000);
                     theorical_transmission_approx(dw1000_conf.preamble_length,
                     dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
                     DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
@@ -558,11 +563,12 @@ dw1000_driver_transmit(unsigned short payload_len)
                     ((sys_status_lo & (DW_LDEDONE_MASK >> 8)) != 0), 
                     30);
       PRINTF("Number of loop waiting the LDE done %d\n", count);
-      PRINTF("lenght of the ranging response %d\n", dw_get_rx_len());
+      PRINTF("length of the ranging response %d\n", dw_get_rx_len());
 #endif /* DEBUG */
 
       clear_rx_buffer = 1; /* true */
       dw1000_compute_propagation_time();
+      dw1000_compute_propagation_time_corrected();
     }
   }
 
@@ -1061,7 +1067,7 @@ dw1000_driver_interrupt(void)
      dw1000_driver_init_down is use for fix bug of IRQ call before DW1000 reset
    */
      
-  rtimer_clock_t t0 = RTIMER_NOW();
+  // rtimer_clock_t t0 = RTIMER_NOW();
   if(dw1000_driver_init_down) {
     /* we read only the fisrt 32 bit of the register */
     uint32_t status = dw_read_reg_64(DW_REG_SYS_STATUS, 4);
@@ -1107,7 +1113,7 @@ dw1000_driver_interrupt(void)
         /* no ACK and delayed */
         dw_init_tx(0, 1);
 
-        rtimer_clock_t t1 = RTIMER_NOW() - t0;
+        // rtimer_clock_t t1 = RTIMER_NOW() - t0;
         /* wait the end of the transmission */
         uint8_t sys_status_lo = 0x0;
         BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, 
@@ -1445,20 +1451,105 @@ dw1000_compute_propagation_time(void){
   /* Compute the round time */
   dw1000_driver_last_propagation_time = dw_get_rx_timestamp() - 
                               dw_get_tx_timestamp(); 
+
   /* We shift the reply time to match with the time of the DW1000 */
   dw1000_driver_last_propagation_time -= 
                         ((uint64_t) dw1000_driver_reply_time * 125) << 9;
 
   /* dw1000_driver_last_propagation_time divided by 2 */
   dw1000_driver_last_propagation_time >>= 1;
-  // printf("rx timestamp %"PRIu64"\n", 
-  //   (long long unsigned int) dw_get_rx_timestamp());
-  // printf("tx timestamp %"PRIu64"\n", 
-  //   (long long unsigned int) dw_get_tx_timestamp());
-  // printf("t reply %"PRIu64"\n", 
-  //   (long long unsigned int) ((uint64_t) dw1000_driver_reply_time * 125) << 9);
-  // printf("propagation %"PRIu64"\n", 
-  //   (long long unsigned int) dw1000_driver_last_propagation_time);
+
+}
+
+/**
+ * \brief Compute the propagation time based on the reply time, and the RX and 
+ *        TX timestamps
+ *        /!\ Private function.
+ *
+ *        ToF = (1/2)*(t_round - (1 + F) * t_reply)
+ *            = (1/2)*(t_round - t_reply - (F * t_reply)
+ *        F is the clock offset between the TX and the RX transceiver.
+ *
+ *        The Receiver Time Tracking Offset is provide by analysing the 
+ *        correction made by the phase-lock-loop (PLL) to decode the
+ *        signal, it provide an estimate of the difference between the 
+ *        transmitting and the receiver clock.
+ */
+void 
+dw1000_compute_propagation_time_corrected(void){
+  uint64_t t_reply;
+  uint32_t rx_tofs = 0UL;
+  uint8_t  rx_tofs_negative = 0; /* false */
+  uint64_t rx_ttcki = 0ULL;
+  /* Compute the round time  t_round*/
+  dw1000_driver_last_propagation_time_corrected = dw_get_rx_timestamp() - 
+                              dw_get_tx_timestamp();      
+
+  /* We shift the reply time to match with the time of the DW1000 */
+  t_reply = ((uint64_t) dw1000_driver_reply_time * 125) << 9;
+
+  dw1000_driver_last_propagation_time_corrected -= t_reply;
+
+  /* we want to take into a count the clock offset
+    Clock offset = RX TOFS / RX TTCKI */
+
+
+  /* RX TOFS is a signed 19-bit number, the 19nd bit is the sign */
+  dw_read_subreg(DW_REG_RX_TTCKO, 0, 3, (uint8_t *) &rx_tofs);
+  rx_tofs &= DW_RXTOFS_MASK;
+  /* convert a 19 signed bit number to a 32 bits signed number */
+  if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
+      /* a signed int is represented by a two complement representation */
+      /* convert to a unsigned number => 
+          we use a mask because we use 32 bits in place of 19 */
+      rx_tofs = (~rx_tofs & DW_RXTOFS_MASK) + 1; 
+      rx_tofs_negative = 1; /* true */
+  }
+
+  /* brief dummy : The value in RXTTCKI will take just one of two values 
+      depending on the PRF: 0x01F00000 @ 16 MHz PRF, 
+      and 0x01FC0000 @ 64 MHz PRF. */
+  if(dw1000_conf.prf == DW_PRF_16_MHZ){
+    rx_ttcki = 0x01F00000ULL;
+  } else{ /* prf == DW_PRF_64_MHZ */
+    rx_ttcki = 0x01FC0000ULL;
+  }
+
+  // printf("clock offset%ld\n", (long int) dw_get_clock_offset());
+  /* We are not able to use the formula Clock offset = RX TOFS / RX TTCKI 
+      because of the restricted embedded system.
+      We change "- (Clock offset * t_reply)" to "- RX TOFS * t_reply / RX TTCKI"
+      We don't want to use signed number => we made tow cases in function of the
+      sign of RX TOFS */
+  if(rx_tofs_negative){
+    dw1000_driver_last_propagation_time_corrected += 
+                                              (t_reply * rx_tofs) / rx_ttcki;
+  }else {
+    dw1000_driver_last_propagation_time_corrected -= 
+                                              (t_reply * rx_tofs) / rx_ttcki;
+  }
+
+  /* dw1000_driver_last_propagation_time_corrected divided by 2 */
+  dw1000_driver_last_propagation_time_corrected >>= 1;
+
+#if DEBUG_VERBOSE
+  PRINTF("RX TTCKI %"PRIu64"\n", (long long unsigned int) rx_ttcki);
+  /* work but slow compare to of a no SPI assignation */
+  rx_ttcki = dw_read_reg_32(DW_REG_RX_TTCKI, DW_LEN_RX_TTCKI);
+  PRINTF("RX TTCKI %"PRIu64"\n", (long long unsigned int) rx_ttcki);
+  PRINTF("RX TTCKI tow previous value must be the same\n");
+  PRINTF("RX TOFS %lu\n", (long unsigned int) rx_tofs);
+  PRINTF("RX TOFS negative (1 = true, 0 false) %d\n", rx_tofs_negative);
+  PRINTF("t_reply %"PRIu64"\n", (long long unsigned int) t_reply);
+
+  PRINTF("rx timestamp %"PRIu64"\n", 
+    (long long unsigned int) dw_get_rx_timestamp());
+  PRINTF("tx timestamp %"PRIu64"\n", 
+    (long long unsigned int) dw_get_tx_timestamp());
+  PRINTF("propagation corrected %"PRIu64"\n", 
+    (long long unsigned int) dw1000_driver_last_propagation_time_corrected);
+#endif /* DEBUG_VERBOSE */
+
 }
 
 /**
@@ -1470,4 +1561,15 @@ dw1000_compute_propagation_time(void){
 uint64_t
 dw1000_driver_get_propagation_time(void){
   return dw1000_driver_last_propagation_time;
+}
+/**
+ * \brief Return the propagation time, based on the last two way ranging.
+ *        Take into a count the clock shift between the Sender and the receiver.
+ * \return The propagation time. The unit of the least significant bit is 
+ *          approximately 15.65 picoseconds. The actual unit may be calculated 
+ *          as 1/ (128*499.2×10^6 ) seconds.
+ */
+uint64_t
+dw1000_driver_get_propagation_time_corrected(void){
+  return dw1000_driver_last_propagation_time_corrected;
 }

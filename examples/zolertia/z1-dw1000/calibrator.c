@@ -21,6 +21,7 @@ PROCESS_THREAD(frame_sender_process, ev, data)
   static struct etimer timer;
   static int i = 0;
   static long long unsigned int sum_propragation_time = 0;
+  static long long unsigned int sum_propragation_time_corrected = 0;
   PROCESS_EXITHANDLER(unicast_close(&uc);)
 
   
@@ -55,6 +56,8 @@ PROCESS_THREAD(frame_sender_process, ev, data)
       }
 
       sum_propragation_time += dw1000_driver_get_propagation_time();
+      sum_propragation_time_corrected += 
+                                dw1000_driver_get_propagation_time_corrected();
 
       etimer_reset(&timer);
       i++;
@@ -64,6 +67,8 @@ PROCESS_THREAD(frame_sender_process, ev, data)
         etimer_set(&timer, CLOCK_SECOND * 3600);
         printf("mean propagation time %"PRIu64"\n", 
                       sum_propragation_time / 1000);
+        printf("mean propagation time corrected %"PRIu64"\n", 
+                      sum_propragation_time_corrected / 1000);
       }
     }
     

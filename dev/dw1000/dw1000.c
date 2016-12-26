@@ -1169,6 +1169,49 @@ dw_get_fp_ampl()
   return (float)((dw_read_reg_64(DW_REG_RX_FQUAL, DW_LEN_RX_FQUAL) 
         & (DW_FP_AMPL2_MASK)) >> DW_FP_AMPL2);
 }
+/**
+ * \brief Print value required for the computation of the First Path Power Level
+ *        and the Receive Power.
+ *        With the following format : F1 F2 F3 N C N_correction detailed in the manual:
+ *        In the section 4.7.1 Estimating the signal power in the first path
+ *        And in the section 4.7.2 Estimating the receive signal power
+ *        N_correction == 1 if the value RXPACC is saturated
+ */
+void 
+dw_print_receive_ampl(void)
+{
+  uint16_t fp_ampl1, fp_ampl2, fp_ampl3, rx_pacc, rx_pacc_nosat, cir_pwr;
+  /* Read FP_AMPL1 */
+  dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_FP_AMPL1, 
+                                  DW_SUBLEN_FP_AMPL1, (uint8_t*) &fp_ampl1);
+
+  /* Read FP_AMPL2 */
+  dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_FP_AMPL2, 
+                                  DW_SUBLEN_FP_AMPL2, (uint8_t*) &fp_ampl2);
+  /* Read FP_AMPL3 */
+  dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_FP_AMPL3, 
+                                  DW_SUBLEN_FP_AMPL3, (uint8_t*) &fp_ampl3);
+  /* Read RXPACC */
+  /* we read only 2 bytes in place of the all register */
+  dw_read_subreg(DW_REG_RX_FINFO, 2, 2, (uint8_t*) &rx_pacc);
+  rx_pacc >> (DW_RXPACC - 16);
+  rx_pacc &= (DW_RXPACC_MASK >> DW_RXPACC);
+  /* read RXPACC_NOSAT */
+  dw_read_subreg(DW_REG_DRX_CONF, DW_SUBREG_RXPACC_NOSAT, 
+                        DW_SUBLEN_RXPACC_NOSAT, (uint8_t*) &rx_pacc_nosat);
+
+  /* CIR_PWR */
+  dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_CIR_PWR, 
+                                  DW_SUBLEN_CIR_PWR, (uint8_t*) &cir_pwr);
+  printf("Value for the computation of Receive power F1 F2 F3 N C\n");
+  printf("%d %d %d %d %d", fp_ampl1, fp_ampl2, fp_ampl3, rx_pacc, cir_pwr);
+  /* check if RXPACC is saturated and need to be corrected */
+  if(rx_pacc == rx_pacc_nosat){
+    printf(" 1\n");
+  }
+  else
+    printf(" 0\n");
+}
 
 
 /*===========================================================================*/
@@ -1424,8 +1467,9 @@ dw_get_clock_offset(){
       /* a signed int is represented by a two complement representation */
       /* convert to a unsigned number => 
           we use a mask because we use 32 bits in place of 19 */
-      rx_tofs = (~rx_tofs & DW_RXTOFS_MASK) + 1; 
-      rx_tofs = -rx_tofs;
+      // rx_tofs = (~rx_tofs & DW_RXTOFS_MASK) + 1; 
+      rx_tofs |= 0xFFF80000UL;
+      // rx_tofs = -rx_tofs;
   }
 
   /* brief dummy : The value in RXTTCKI will take just one of two values 

@@ -493,6 +493,7 @@ void dw_soft_reset(void);
 /* Diagnostics */
 float dw_get_noise_level(void);
 float dw_get_fp_ampl(void);
+void  dw_print_receive_ampl(void);
 
 /* RX/TX */
 void dw_enable_automatic_receiver_Re_Enable(void);

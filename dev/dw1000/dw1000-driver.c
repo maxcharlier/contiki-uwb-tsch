@@ -78,15 +78,15 @@
 #endif /* DW1000_CHANNEL */
 
 #ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
+#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
 #endif /* DW1000_DATA_RATE */
 
 #ifndef DW1000_PREAMBLE
-#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_1024
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_128
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
-#define DW1000_PRF               DW_PRF_16_MHZ
+#define DW1000_PRF               DW_PRF_64_MHZ
 #endif /* DW1000_PRF */
 
 /* the delay induced by the SPI communication */
@@ -319,7 +319,7 @@ dw1000_driver_init(void)
     symbols we recommend a reply time of 600 µs. 
     At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
     is enough */
-  dw1000_driver_set_reply_time(2300);
+  dw1000_driver_set_reply_time(600);
 
   /* We equalize the TX and RX antenna delay but we have a big discordance 
       in the measurement ==> need calibration
@@ -337,7 +337,7 @@ dw1000_driver_init(void)
   printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &delay_antenna);
-  delay_antenna += 28269; /* at 110 kbps channel 5*/
+  delay_antenna += 32810; /* at 110 kbps channel 5*/
   // delay_antenna += 37352; /* at 110 kbps channel 5*/
   // delay_antenna += 31626; /*at 6800 kbps channel 5*/  
   // delay_antenna += 28240; /* at 110 kbps channel 4*/
@@ -551,7 +551,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
     PRINTF("Number of loop waiting the ranging response %d\n", count);
-
+    dw_print_receive_ampl();
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
       tx_return = RADIO_TX_OK;
@@ -1123,7 +1123,7 @@ dw1000_driver_interrupt(void)
                       dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                       (dw1000_driver_reply_time  << 2));
-
+    dw_print_receive_ampl();
 // printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
 
 // uint64_t sys_status = 0x0;

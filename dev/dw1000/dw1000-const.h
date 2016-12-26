@@ -94,6 +94,12 @@
 
 #define DW_REG_RX_FQUAL     0x12        /* \brief dummy */
 #define DW_LEN_RX_FQUAL     8           /* \brief dummy */
+#define DW_SUBREG_FP_AMPL2  0x02        /* \brief dummy */
+#define DW_SUBLEN_FP_AMPL2  2           /* \brief dummy */
+#define DW_SUBREG_FP_AMPL3  0x04        /* \brief dummy */
+#define DW_SUBLEN_FP_AMPL3  2           /* \brief dummy */
+#define DW_SUBREG_CIR_PWR   0x06        /* \brief dummy */
+#define DW_SUBLEN_CIR_PWR   2           /* \brief dummy */
 
 #define DW_REG_RX_TTCKI     0x13        /* \brief dummy */
 #define DW_LEN_RX_TTCKI     4           /* \brief dummy */
@@ -151,17 +157,19 @@
 #define DW_SUBREG_GPIO_DOUT 0x0C        /* \brief dummy */
 #define DW_SUBLEN_GPIO_DOUT 4           /* \brief dummy */
 
-#define DW_REG_DRX_CONF      0x27       /* \brief dummy */
-#define DW_SUBREG_DRX_TUNE0b 0x02       /* \brief dummy */
-#define DW_SUBLEN_DRX_TUNE0b 2          /* \brief dummy */
-#define DW_SUBREG_DRX_TUNE1a 0x04       /* \brief dummy */
-#define DW_SUBLEN_DRX_TUNE1a 2          /* \brief dummy */
-#define DW_SUBREG_DRX_TUNE1b 0x06       /* \brief dummy */
-#define DW_SUBLEN_DRX_TUNE1b 2          /* \brief dummy */
-#define DW_SUBREG_DRX_TUNE2  0x08       /* \brief dummy */
-#define DW_SUBLEN_DRX_TUNE2  4          /* \brief dummy */
-#define DW_SUBREG_DRX_TUNE4h 0x26       /* \brief dummy */
-#define DW_SUBLEN_DRX_TUNE4h 2          /* \brief dummy */
+#define DW_REG_DRX_CONF        0x27       /* \brief dummy */
+#define DW_SUBREG_DRX_TUNE0b   0x02       /* \brief dummy */
+#define DW_SUBLEN_DRX_TUNE0b   2          /* \brief dummy */
+#define DW_SUBREG_DRX_TUNE1a   0x04       /* \brief dummy */
+#define DW_SUBLEN_DRX_TUNE1a   2          /* \brief dummy */
+#define DW_SUBREG_DRX_TUNE1b   0x06       /* \brief dummy */
+#define DW_SUBLEN_DRX_TUNE1b   2          /* \brief dummy */
+#define DW_SUBREG_DRX_TUNE2    0x08       /* \brief dummy */
+#define DW_SUBLEN_DRX_TUNE2    4          /* \brief dummy */
+#define DW_SUBREG_DRX_TUNE4h   0x26       /* \brief dummy */
+#define DW_SUBLEN_DRX_TUNE4h   2          /* \brief dummy */
+#define DW_SUBREG_RXPACC_NOSAT 0x2C       /* \brief dummy */
+#define DW_SUBLEN_RXPACC_NOSAT 2          /* \brief dummy */
 
 #define DW_REG_RF_CONF       0x28       /* \brief dummy */
 #define DW_SUBREG_RF_RXCTRLH 0x0B       /* \brief dummy */
@@ -449,14 +457,14 @@
 #define DW_ACK_TIM_MASK (0xFFULL << 24)     /* \brief dummy */
 
 /* DW_REG_RX_FQUAL 0x12 */
-#define DW_STD_NOISE      0                 /* \brief dummy */
-#define DW_STD_NOISE_MASK (0xFFFFULL << 0)  /* \brief dummy */
-#define DW_FP_AMPL2       16                /* \brief dummy */
-#define DW_FP_AMPL2_MASK  (0xFFFFULL << 16) /* \brief dummy */
-#define DW_FP_AMPL3       32                /* \brief dummy */
-#define DW_FP_AMPL3_MASK  (0xFFFFULL << 32) /* \brief dummy */
-#define DW_CIR_PWR        48                /* \brief dummy */
-#define DW_CIR_PWR_MASK   (0xFFFFULL << 48) /* \brief dummy */
+#define DW_STD_NOISE       0                 /* \brief dummy */
+#define DW_STD_NOISE_MASK  (0xFFFFULL << 0)  /* \brief dummy */
+#define DW_FP_AMPL2        16                /* \brief dummy */
+#define DW_FP_AMPL2_MASK   (0xFFFFULL << 16) /* \brief dummy */
+#define DW_FP_AMPL3        32                /* \brief dummy */
+#define DW_FP_AMPL3_MASK   (0xFFFFULL << 32) /* \brief dummy */
+#define DW_CIR_PWR         48                /* \brief dummy */
+#define DW_CIR_PWR_MASK    (0xFFFFULL << 48) /* \brief dummy */
 
 /* DW_REG_RX_TTCKI 0x13 */
 #define DW_RXTTCKI         0                    /* \brief dummy */

@@ -10,6 +10,9 @@ LANG=en
 
 PORT=/dev/ttyUSB
 PORT_Z1_6=/dev/z1_6
+PORT_Z1_7=/dev/z1_7
+PORT_Z1_8=/dev/z1_8
+PORT_Z1_9=/dev/z1_9
 PORT_Z1_10=/dev/z1_10
 
 all: test-dw1000
@@ -55,6 +58,12 @@ reset:
 
 login-6:
 	make z1-reset MOTES=$(PORT_Z1_6) && make login MOTES=$(PORT_Z1_6)
+login-7:
+	make z1-reset MOTES=$(PORT_Z1_7) && make login MOTES=$(PORT_Z1_7)
+login-8:
+	make z1-reset MOTES=$(PORT_Z1_8) && make login MOTES=$(PORT_Z1_8)
+login-9:
+	make z1-reset MOTES=$(PORT_Z1_9) && make login MOTES=$(PORT_Z1_9)
 login-10:
 	make z1-reset MOTES=$(PORT_Z1_10) && make login MOTES=$(PORT_Z1_10)
 
@@ -69,9 +78,11 @@ sender:
 anchor:
 	make anchor.upload MOTES=$(PORT_Z1_6)
 calibrator:
-	make calibrator.upload MOTES=$(PORT_Z1_6)
+	make calibrator2.upload MOTES=$(PORT_Z1_6)
 sender-debug:
 	make frame-sender-debug.upload MOTES=$(PORT_Z1_6)
+master10:
+	make master.upload MOTES=$(PORT_Z1_10)
 
 receiver:
 	make frame-receiver.upload MOTES=$(PORT_Z1_10)

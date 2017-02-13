@@ -78,11 +78,11 @@
 #endif /* DW1000_CHANNEL */
 
 #ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
+#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
 #endif /* DW1000_DATA_RATE */
 
 #ifndef DW1000_PREAMBLE
-#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_128
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_1024
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
@@ -319,7 +319,7 @@ dw1000_driver_init(void)
     symbols we recommend a reply time of 600 µs. 
     At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
     is enough */
-  dw1000_driver_set_reply_time(600);
+  dw1000_driver_set_reply_time(2300);
 
   /* We equalize the TX and RX antenna delay but we have a big discordance 
       in the measurement ==> need calibration
@@ -328,23 +328,30 @@ dw1000_driver_init(void)
   // dw_equalize_antenna_delay();
 
   uint16_t delay_antenna = 0;
-  // dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
-  // delay_antenna += 8476 + 0xDEAD;
-  // dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
-  
 
-  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
-  printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
-  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
-                  (uint8_t *) &delay_antenna);
   delay_antenna += 32810; /* at 110 kbps channel 5*/
   // delay_antenna += 37352; /* at 110 kbps channel 5*/
   // delay_antenna += 31626; /*at 6800 kbps channel 5*/  
   // delay_antenna += 28240; /* at 110 kbps channel 4*/
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
-                  (uint8_t *) &delay_antenna);
+  /* according ASP012 delay_antenna must but reparteed as follow */
+  uint16_t tx_delay_antenna = delay_antenna * 0.44;
+  uint16_t rx_delay_antenna = delay_antenna * 0.56;
 
-  printf("delay antenna RX %04X\n", (unsigned int) delay_antenna);
+  /*
+  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
+  printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
+                  (uint8_t *) &delay_antenna);  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay_antenna);
+  printf("delay antenna TX %04X\n", (unsigned int) delay_antenna);
+  */
+  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay_antenna);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
+                  (uint8_t *) &rx_delay_antenna);
+
+  printf("delay antenna %04X, TX %04X, RX %04X\n", 
+                    (unsigned int) delay_antenna, 
+                    (unsigned int) tx_delay_antenna, 
+                    (unsigned int) rx_delay_antenna);
 
   process_start(&dw1000_driver_process, NULL);
 
@@ -453,7 +460,8 @@ dw1000_driver_transmit(unsigned short payload_len)
   }
 
   if(dw1000_driver_wait_ACK | dw1000_driver_sstwr) {
-    dw1000_driver_disable_interrupt();
+    dw1000_driver_disable_interrupt();  
+    dw1000_driver_clear_pending_interrupt();  
   }
 
   ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
@@ -498,7 +506,6 @@ dw1000_driver_transmit(unsigned short payload_len)
   if((sys_status_lo & DW_TXFRS_MASK) != 0) {
     tx_return = RADIO_TX_OK;
   }
-
   /* Used to define if we want to clear interrupt 
    * and swap buffer in double buffering mode */
   uint8_t clear_rx_buffer = 0; /* false */
@@ -510,14 +517,13 @@ dw1000_driver_transmit(unsigned short payload_len)
     sys_status_lo = 0x0; /* clear the value */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 1, 1, 
                     &sys_status_lo); watchdog_periodic(); count_ack++,
-                    (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
-                    (DW_RXFCE_MASK >> 8))) != 0)),
+                    (DW_RXFCE_MASK >> 8))) != 0),
                     theorical_transmission_approx(dw1000_conf.preamble_length,
                     dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                     DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
 
-    PRINTF("Number of loop waiting ACK %d\n", count_ack);
+    printf("Number of loop waiting ACK %d\n", count_ack);
 
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
@@ -551,7 +557,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
     PRINTF("Number of loop waiting the ranging response %d\n", count);
-    dw_print_receive_ampl();
+    // dw_print_receive_ampl();
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
       tx_return = RADIO_TX_OK;
@@ -622,14 +628,14 @@ dw1000_driver_transmit(unsigned short payload_len)
     PRINTF("TX RADIO_TX_OK \r\n");
   }
 #endif
-#if DEBUG
+// #if DEBUG
   if(tx_return == RADIO_TX_NOACK) {
-    PRINTF("TX RADIO_TX_NOACK \r\n");
+    printf("TX RADIO_TX_NOACK \r\n");
   }
   if(tx_return == RADIO_TX_ERR) {
-    PRINTF("TX RADIO_TX_ERR \r\n");
+    printf("TX RADIO_TX_ERR \r\n");
   }
-#endif
+// #endif
   return tx_return;
 }
 /**
@@ -1045,8 +1051,8 @@ dw1000_driver_enable_interrupt(void)
  */
 void
 dw1000_driver_disable_interrupt(void)
-{
-  dw_enable_interrupt((uint32_t) 0x0);
+{ 
+  dw_enable_interrupt(0x0UL);
 }
 /**
  * \brief Clear pending interruption.
@@ -1054,7 +1060,7 @@ dw1000_driver_disable_interrupt(void)
 void
 dw1000_driver_clear_pending_interrupt(void)
 {
-  dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
+  dw_clear_pending_interrupt(0x33767FFFEULL);
 }
 /*
  * \brief Interrupt leaves frame intact in FIFO.
@@ -1123,7 +1129,7 @@ dw1000_driver_interrupt(void)
                       dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                       (dw1000_driver_reply_time  << 2));
-    dw_print_receive_ampl();
+    // dw_print_receive_ampl();
 // printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
 
 // uint64_t sys_status = 0x0;
@@ -1360,6 +1366,10 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 
   dw_conf(&dw1000_conf);
 
+#if DW1000_CONF_AUTOACK
+  dw_enable_automatic_acknowledge();
+  dw_config_switching_tx_to_rx_ACK(dw1000_conf.data_rate);
+
   /* SFD initialization: This can be done by writing
      to the system control register Register file: 0x0D – System
      Control Register with both the transmission start-bit TXSTRT
@@ -1371,10 +1381,6 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   sys_ctrl &= ~(DW_TXSTRT_MASK);
   sys_ctrl |= (DW_RXENAB_MASK);
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
-
-#if DW1000_CONF_AUTOACK
-  dw_enable_automatic_acknowledge();
-  dw_config_switching_tx_to_rx_ACK(dw1000_conf.data_rate);
 #endif
 }
 
@@ -1515,7 +1521,7 @@ dw1000_compute_propagation_time_corrected(void){
     rx_ttcki = 0x01FC0000ULL;
   }
 
-  // printf("clock offset%ld\n", (long int) dw_get_clock_offset());
+  printf("clock offset %ld\n", (long int) dw_get_clock_offset());
   /* We are not able to use the formula Clock offset = RX TOFS / RX TTCKI 
       because of the restricted embedded system.
       We change "- (Clock offset * t_reply)" to "- RX TOFS * t_reply / RX TTCKI"

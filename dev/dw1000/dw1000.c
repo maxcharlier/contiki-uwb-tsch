@@ -87,10 +87,10 @@ void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr,
 dw1000_base_driver dw1000;
 
 /**
- * \brief Initialise the DW1000.
+ * \brief Initialize the DW1000.
  *        Enable interrupt for receiver data frame ready event.
  *        Load LDE Code
- *        Initialise channel, data rate, preambule
+ *        Initialize channel, data rate, preamble
  *        Define rx configuration
  *        Enable RX, TX, SFD and RK0 LED.
  */
@@ -479,6 +479,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t tc_pgdelay_val;
   uint32_t fs_pllcfg_val;
   uint32_t fs_plltune_val;
+  uint32_t tx_power_val;
 
   /* === Configure PRF */
   tx_fctrl_val &= ~DW_TXPRF_MASK;
@@ -551,6 +552,55 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     tc_pgdelay_val = 0x93;
     fs_pllcfg_val = 0x0800041D;
     fs_plltune_val = 0xA6;
+    break;
+  }
+  /* Configure the TX power based on the channel and the PRF
+      Based on the manual: Table 20: Reference values Register file: 
+      0x1E – Transmit Power Control for Manual Transmit Power
+      Control (Smart Transmit Power Control disabled) */
+  sys_cfg_val |= DW_DIS_STXP_MASK;  /* Disable Smart Transmit Power Control */
+  switch(dw_conf->channel) {
+  case DW_CHANNEL_1:
+    if(dw_conf->prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x75757575ul;
+    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x67676767ul;
+    }
+    break;
+  case DW_CHANNEL_2:
+    if(dw_conf->prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x75757575ul;
+    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x67676767ul;
+    }
+    break;
+  case DW_CHANNEL_3:
+    if(dw_conf->prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x6F6F6F6Ful;
+    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x8B8B8B8Bul;
+    }
+    break;
+  case DW_CHANNEL_4:
+    if(dw_conf->prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x5F5F5F5Ful;
+    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x9A9A9A9Aul;
+    }
+    break;
+  case DW_CHANNEL_5:
+    if(dw_conf->prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x48484848ul;
+    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x85858585ul;
+    }
+    break;
+  case DW_CHANNEL_7:
+    if(dw_conf->prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x92929292ul;
+    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0xD1D1D1D1ul;
+    }
     break;
   }
 
@@ -792,6 +842,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &lde_cfg2);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
+  dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
 
   /* DW_LOG("Configuration complete."); */
 }
@@ -1194,7 +1245,7 @@ dw_print_receive_ampl(void)
   /* Read RXPACC */
   /* we read only 2 bytes in place of the all register */
   dw_read_subreg(DW_REG_RX_FINFO, 2, 2, (uint8_t*) &rx_pacc);
-  rx_pacc >> (DW_RXPACC - 16);
+  rx_pacc = rx_pacc >> (DW_RXPACC - 16);
   rx_pacc &= (DW_RXPACC_MASK >> DW_RXPACC);
   /* read RXPACC_NOSAT */
   dw_read_subreg(DW_REG_DRX_CONF, DW_SUBREG_RXPACC_NOSAT, 

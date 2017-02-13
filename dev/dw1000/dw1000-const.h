@@ -282,6 +282,8 @@
 #define DW_DIS_DRXB_MASK (0x1UL << 12)  /* \brief dummy */
 #define DW_PHR_MODE      16             /* \brief dummy */
 #define DW_PHR_MODE_MASK (0x3UL << 16)  /* \brief dummy */
+#define DW_DIS_STXP      18             /* \brief dummy */
+#define DW_DIS_STXP_MASK (0x1UL << 18)  /* \brief dummy */
 #define DW_RXM110K       22             /* \brief dummy */
 #define DW_RXM110K_MASK  (0x1UL << 22)  /* \brief dummy */
 #define DW_RXWTOE        28             /* \brief dummy */

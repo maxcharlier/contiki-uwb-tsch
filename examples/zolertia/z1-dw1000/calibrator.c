@@ -41,7 +41,7 @@ PROCESS_THREAD(frame_sender_process, ev, data)
     if (ev == PROCESS_EVENT_TIMER) {
 
       linkaddr_t addr;
-      addr.u8[0]= 10;
+      addr.u8[0]= 7;
       addr.u8[1]= 0;
 
       /* initialize a ranging request */

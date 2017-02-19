@@ -524,7 +524,7 @@ uint64_t dw_get_dx_timestamp(void);
 void     dw_set_dx_timestamp(uint64_t timestamp);
 void     dw_enable_ranging_frame(void);
 void     dw_disable_ranging_frame(void);
-uint8_t is_ranging_frame(void);
+uint8_t dw_is_ranging_frame(void);
 int32_t dw_get_clock_offset();
 
 void dw_clear_pending_interrupt(uint64_t mask);

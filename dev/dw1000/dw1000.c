@@ -978,14 +978,14 @@ void
 dw_set_tx_frame_length(uint16_t frame_len)
 {
   uint16_t tx_frame_control_lo;
-  dw_read_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t*) &tx_frame_control_lo);
+  dw_read_subreg(DW_REG_TX_FCTRL, 0x0, 2, (uint8_t*) &tx_frame_control_lo);
 
   /* reseting the length */
   tx_frame_control_lo &= ~(DW_TFLEN_MASK | DW_TFLE_MASK); 
 
   tx_frame_control_lo |= (frame_len << DW_TFLEN) 
                             & (DW_TFLEN_MASK | DW_TFLE_MASK);
-  dw_write_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t *) &tx_frame_control_lo);
+  dw_write_subreg(DW_REG_TX_FCTRL, 0x0, 2, (uint8_t *) &tx_frame_control_lo);
 }
 /**
  * \brief Enable delayed transmission.
@@ -1341,9 +1341,9 @@ dw_print_receive_ampl(void)
 int
 dw_get_rx_len(void)
 {
-  /* we can read only the tow first bytes of the register */
+  /* we can read only the two first bytes of the register */
   uint16_t rx_frame_info_lo;
-  dw_read_subreg(DW_REG_RX_FINFO, 0, 2, (uint8_t*) &rx_frame_info_lo);
+  dw_read_subreg(DW_REG_RX_FINFO, 0x0, 2, (uint8_t*) &rx_frame_info_lo);
 
   /* check if we don't have a to long length */
   rx_frame_info_lo = rx_frame_info_lo & (DW_RXFLEN_MASK | DW_RXFLE_MASK);
@@ -1357,9 +1357,9 @@ dw_get_rx_len(void)
 int
 dw_get_rx_extended_len(void)
 {
-  /* we can read only the tow first bytes of the register */
+  /* we can read only the two first bytes of the register */
   uint16_t rx_frame_info_lo;
-  dw_read_subreg(DW_REG_RX_FINFO, 0, 2, (uint8_t*) &rx_frame_info_lo);
+  dw_read_subreg(DW_REG_RX_FINFO, 0x0, 2, (uint8_t*) &rx_frame_info_lo);
 
   /* check if we don't have a to long length */
   return rx_frame_info_lo & (DW_RXFLEN_MASK | DW_RXFLE_MASK);
@@ -1502,9 +1502,9 @@ dw_enable_ranging_frame(void)
 {
   uint8_t value;
   /* TR bit is the 15nd bit */
-  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, &value); 
+  dw_read_subreg(DW_REG_TX_FCTRL, 0x1, 1, &value); 
   value |= (DW_TR_MASK >> 8);
-  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, &value);
+  dw_write_subreg(DW_REG_TX_FCTRL, 0x1, 1, &value);
 }
 /**
  * \brief Disable the ranging bit in the PHY header (PHR) of the transmitted 
@@ -1519,9 +1519,9 @@ dw_disable_ranging_frame(void)
 {
   uint8_t value;
   /* TR bit is the 15nd bit */
-  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, &value); 
+  dw_read_subreg(DW_REG_TX_FCTRL, 0x1, 1, &value); 
   value &= ~(DW_TR_MASK >> 8);
-  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, &value);
+  dw_write_subreg(DW_REG_TX_FCTRL, 0x1, 1, &value);
 }
 /**
  * \brief Check if the last received frame is a ranging frame. This reflects the
@@ -1531,12 +1531,17 @@ dw_disable_ranging_frame(void)
  * \return if the last received frame is a ranging frame.
  */
 uint8_t 
-is_ranging_frame(void)
+dw_is_ranging_frame(void)
 {
   uint8_t value = 0x0;
   /* RNG bit is the 15nd bit */
-  dw_read_subreg(DW_REG_RX_FINFO, 1, 1, &value);
-  return (value & (DW_RNG_MASK >> 8)) > 0;
+  dw_read_subreg(DW_REG_RX_FINFO, 0x1, 1,  &value);
+  /* there are a correlation between the bit 3 of the RX_INFO 
+    and the RNG bit, the RNG bit take the value of the bit 3.*/
+  // if(((value & 0x2) >> 1) == ((value & 0x4) >> 2))
+    return (value & (DW_RNG_MASK >> 8)) > 0;
+  // else
+    // return (value & DW_RNG_MASK) == 0;
 }
 /**
  * \brief Specifies the antenna delay used to calculate the tx and rx
@@ -1574,7 +1579,7 @@ dw_get_clock_offset(){
   uint32_t rx_ttcki = 0UL;
 
   /* RX TOFS is a signed 19-bit number, the 19nd bit is the sign */
-  dw_read_subreg(DW_REG_RX_TTCKO, 0, 3, (uint8_t *) &rx_tofs);
+  dw_read_subreg(DW_REG_RX_TTCKO, 0x0, 3, (uint8_t *) &rx_tofs);
   rx_tofs &= DW_RXTOFS_MASK;
   /* convert a 19 signed bit number to a 32 bits signed number */
   if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
@@ -1711,9 +1716,9 @@ dw_init_rx(void)
   /* Enable antenna */
   /* RXENAB is the 8nd bit (first in the second byte) */
   uint8_t sys_ctrl_val;
-  dw_read_subreg(DW_REG_SYS_CTRL, 1, 1, &sys_ctrl_val);
+  dw_read_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
   sys_ctrl_val |= (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
-  dw_write_subreg(DW_REG_SYS_CTRL, 1, 1, &sys_ctrl_val);
+  dw_write_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
 }
 /**
  * \brief Starts a new transmission. Data must either already be uploaded to
@@ -2004,7 +2009,7 @@ dw1000_test_tx_del_on()
 inline void
 dw_read_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *pData)
 {
-  dw_read_subreg(reg_addr, 0, reg_len, pData);
+  dw_read_subreg(reg_addr, 0x0, reg_len, pData);
 }
 /**
  * \brief       Reads the value from a register on the dw1000 as
@@ -2098,7 +2103,7 @@ dw_read_subreg_64(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len)
 inline void
 dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data)
 {
-  dw_write_subreg(reg_addr, 0, reg_len, p_data);
+  dw_write_subreg(reg_addr, 0x0, reg_len, p_data);
 }
 /**
  * \brief   Reads a value from the one time programmable memory.
@@ -2144,9 +2149,9 @@ dw_enable_double_buffering(void)
 {
   /* enable double-buffered with DIS_DRXB to 0. */
   uint8_t cfgReg;
-  dw_read_subreg(DW_REG_SYS_CFG, 1, 1, &cfgReg);
+  dw_read_subreg(DW_REG_SYS_CFG, 0x1, 1, &cfgReg);
   cfgReg &= ~(DW_DIS_DRXB_MASK >> 8); /* 12nd bit */
-  dw_write_subreg(DW_REG_SYS_CFG, 1, 1, &cfgReg);
+  dw_write_subreg(DW_REG_SYS_CFG, 0x1, 1, &cfgReg);
 
   dw_enable_automatic_receiver_Re_Enable();
 }
@@ -2160,7 +2165,7 @@ int
 dw_good_rx_buffer_pointer(void)
 {
   uint8_t statusReg;
-  dw_read_subreg(DW_REG_SYS_STATUS, 3, 1, &statusReg);
+  dw_read_subreg(DW_REG_SYS_STATUS, 0x3, 1, &statusReg);
   /* HSRBP is the 30nd bit */
   /* ICRBP is the 31nd bit */
   return (((statusReg & (DW_HSRBP_MASK >> 24)) >> (DW_HSRBP - 24)) ==  
@@ -2177,7 +2182,7 @@ dw_is_overrun(void)
 {
   uint8_t statusReg;
   /* DW_RXOVRR is the 20nd bit > in the 3nd byte */
-  dw_read_subreg(DW_REG_SYS_STATUS, 2, 1, &statusReg);
+  dw_read_subreg(DW_REG_SYS_STATUS, 0x2, 1, &statusReg);
   return statusReg & (DW_RXOVRR_MASK >> 16);
 }
 /**
@@ -2198,10 +2203,10 @@ dw_trxsoft_reset(void)
 
   /* Set */
   uint8_t ctrlRegHigh;
-  dw_read_subreg(DW_SUBREG_PMSC_CTRL0, 3, 1, &ctrlRegHigh);
+  dw_read_subreg(DW_SUBREG_PMSC_CTRL0, 0x3, 1, &ctrlRegHigh);
   /* SOFTRESET is the 28nd bit  >> 4nd byte*/
   ctrlReg |= ((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK) >> 24; 
-  dw_write_subreg(DW_SUBREG_PMSC_CTRL0, 3, 1, &ctrlRegHigh);
+  dw_write_subreg(DW_SUBREG_PMSC_CTRL0, 0x3, 1, &ctrlRegHigh);
 }
 /**
  * \brief   Change the Receive Buffer Pointer.
@@ -2211,9 +2216,9 @@ dw_change_rx_buffer(void)
 {
   /* Host Side Receive Buffer Pointer Toggle to 1. */
   uint8_t ctrlReg;
-  dw_read_subreg(DW_REG_SYS_CTRL, 3, 1, &ctrlReg);
+  dw_read_subreg(DW_REG_SYS_CTRL, 0x3, 1, &ctrlReg);
   ctrlReg |= DW_HRBPT_MASK >> 24; /* 24nd bit > first bit of the 4nd byte */
-  dw_write_subreg(DW_REG_SYS_CTRL, 3, 1, &ctrlReg);
+  dw_write_subreg(DW_REG_SYS_CTRL, 0x3, 1, &ctrlReg);
 }
 /**
  * \brief   TRXOFF in Double-Buffered Mode.
@@ -2227,12 +2232,12 @@ dw_trxoff_db_mode(void)
       to prevent glitch when cleared */
   uint8_t maskReg;
   /* read/write only one byte */
-  dw_read_subreg(DW_REG_SYS_MASK, 1, 1, &maskReg);
+  dw_read_subreg(DW_REG_SYS_MASK, 0x1, 1, &maskReg);
   maskReg |= (DW_MRXFCE_MASK          /* 15nd bit */
     | DW_MRXFCG_MASK                  /* 14nd bit */
     | DW_MRXDFR_MASK                  /* 13nd bit */
     | DW_MLDEDONE_MASK) >> 8;         /* 10nd bit */
-  dw_write_subreg(DW_REG_SYS_MASK, 1, 1, (uint8_t *) &maskReg);
+  dw_write_subreg(DW_REG_SYS_MASK, 0x1, 1, (uint8_t *) &maskReg);
 
   /* Set TXRXOFF bit = 1, in reg:0D,
       to disable the receiver */
@@ -2244,16 +2249,16 @@ dw_trxoff_db_mode(void)
     | DW_RXFCG_MASK                   /* 14nd bit */
     | DW_RXDFR_MASK                   /* 13nd bit */
     | DW_LDEDONE_MASK) >> 8;          /* 10nd bit */
-  dw_write_subreg(DW_REG_SYS_STATUS, 1, 1, (uint8_t *)&statusReg);
+  dw_write_subreg(DW_REG_SYS_STATUS, 0x1, 1, (uint8_t *)&statusReg);
 
   /* Unmask Double buffered status
       bits; FCE, FCG, DFR, LDE_DONE */
-  dw_read_subreg(DW_REG_SYS_MASK, 1, 1, &maskReg);
+  dw_read_subreg(DW_REG_SYS_MASK, 0x1, 1, &maskReg);
   maskReg &= ~((DW_MRXFCE_MASK        /* 15nd bit */
     | DW_MRXFCG_MASK                  /* 14nd bit */
     | DW_MRXDFR_MASK                  /* 13nd bit */
     | DW_MLDEDONE_MASK) >> 8);        /* 10nd bit */
-  dw_write_subreg(DW_REG_SYS_MASK, 1, 1, (uint8_t *) &maskReg);
+  dw_write_subreg(DW_REG_SYS_MASK, 0x1, 1, (uint8_t *) &maskReg);
 }
 /**
  * \brief Initiates a new reception on the dw1000.

@@ -483,6 +483,12 @@ print_sys_status(uint64_t sys_status)
     printf("   ");
     printf("LDEERR Leading edge detection processing error.\r\n");
   }
+  if(sys_status & DW_LDEERR_MASK << 1) {
+    printf("   ");
+    printf("19");
+    printf("   ");
+    printf("Bit reserved.\r\n");
+  }
   if(sys_status & DW_RXOVRR_MASK) {
     printf("   ");
     printf("20");

@@ -166,6 +166,8 @@
 #define DW_SUBLEN_DRX_TUNE1b   2          /* \brief dummy */
 #define DW_SUBREG_DRX_TUNE2    0x08       /* \brief dummy */
 #define DW_SUBLEN_DRX_TUNE2    4          /* \brief dummy */
+#define DW_SUBREG_DRX_SFDTOC   0x20       /* \brief dummy */
+#define DW_SUBLEN_DRX_SFDTOC   2          /* \brief dummy */
 #define DW_SUBREG_DRX_TUNE4h   0x26       /* \brief dummy */
 #define DW_SUBLEN_DRX_TUNE4h   2          /* \brief dummy */
 #define DW_SUBREG_RXPACC_NOSAT 0x2C       /* \brief dummy */

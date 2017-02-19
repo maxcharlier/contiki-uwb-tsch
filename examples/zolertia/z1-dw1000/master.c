@@ -6,15 +6,19 @@
 #include "dw1000-driver.h"
 
 
+/*---------------------------------------------------------------------------*/
+PROCESS(frame_master_process, "Frame master");
+
+AUTOSTART_PROCESSES(&frame_master_process);
+/*---------------------------------------------------------------------------*/
+
+
 #define RIME_CHANNEL 147
 #define RIME_TYPE    "unicast"
 static void recv_callback(struct unicast_conn *c, const linkaddr_t *from);
 static struct unicast_conn uc;
 static const struct unicast_callbacks uc_cb = { recv_callback };
 
-/*---------------------------------------------------------------------------*/
-PROCESS(frame_master_process, "Frame master");
-/*---------------------------------------------------------------------------*/
 
 /** A ranging request will be construct as follow: SOURCE DEST
  *  Where SOURCE is the initiator of the ranging request
@@ -81,20 +85,18 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
   }
 }
 
-/*---------------------------------------------------------------------------*/
-AUTOSTART_PROCESSES(&frame_master_process);
-/*---------------------------------------------------------------------------*/
-
 
 PROCESS_THREAD(frame_master_process, ev, data)
 {
   PROCESS_EXITHANDLER(unicast_close(&uc);)
   PROCESS_BEGIN();
- 
-  unicast_open(&uc, RIME_CHANNEL, &uc_cb);
+
   printf("Node addr %02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
+ 
+  unicast_open(&uc, RIME_CHANNEL, &uc_cb);
+
   for(;;) {
     PROCESS_WAIT_EVENT();
     /* master part */
@@ -143,7 +145,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
         report[3] = (dest >> 8) & 0xFF;
         packetbuf_copyfrom(report, 4);
         /* request an ACK */
-        // packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
         unicast_send(&uc, &addr);
         printf("Ranging request sended.\n");
       }

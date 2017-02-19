@@ -469,6 +469,8 @@ void dw_turn_frame_filtering_off(void);
 void dw_turn_frame_filtering_on(void);
 void dw_enable_gpio_led(void);
 void dw_disable_gpio_led(void);
+void dw_set_sfd_timeout(uint16_t value);
+void dw_sfd_init(void);
 
 /* RX / TX */
 void dw_init_rx(void);
@@ -545,7 +547,7 @@ void dw_db_init_rx(void);
 /* ACK */
 void dw_enable_automatic_acknowledge(void);
 void dw_disable_automatic_acknowledge(void);
-void dw_config_switching_tx_to_rx_ACK(dw1000_data_rate_t speed);
+void dw_config_switching_tx_to_rx_ACK(void);
 
 void dw_clear_receive_status(void);
 void dw_clear_transmit_status(void);

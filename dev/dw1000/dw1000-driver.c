@@ -78,16 +78,26 @@
 #endif /* DW1000_CHANNEL */
 
 #ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
+#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
 #endif /* DW1000_DATA_RATE */
 
 #ifndef DW1000_PREAMBLE
-#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_1024
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_256
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
-#define DW1000_PRF               DW_PRF_64_MHZ
+#define DW1000_PRF               DW_PRF_16_MHZ
 #endif /* DW1000_PRF */
+
+/** Set the ranging reply time (in µs).
+ * For a configuration using a data-rate of 6.8 mbps and a preamble of 128 
+ * symbols, we recommend a reply time of 600 µs. 
+ * At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
+ * is enough 
+ */
+#ifndef DW1000_RANGING_REPLY_TIME
+#define DW1000_RANGING_REPLY_TIME               0
+#endif /* DW1000_RANGING_REPLY_TIME */
 
 /* the delay induced by the SPI communication */
 #define DW1000_SPI_DELAY        50l 
@@ -103,6 +113,8 @@
 /* the length max of a ranging response message. 
  * Min value is 11: 9 for the header and 2 for the FCS */
 #define DW1000_RANGING_MAX_LEN 11
+
+/* #define DEBUG_RANGING 1 */
 
 #define DEBUG_VERBOSE 0
 #if DEBUG_VERBOSE
@@ -314,12 +326,8 @@ dw1000_driver_init(void)
   dw_disable_gpio_led();
 #endif
   
-  /* set the reply time.
-    For a configuration using data-rate of 6.8 mbps and a preamble of 128 
-    symbols we recommend a reply time of 600 µs. 
-    At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
-    is enough */
-  dw1000_driver_set_reply_time(2300);
+
+  dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
 
   /* We equalize the TX and RX antenna delay but we have a big discordance 
       in the measurement ==> need calibration
@@ -329,9 +337,9 @@ dw1000_driver_init(void)
 
   uint16_t delay_antenna = 0;
 
-  delay_antenna += 32810; /* at 110 kbps channel 5*/
+  // delay_antenna += 32810; /* at 110 kbps channel 5*/
   // delay_antenna += 37352; /* at 110 kbps channel 5*/
-  // delay_antenna += 31626; /*at 6800 kbps channel 5*/  
+  delay_antenna += 31626; /*at 6800 kbps channel 5*/  
   // delay_antenna += 28240; /* at 110 kbps channel 4*/
   /* according ASP012 delay_antenna must but reparteed as follow */
   uint16_t tx_delay_antenna = delay_antenna * 0.44;
@@ -480,7 +488,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* wait the effective start of the transmission */
   uint8_t sys_ctrl_lo;
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0, 1, &sys_ctrl_lo);
-                  watchdog_periodic(); count_txtrt++;, 
+                  watchdog_periodic();, 
                   ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
                   microsecond_to_clock_tik(100));
 #endif /* DEBUG */
@@ -524,6 +532,8 @@ dw1000_driver_transmit(unsigned short payload_len)
                     DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
 
     printf("Number of loop waiting ACK %d\n", count_ack);
+
+    // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
@@ -628,14 +638,14 @@ dw1000_driver_transmit(unsigned short payload_len)
     PRINTF("TX RADIO_TX_OK \r\n");
   }
 #endif
-// #if DEBUG
+#if DEBUG
   if(tx_return == RADIO_TX_NOACK) {
     printf("TX RADIO_TX_NOACK \r\n");
   }
   if(tx_return == RADIO_TX_ERR) {
     printf("TX RADIO_TX_ERR \r\n");
   }
-// #endif
+#endif
   return tx_return;
 }
 /**
@@ -1073,7 +1083,9 @@ dw1000_driver_interrupt(void)
      dw1000_driver_init_down is use for fix bug of IRQ call before DW1000 reset
    */
      
-  // rtimer_clock_t t0 = RTIMER_NOW();
+#if DEBUG_RANGING
+     rtimer_clock_t t0 = RTIMER_NOW();
+#endif /* DEBUG_RANGING */
   if(dw1000_driver_init_down) {
     /* we read only the fisrt 32 bit of the register */
     uint32_t status = dw_read_reg_64(DW_REG_SYS_STATUS, 4);
@@ -1114,12 +1126,14 @@ dw1000_driver_interrupt(void)
         dw_set_tx_frame_length(DW_ACK_LEN);
 
         /* Copy data to DW1000 */
-        dw_write_reg(DW_REG_TX_BUFFER, 3, &response[0]);
+        dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
 
         /* no ACK and delayed */
         dw_init_tx(0, 1);
-
-        // rtimer_clock_t t1 = RTIMER_NOW() - t0;
+#if DEBUG_RANGING
+        rtimer_clock_t t1 = RTIMER_NOW() - t0;
+#endif /* DEBUG_RANGING */
+        
         /* wait the end of the transmission */
         uint8_t sys_status_lo = 0x0;
         BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0, 1, 
@@ -1130,11 +1144,16 @@ dw1000_driver_interrupt(void)
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                       (dw1000_driver_reply_time  << 2));
     // dw_print_receive_ampl();
-// printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
 
-// uint64_t sys_status = 0x0;
-// dw_read_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *) &sys_status);
-// print_sys_status(sys_status);
+#if DEBUG_RANGING
+        printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
+
+        uint64_t sys_status = 0x0;
+        dw_read_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *) &sys_status);
+        print_sys_status(sys_status);
+#endif /* DEBUG_RANGING */
+
+        printf("ranging frame!\n");
 
         if(receive_on) {
           /* we reenable the RX state */
@@ -1189,6 +1208,7 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
     /* packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp); */
     
     len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+
 #ifndef DOUBLE_BUFFERING
     dw_clear_pending_interrupt(DW_MRXFCE_MASK
              | DW_MRXFCG_MASK
@@ -1368,19 +1388,8 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 
 #if DW1000_CONF_AUTOACK
   dw_enable_automatic_acknowledge();
-  dw_config_switching_tx_to_rx_ACK(dw1000_conf.data_rate);
-
-  /* SFD initialization: This can be done by writing
-     to the system control register Register file: 0x0D – System
-     Control Register with both the transmission start-bit TXSTRT
-     and the transceiver off bit TRXOFF set at the same time. */
-  uint32_t sys_ctrl;
-  dw_read_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
-  sys_ctrl |= DW_TXSTRT_MASK | DW_TRXOFF_MASK;
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
-  sys_ctrl &= ~(DW_TXSTRT_MASK);
-  sys_ctrl |= (DW_RXENAB_MASK);
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+  dw_config_switching_tx_to_rx_ACK();
+  dw_sfd_init();
 #endif
 }
 
@@ -1422,11 +1431,18 @@ dw1000_driver_get_reply_time(void)
  *        limit the clock error and it must be long enough to perform the reply.
  *        This value must be change in function of the configuration 
  *        (preamble and data_rate).
+ *
+ *        You can use a value of "0" to comput a dynamic value based on the 
+ *          clock speed of a Zolertia Z1.
  * \param reply_time The desired reply time in micro second.
  */
 void
 dw1000_driver_set_reply_time(uint32_t reply_time)
 {
+  if(reply_time == 0){
+    reply_time = theorical_transmission_approx(dw1000_conf.preamble_length,
+                      dw1000_conf.data_rate, dw1000_conf.prf, 128) + 300;
+  }
   dw1000_driver_reply_time = reply_time;
 }
 /**

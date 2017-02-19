@@ -47,9 +47,9 @@ PROCESS_THREAD(frame_sender_process, ev, data)
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 #endif
 
-  etimer_set(&timer, CLOCK_SECOND * 2);
+  etimer_set(&timer, CLOCK_SECOND * 8);
   // timer_set(&timer_count, CLOCK_SECOND *10);
-  static uint16_t i =0;
+  static uint16_t i =23;
   while (1) {
     PROCESS_WAIT_EVENT();
     if (ev == PROCESS_EVENT_TIMER) {
@@ -76,11 +76,12 @@ PROCESS_THREAD(frame_sender_process, ev, data)
       addr.u8[0]= 10;
       addr.u8[1]= 0;
       // rtimer_clock_t t1 = RTIMER_NOW();
-      i = 90;
+      i ++; 
+      printf("i %d\n", i);
       packetbuf_copyfrom("Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello Wo", i); //max110 //max248
       /*printf("sending %s message %d to %d.%d\r\n",
 	RIME_TYPE, tx_count, addr.u8[0], addr.u8[1]);*/
-      packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+      // packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
       unicast_send(&uc, &addr);
       PROCESS_PAUSE();
       // rtimer_clock_t t2 = RTIMER_NOW();

@@ -185,22 +185,27 @@ dw1000_init()
 /**
  * \brief Configure the transceiver to automatically switching
  *      between TX mode and RX modes.
+ *
+ * Configuration of the Automatic ACK Turnaround Time (ACK_TIM).
+ * Decawave recommend a min value of 0 at 110 kbps, 2 at 850 kbps and
+ * 3 at 6800 kbps [ACK_TIM field]. 
+ * But the IEEE 802.15.4 standard specifies a 12 symbol +/- 0.5 symbols 
+ * turnaround time for ACK transmission [5.3.2 Automatic Receiver Re-Enable]. 
+ * We choose therefore a ACK_TIM of 12 symbols.
+ *
+ * The Wait-for-Response turn-around Time is set a lower value of ACK_TIM to 
+ * avoid loss of symbol.
  */
 void
-dw_config_switching_tx_to_rx_ACK(dw1000_data_rate_t speed)
+dw_config_switching_tx_to_rx_ACK(void)
 {
   uint32_t ack_resp = 0;
-  if(speed == DW_DATA_RATE_850_KBPS) {
-    /* ACK_TIM set to 2 > data rate 850 kbps */
-    ack_resp |= (0x02UL << DW_ACK_TIM) & DW_ACK_TIM_MASK;
-  } else if(speed == DW_DATA_RATE_6800_KBPS) {
-    /* ACK_TIM set to 3 > data rate 6800 kbps */
-    ack_resp |= (0x03UL << DW_ACK_TIM) & DW_ACK_TIM_MASK;
-  }
-  /* else */
-  /* default value; ACK_TIM set to 0 > data rate 110 kbps */
+  /* ACK_TIM of 12 symbols */
+  ack_resp |= (0xCUL << DW_ACK_TIM) & DW_ACK_TIM_MASK;
 
-  /* W4R_TIM set to 0 > switch directly */
+  /* W4R_TIM of 9 symbols */
+  ack_resp |= (0x9UL << DW_W4R_TIM) & DW_W4R_TIM_MASK;
+
   dw_write_reg(DW_REG_ACK_RESP, DW_LEN_ACK_RESP, (uint8_t *)&ack_resp);
 }
 /**
@@ -418,6 +423,58 @@ dw_disable_gpio_led(void)
   data &= ~DW_BLINK_TIM_MASK; /* reset Blink time count value */
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
                   (uint8_t *)&data);
+}
+/**
+ * \brief Set a SFD timeout value. This is used to abort a reception when a 
+ *        preamble is detected but not a SFD. 
+ *        With more details: The SFD detection timeout starts running as soon as
+ *        preamble is detected. If the SFD sequence is not detected before the 
+ *        timeout period expires then the timeout will act to abort the 
+ *        reception currently in progress.
+ *
+ * \param value the SFD timeout value (expressed in preamble symbol).
+ *
+ *        The value is set in function of the configuration (preamble length 
+ *        and data rate).
+ *
+ *        Example of value (from 
+ *        https://github.com/damaki/DW1000/wiki/Configuring-the-DW1000)
+ *        Expected Rx Preamble Length   Data Rate     Recommended SFD Timeout
+ *          64                            110 kbps      64 + 64
+ *          64                            850 kbps      64 + 8
+ *          64                            6.8 Mbps      64 + 8
+ *          1024                          110 kbps      1024 + 64
+ *          1024                          850 kbps      1024 + 8
+ *          4096                          6.8 Mbps      4096 + 8
+ *
+ *      /!\ Please do NOT set DRX_SFDTOC to zero (disabling SFD detection 
+ *          timeout). With the SFD timeout disabled and in the event of false 
+ *          preamble detection, the IC will remain in receive mode until 
+ *          commanded to do otherwise by the external microcontroller. This can
+ *          lead to significant reduction in battery life.
+ *      ==> If you set a value of 0 this value will replace by the default value
+ *          4096+64+1 symbols
+ */
+void
+dw_set_sfd_timeout(uint16_t value){
+  if(value == 0)
+    value = 4096+64+1;
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_SFDTOC, DW_SUBLEN_DRX_SFDTOC, 
+                      (uint8_t *) &value);
+}
+/* \brief SFD initialization: This can be done by writing to the system control
+ * Control Register with both the transmission start-bit TXSTRT and the 
+ * transceiver off bit TRXOFF set at the same time. [5.3.1.2 SFD Initialization]
+ */
+void
+dw_sfd_init(void){
+  uint32_t sys_ctrl;
+  dw_read_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+  sys_ctrl |= DW_TXSTRT_MASK | DW_TRXOFF_MASK;
+  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+  sys_ctrl &= ~(DW_TXSTRT_MASK);
+  sys_ctrl |= (DW_RXENAB_MASK);
+  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
 }
 /**
  * \brief apply a soft reset
@@ -790,6 +847,13 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     }
     break;
   }
+  /* == Configure SFD timeout */
+  if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
+    dw_set_sfd_timeout(dw_conf->preamble_length + 64);
+  }
+  else{
+    dw_set_sfd_timeout(dw_conf->preamble_length + 8);
+  }
   /* === Configure Data rate */
   sys_cfg_val &= ~DW_RXM110K_MASK;
   tx_fctrl_val &= ~DW_TXBR_MASK;
@@ -913,15 +977,15 @@ dw_conf_tx(dw1000_tx_conf_t *tx_conf)
 void
 dw_set_tx_frame_length(uint16_t frame_len)
 {
-  uint16_t tx_frame_control_val;
-  dw_read_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t*) &tx_frame_control_val);
+  uint16_t tx_frame_control_lo;
+  dw_read_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t*) &tx_frame_control_lo);
 
   /* reseting the length */
-  tx_frame_control_val &= ~(DW_TFLEN_MASK | DW_TFLE_MASK); 
+  tx_frame_control_lo &= ~(DW_TFLEN_MASK | DW_TFLE_MASK); 
 
-  tx_frame_control_val |= (frame_len << DW_TFLEN) 
+  tx_frame_control_lo |= (frame_len << DW_TFLEN) 
                             & (DW_TFLEN_MASK | DW_TFLE_MASK);
-  dw_write_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t *)&tx_frame_control_val);
+  dw_write_subreg(DW_REG_TX_FCTRL, 0, 2, (uint8_t *) &tx_frame_control_lo);
 }
 /**
  * \brief Enable delayed transmission.
@@ -1271,33 +1335,34 @@ dw_print_receive_ampl(void)
 
 /**
  * \brief Get the length of the last frame received.
- * If she is too long return 128
+ * If she is too long return 128 (DW_RX_BUFFER_MAX_LEN)
  * \return The length of the last frame received.
  */
 int
 dw_get_rx_len(void)
 {
-  uint32_t rx_frame_info_reg;
-  uint32_t rx_len;
-  rx_frame_info_reg = dw_read_reg_32(DW_REG_RX_FINFO, DW_LEN_RX_FINFO);
-  rx_len = (uint32_t)(rx_frame_info_reg & (DW_RXFLEN_MASK | DW_RXFLE_MASK));
-  rx_len = (rx_len < DW_RX_BUFFER_MAX_LEN) ? (rx_len) : (DW_RX_BUFFER_MAX_LEN);
-  return rx_len;
+  /* we can read only the tow first bytes of the register */
+  uint16_t rx_frame_info_lo;
+  dw_read_subreg(DW_REG_RX_FINFO, 0, 2, (uint8_t*) &rx_frame_info_lo);
+
+  /* check if we don't have a to long length */
+  rx_frame_info_lo = rx_frame_info_lo & (DW_RXFLEN_MASK | DW_RXFLE_MASK);
+  return (rx_frame_info_lo < DW_RX_BUFFER_MAX_LEN) ? 
+              (rx_frame_info_lo) : (DW_RX_BUFFER_MAX_LEN);
 }
 /**
  * \brief Get the length of the last frame received.
- * If she is too long return 1024
  * \return The length of the last frame received.
  */
 int
 dw_get_rx_extended_len(void)
 {
-  uint32_t rx_frame_info_reg;
-  uint32_t rx_len;
-  rx_frame_info_reg = dw_read_reg_32(DW_REG_RX_FINFO, DW_LEN_RX_FINFO);
-  rx_len = (uint32_t)(rx_frame_info_reg & (DW_RXFLEN_MASK | DW_RXFLE_MASK));
-  rx_len = (rx_len < 1024) ? (rx_len) : (1024);
-  return rx_len;
+  /* we can read only the tow first bytes of the register */
+  uint16_t rx_frame_info_lo;
+  dw_read_subreg(DW_REG_RX_FINFO, 0, 2, (uint8_t*) &rx_frame_info_lo);
+
+  /* check if we don't have a to long length */
+  return rx_frame_info_lo & (DW_RXFLEN_MASK | DW_RXFLE_MASK);
 }
 /**
  * \brief Check error bit in the sys status register.
@@ -1437,9 +1502,9 @@ dw_enable_ranging_frame(void)
 {
   uint8_t value;
   /* TR bit is the 15nd bit */
-  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value); 
+  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, &value); 
   value |= (DW_TR_MASK >> 8);
-  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value);
+  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, &value);
 }
 /**
  * \brief Disable the ranging bit in the PHY header (PHR) of the transmitted 
@@ -1454,9 +1519,9 @@ dw_disable_ranging_frame(void)
 {
   uint8_t value;
   /* TR bit is the 15nd bit */
-  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value); 
+  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, &value); 
   value &= ~(DW_TR_MASK >> 8);
-  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &value);
+  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, &value);
 }
 /**
  * \brief Check if the last received frame is a ranging frame. This reflects the
@@ -1470,10 +1535,8 @@ is_ranging_frame(void)
 {
   uint8_t value = 0x0;
   /* RNG bit is the 15nd bit */
-  dw_read_subreg(DW_REG_RX_FINFO, 1, 1, (uint8_t *) &value);
-  /* bug the value must be 1 when this is a ranging frame bit this value is 0
-      and if you would use a not ranging frame this value is 1. */
-  return (value & (DW_RNG_MASK >> 8)) == 0;
+  dw_read_subreg(DW_REG_RX_FINFO, 1, 1, &value);
+  return (value & (DW_RNG_MASK >> 8)) > 0;
 }
 /**
  * \brief Specifies the antenna delay used to calculate the tx and rx

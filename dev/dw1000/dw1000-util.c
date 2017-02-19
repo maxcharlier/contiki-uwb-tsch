@@ -321,7 +321,7 @@ print_frame(uint16_t frame_len, uint8_t *frame)
     } else if((frame_control & (0x02 << 10)) == (0x02 << 10)) {
       printf("  Dst pan ID : ");
       print_short_id(frame + i);
-      printf("\r\n      addr   : ");
+      printf("\r\n  Dst addr   : ");
       print_short_id(frame + i + 2);
       printf("\r\n");
       i += 4;
@@ -337,7 +337,7 @@ print_frame(uint16_t frame_len, uint8_t *frame)
       printf("\r\n");
       i += 8;
     } else if((frame_control & (0x02 << 14)) == (0x02 << 14)) {
-      printf("\r\n      addr   : ");
+      printf("\r\n  Src addr   : ");
       print_short_id(frame + i);
       printf("\r\n");
       i += 2;
@@ -358,7 +358,7 @@ print_frame(uint16_t frame_len, uint8_t *frame)
       printf("  CRC     : %02X%02X\r\n", 
                                         frame[frame_len + 1], frame[frame_len]);
     }
-  } else if(frame_len == 5) {
+  } else if(frame_len == 3 || frame_len == 5) { //With or without ACK
     printf("ACK received.\r\n");
     printf("Sequence number: %d\r\n", frame[2]);
   } else {

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "dw1000-driver.h"
 
+#define DEBUG 1
 
 /*---------------------------------------------------------------------------*/
 PROCESS(frame_master_process, "Frame master");
@@ -12,6 +13,11 @@ PROCESS(frame_master_process, "Frame master");
 AUTOSTART_PROCESSES(&frame_master_process);
 /*---------------------------------------------------------------------------*/
 
+#if DEBUG
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...) do {} while(0)
+#endif
 
 #define RIME_CHANNEL 147
 #define RIME_TYPE    "unicast"
@@ -41,7 +47,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
 {
   int i;
   if(packetbuf_datalen() == 4){ 
-    printf("Node receive a ranging request\n");
+    PRINTF("Node receive a ranging request\n");
     /* only source and dest */
     /* place the source and the dest in data */
     char data[4];
@@ -60,7 +66,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
         process_poll(&frame_master_process);
       }
   } else if(packetbuf_datalen() == 12){
-    printf("Master receive a ranging response form %04X%04X\n",
+    PRINTF("Master receive a ranging response form %04X%04X\n",
                                             from->u8[1],
                                             from->u8[0]);
     /* source, dest and report */
@@ -74,11 +80,11 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
     for(i = 0; i < 8; i++){
       propagation_time |= (report[i+4] & 0xFF) >> (8 * i);
     }
-    printf("Propagation time between %d %d: %d\n",
+    printf("Propagation time between %.4X %.4X: %d\n",
        source, dest, (int) propagation_time);
   }
   else{
-    printf("Receive with unsuported size (%d) form %04X%04X\n",
+    PRINTF("Receive with unsuported size (%d) form %04X%04X\n",
                                             packetbuf_datalen(),
                                             from->u8[1],
                                             from->u8[0]);
@@ -107,47 +113,53 @@ PROCESS_THREAD(frame_master_process, ev, data)
       uint16_t source = strtol(data, &str, 16);
       uint16_t dest = strtol(str, &str, 16);
 
-      printf("received line: %s\n", (char *)data);
+      PRINTF("received line: %s\n", (char *)data);
 
-      printf("source: %.4X\n", source);
-      printf("dest: %.4X\n", dest);
-      if((source & 0xFF) == linkaddr_node_addr.u8[0] && 
-         (source >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
-        printf("Master start the ranging\n");
-        /* we are the source of the ranging request */
-        linkaddr_t addr;
-        addr.u8[0]= dest & 0xFF;
-        addr.u8[1]= (dest >> 8) & 0xFF;
+      if(source > 0 && dest > 0){
+        PRINTF("source: %.4X\n", source);
+        PRINTF("dest: %.4X\n", dest);
 
-        dw1000_driver_ranging_request(); 
-        packetbuf_copyfrom("", 0);
-        unicast_send(&uc, &addr);
-        /* wait for the ranging response */
-        while(dw1000_driver_is_ranging_request()){
-          PROCESS_PAUSE();
+        if((source & 0xFF) == linkaddr_node_addr.u8[0] && 
+           (source >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
+          PRINTF("Master start the ranging\n");
+          /* we are the source of the ranging request */
+          linkaddr_t addr;
+          addr.u8[0]= dest & 0xFF;
+          addr.u8[1]= (dest >> 8) & 0xFF;
+
+          dw1000_driver_ranging_request(); 
+          packetbuf_copyfrom("", 0);
+          unicast_send(&uc, &addr);
+          printf("Propagation time between %.4X %.4X: ",
+            source, dest);
+
+          /* wait for the ranging response */
+          while(dw1000_driver_is_ranging_request()){
+            PROCESS_PAUSE();
+          }
+          
+          printf("%d\n", (int) dw1000_driver_get_propagation_time());
+        }else
+        {
+          PRINTF("Master send the ranging request to the source.\n");
+          /* send the ranging request to the "source" node */
+          linkaddr_t addr;
+          addr.u8[0]= source & 0xFF;
+          addr.u8[1]= (source >> 8) & 0xFF;
+          char report[4]; // 2 for source, 2 for dest
+          /* store source and dest */
+          /* source */
+          report[0] = source & 0xFF;
+          report[1] = (source >> 8) & 0xFF;
+          /* dest */
+          report[2] = dest & 0xFF;
+          report[3] = (dest >> 8) & 0xFF;
+          packetbuf_copyfrom(report, 4);
+          /* request an ACK */
+          packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+          unicast_send(&uc, &addr);
+          PRINTF("Ranging request sended.\n");
         }
-        printf("Propagation time between %04X %04X: %d\n",
-          source, dest, (int) dw1000_driver_get_propagation_time());
-      }else
-      {
-        printf("Master send the ranging request to the source.\n");
-        /* send the ranging request to the "source" node */
-        linkaddr_t addr;
-        addr.u8[0]= source & 0xFF;
-        addr.u8[1]= (source >> 8) & 0xFF;
-        char report[4]; // 2 for source, 2 for dest
-        /* store source and dest */
-        /* source */
-        report[0] = source & 0xFF;
-        report[1] = (source >> 8) & 0xFF;
-        /* dest */
-        report[2] = dest & 0xFF;
-        report[3] = (dest >> 8) & 0xFF;
-        packetbuf_copyfrom(report, 4);
-        /* request an ACK */
-        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
-        unicast_send(&uc, &addr);
-        printf("Ranging request sended.\n");
       }
     }
     else if(ev == PROCESS_EVENT_POLL){
@@ -155,7 +167,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
      * This part is used to make the ranging computation and send the report to
      * the master node.
      **/
-    printf("Node make ranging\n");
+    PRINTF("Node make ranging\n");
     int i;
     /* prepare and send the ranging request */
     linkaddr_t dest_addr;

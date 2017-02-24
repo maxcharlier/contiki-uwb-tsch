@@ -389,16 +389,22 @@ dw1000_driver_prepare(const void *payload,
 
   if(dw1000_driver_sstwr){
     PRINTF("Ranging request\n");
-    // dw_enable_ranging_frame();
     /* we can not wait for an ACK if we are in a ranging protocol */
 #if DW1000_CONF_AUTOACK
     if(dw1000_driver_wait_ACK){
       ((uint8_t *)payload)[0] &= ~(1UL << 5);
     }
 #endif
-    /* fix the data size */
+#if DW1000_IEEE802154_EXTENDED
+    /* In extended mode, there are not a RNG bit in the PHR.
+      We use a dedicaced trame of 10 bytes and we use the last byte 
+      to indicates a ranging request.  */
     data_len = 10;
     payload_len = 10;
+#else
+    /* In standard mode we use the RNG bit in the PHR. */
+    dw_enable_ranging_frame();
+#endif
   }
 
   if(!DW1000_CONF_CHECKSUM) {
@@ -416,11 +422,15 @@ dw1000_driver_prepare(const void *payload,
     /* Copy data to DW1000 */
     dw_write_reg(DW_REG_TX_BUFFER, payload_len, (uint8_t *)payload);
   } 
+
+#if DW1000_IEEE802154_EXTENDED
+  /* Just replace the 10nd bytes by a value of "0x0" */
   if(dw1000_driver_sstwr){
     uint8_t ranging_value = 0x0;
     /* 10nd bytes */
     dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 1, &ranging_value);
   }
+#endif
 
 
 #if DEBUG_VERBOSE
@@ -628,7 +638,10 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* disable ranging request */
     dw1000_driver_sstwr = 0;
 
-    // dw_disable_ranging_frame();
+#if !DW1000_IEEE802154_EXTENDED
+    /* In standard mode, we disable the RNG bit in the PHR for the next trame.*/
+    dw_disable_ranging_frame();
+#endif
   }
 
   /* re-enable the rx state */
@@ -1114,11 +1127,18 @@ dw1000_driver_interrupt(void)
     } else
 #endif     /* DOUBLE_BUFFERING */
     if(status & DW_RXDFR_MASK){ 
+    uint8_t is_ranging_frame = 0x0;  /* false */
+
+#if DW1000_IEEE802154_EXTENDED
       uint8_t ranging_value; /* use to check if the frame is a ranging frame */
       /* read the 10nd bytes */
       dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 1, &ranging_value);
-      // if(dw_is_ranging_frame()){
-      if((dw_get_rx_extended_len() == 12) && (ranging_value == 0x0U)){
+      is_ranging_frame = (dw_get_rx_extended_len() == 12) 
+                          && (ranging_value == 0x0U);
+#else
+      is_ranging_frame = dw_is_ranging_frame();
+#endif
+      if(is_ranging_frame){
         /* We made a new packet for the response
            And we program the response */
         if(receive_on) {

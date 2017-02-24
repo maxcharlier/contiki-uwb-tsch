@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "dw1000-driver.h"
 
-#define DEBUG 1
+// #define DEBUG 1
 
 /*---------------------------------------------------------------------------*/
 PROCESS(frame_master_process, "Frame master");
@@ -130,7 +130,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
           dw1000_driver_ranging_request(); 
           packetbuf_copyfrom("", 0);
           unicast_send(&uc, &addr);
-          printf("Propagation time between %.4X %.4X: ",
+          PRINTF("Propagation time between %.4X %.4X: ",
             source, dest);
 
           /* wait for the ranging response */

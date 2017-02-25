@@ -1544,17 +1544,40 @@ dw_is_ranging_frame(void)
     // return (value & DW_RNG_MASK) == 0;
 }
 /**
- * \brief Specifies the antenna delay used to calculate the tx and rx
- * timestamps (~15.65 ps per tick).
+ * \brief Set the TX and RX antenna delay.
+ *    These antennas delay are used to shift the Tx and Rx timestamps 
+ *    and are expressed in tick (~15.65 ps).
  *
- * \details This function assumes there is an equal transmit and receive delay.
+ * \details This function assumes the repartition given by the ASP012:
+ *      TX antenna delay = given antenna delay * 44%
+ *      RX antenna delay = given antenna delay * 56%
  */
 void
-dw_set_antenna_delay(uint16_t delay)
+dw_set_antenna_delay(uint16_t antenna_delay)
+{
+  dw_set_tx_antenna_delay(delay_antenna * 0.44);
+  dw_set_rx_antenna_delay(delay_antenna * 0.56);
+}
+/**
+ * \brief Set the TX antenna delay.
+ *    This antenna delay was used to shift the Tx and Rx timestamps 
+ *    and was expressed in tick (~15.65 ps).
+ */
+void
+dw_set_tx_antenna_delay(uint16_t tx_delay)
+{
+  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay);
+}
+/**
+ * \brief Set the RX antenna delay.
+ *    This antenna delay was used to shift the Tx and Rx timestamps 
+ *    and was expressed in tick (~15.65 ps).
+ */
+void
+dw_set_rx_antenna_delay(uint16_t rx_delay)
 {
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
-                  (uint8_t *) &delay);
-  dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &delay);
+                  (uint8_t *) &rx_delay);
 }
 /**
  * \brief Get the current antenna delay. (~15.65 ps per tick)
@@ -1601,28 +1624,6 @@ dw_get_clock_offset(){
   printf("RX TTCKI %lu\n", (long unsigned int) rx_ttcki);
   */
   return (rx_tofs * 1000000LL) / rx_ttcki;
-}
-/**
- * \brief Get the RX et TX antenna delay and change the TX and RX delay 
- *      with the maximum of the initial TX and RX delay.
- *      The resulting RX and TX antenna are the same and this allow a good 
- *      ranging measure.
- */
-void
-dw_equalize_antenna_delay(void){
-  uint16_t rx_delay_antenna, tx_delay_antenna;
-
-  /* get rx and tx antenna delay */
-  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
-                  (uint8_t *) &rx_delay_antenna);
-  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay_antenna);
-
-  /* set the maximum delay value */
-  if(rx_delay_antenna >= tx_delay_antenna){
-    dw_set_antenna_delay(rx_delay_antenna);
-  } else {
-    dw_set_antenna_delay(tx_delay_antenna);
-  }
 }
 /**
  * \brief Setter for the delayed transmit/receive register. If delayed operation

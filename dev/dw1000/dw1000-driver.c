@@ -333,14 +333,13 @@ dw1000_driver_init(void)
       in the measurement ==> need calibration
       In this case, we change the value of the RX antenna delay */
   
-  // dw_equalize_antenna_delay();
-
   uint16_t delay_antenna = 0;
 
   // delay_antenna += 32810; /* at 110 kbps channel 5*/
   // delay_antenna += 37352; /* at 110 kbps channel 5*/
   delay_antenna += 31626; /*at 6800 kbps channel 5*/  
   // delay_antenna += 28240; /* at 110 kbps channel 4*/
+  
   /* according ASP012 delay_antenna must but reparteed as follow */
   uint16_t tx_delay_antenna = delay_antenna * 0.44;
   uint16_t rx_delay_antenna = delay_antenna * 0.56;
@@ -361,8 +360,10 @@ dw1000_driver_init(void)
                     (unsigned int) tx_delay_antenna, 
                     (unsigned int) rx_delay_antenna);
 
-  process_start(&dw1000_driver_process, NULL);
+  /* because in somes case the ranging request bit TR is TRUE */
+  dw_disable_ranging_frame(); 
 
+  process_start(&dw1000_driver_process, NULL);
 
   dw1000_driver_init_down = 1;
   return 1;
@@ -468,7 +469,9 @@ dw1000_driver_prepare(const void *payload,
 static int
 dw1000_driver_transmit(unsigned short payload_len)
 {
-  PRINTF("dw1000_driver_transmit\r\n");
+  PRINTF("dw1000_driver_transmit ACK %d Ranging %d\r\n",
+              dw1000_driver_wait_ACK,
+              dw1000_driver_sstwr);
 
   int tx_return = RADIO_TX_ERR;
   GET_LOCK();
@@ -504,8 +507,12 @@ dw1000_driver_transmit(unsigned short payload_len)
       Re-enable the RX state after the transmission. */
     dw_init_tx(1, 0); 
   }
-
 #if DEBUG
+  uint8_t tr_value;
+  /* TR bit is the 15nd bit */
+  dw_read_subreg(DW_REG_TX_FCTRL, 0x1, 1, &tr_value); 
+  printf("Ranging request send: %d\r\n", (tr_value & (DW_TR_MASK >> 8)) > 0);
+
   /* wait the effective start of the transmission */
   uint8_t sys_ctrl_lo;
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
@@ -549,7 +556,7 @@ dw1000_driver_transmit(unsigned short payload_len)
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0),
                     (theorical_transmission_approx(dw1000_conf.preamble_length,
-                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 1) + 
+                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 2) + 
                     DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
 
     PRINTF("Number of loop waiting ACK %d\n", count_ack);
@@ -896,10 +903,6 @@ dw1000_off(void)
 {
   receive_on = 0;
 
-  /* Wait for transmission to end before turning radio off. */
-  /* BUSYWAIT_UNTIL((dw1000.state == DW_STATE_TRANSMITTING), 
-                    RTIMER_SECOND / 10); */
-
   ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
 #ifdef DOUBLE_BUFFERING
   dw_trxoff_db_mode();
@@ -1193,6 +1196,8 @@ dw1000_driver_interrupt(void)
           dw_init_rx();
         }
         /* we do not change the rx buffer => the driver process make this */
+        
+        PRINTF("interrupt is_ranging_frame\r\n");
       }
 
 #if DEBUG_INTERRUPT

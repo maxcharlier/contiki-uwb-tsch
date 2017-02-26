@@ -6,7 +6,7 @@
 #include "dw1000-driver.h"
 #include "dw1000.h"
 
-#define DEBUG 1
+// #define DEBUG 1
 
 /*---------------------------------------------------------------------------*/
 PROCESS(frame_master_process, "Frame master");
@@ -64,14 +64,15 @@ static uint16_t rx_delay; /* the rx_delay settings */
 /* used when a message is received */
 static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
 {
-  int i;
   if(packetbuf_datalen() >= 1){ 
     PRINTF("Node receive message\n");
     char data[packetbuf_datalen()];
     packetbuf_copyto(data);
     mode = data[0];
 
-    if(mode == 0x01 && packetbuf_datalen() >= 5){ /* node receive a ranging request */
+    if(mode == 0x01 && packetbuf_datalen() >= 5){ 
+      /* node receive a ranging request */
+      
       uint16_t source, dest;
       source = data[1] | (data[2] << 8);
       dest = data[3] | (data[4] << 8);
@@ -87,23 +88,27 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
         }
     } 
     else if(mode == 0x02 && packetbuf_datalen() >= 13){
-      PRINTF("Master receive a ranging response form %02X%02X\n", from->u8[1], from->u8[0]);
+      PRINTF("Master receive a ranging response form %02X%02X\n", from->u8[1], 
+        from->u8[0]);
       /* source, dest and report */
+
       uint64_t propagation_time = 0;
 #if DEBUG
       /* only available for the master*/
       uint16_t source, dest;
       source = data[1] | (data[2] << 8);
       dest = data[3] | (data[4] << 8);
+      printf("Propagation time between %.4X %.4X: ", source, dest); 
 #endif /* DEBUG */
+      int i = 0;
       for(i = 0; i < 8; i++){
-        propagation_time |= (data[i+5] & 0xFF) >> (8 * i);
-      }
-      PRINTF("Propagation time between %.4X %.4X: ", source, dest);          
+        propagation_time |= ((unsigned long) (data[i+5] & 0xFF)) >> (8 * i);
+      }         
       printf("%d\n", (int) propagation_time);
     }
     else if(mode == 0x03 && packetbuf_datalen() == 5){
-      PRINTF("Node receive antenna delay settings form %02X%02X\n", from->u8[1], from->u8[0]);
+      PRINTF("Node receive antenna delay settings form %02X%02X\n", from->u8[1], 
+        from->u8[0]);
       /* source, dest and report */
       /* only available for the master*/
       tx_delay = data[1] | (data[2] << 8);
@@ -112,13 +117,15 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
       process_poll(&frame_master_process);
     }
     else if(mode == 0x04 && packetbuf_datalen() == 1){
-      PRINTF("Node receive antenna delay request form %02X%02X\n", from->u8[1], from->u8[0]);
+      PRINTF("Node receive antenna delay request form %02X%02X\n", from->u8[1], 
+        from->u8[0]);
       /* we need the master addr */
       master_addr = from->u8[0] | from->u8[1] << 8;
       process_poll(&frame_master_process);
     } 
     else if(mode == 0x05 && packetbuf_datalen() == 5){
-      PRINTF("Master receive an antenna delay request response form %02X%02X\n", from->u8[1], from->u8[0]);
+      PRINTF("Master receive an antenna delay request response form %02X%02X\n",
+        from->u8[1], from->u8[0]);
       /* source, dest and report */
       /* only available for the master*/
       uint16_t tx_delay, rx_delay;
@@ -129,7 +136,8 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
     }
   }
   else{
-    PRINTF("Receive with unsupported size (%d) form %02X%02X\n", packetbuf_datalen(), from->u8[1], from->u8[0]);
+    PRINTF("Receive with unsupported size (%d) form %02X%02X\n", 
+      packetbuf_datalen(), from->u8[1], from->u8[0]);
   }
 }
 
@@ -298,8 +306,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
     else if(ev == PROCESS_EVENT_POLL){
       if(mode == 0x01){
         /** 
-         * This part is used to make the ranging computation and send the report to
-         * the master node.
+         * This part is used to make the ranging computation and send the 
+         *  report to the master node.
          **/
         PRINTF("Node make ranging\n");
         int i;

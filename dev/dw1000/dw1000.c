@@ -1535,13 +1535,8 @@ dw_is_ranging_frame(void)
 {
   uint8_t value = 0x0;
   /* RNG bit is the 15nd bit */
-  dw_read_subreg(DW_REG_RX_FINFO, 0x1, 1,  &value);
-  /* there are a correlation between the bit 3 of the RX_INFO 
-    and the RNG bit, the RNG bit take the value of the bit 3.*/
-  // if(((value & 0x2) >> 1) == ((value & 0x4) >> 2))
-    return (value & (DW_RNG_MASK >> 8)) > 0;
-  // else
-    // return (value & DW_RNG_MASK) == 0;
+  dw_read_subreg(DW_REG_RX_FINFO, 0x1, 1, &value);
+  return (value & (DW_RNG_MASK >> 8)) > 0;
 }
 /**
  * \brief Set the TX and RX antenna delay.
@@ -1555,8 +1550,8 @@ dw_is_ranging_frame(void)
 void
 dw_set_antenna_delay(uint16_t antenna_delay)
 {
-  dw_set_tx_antenna_delay(delay_antenna * 0.44);
-  dw_set_rx_antenna_delay(delay_antenna * 0.56);
+  dw_set_tx_antenna_delay(antenna_delay * 0.44);
+  dw_set_rx_antenna_delay(antenna_delay * 0.56);
 }
 /**
  * \brief Set the TX antenna delay.
@@ -1569,6 +1564,18 @@ dw_set_tx_antenna_delay(uint16_t tx_delay)
   dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay);
 }
 /**
+ * \brief Get the TX antenna delay.
+ *    This antenna delay was used to shift the Tx and Rx timestamps 
+ *    and was expressed in tick (~15.65 ps).
+ */
+uint16_t
+dw_get_tx_antenna_delay(void)
+{
+  uint16_t tx_delay;
+  dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay);
+  return tx_delay;
+}
+/**
  * \brief Set the RX antenna delay.
  *    This antenna delay was used to shift the Tx and Rx timestamps 
  *    and was expressed in tick (~15.65 ps).
@@ -1578,6 +1585,19 @@ dw_set_rx_antenna_delay(uint16_t rx_delay)
 {
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &rx_delay);
+}
+/**
+ * \brief Get the RX antenna delay.
+ *    This antenna delay was used to shift the Tx and Rx timestamps 
+ *    and was expressed in tick (~15.65 ps).
+ */
+uint16_t
+dw_get_rx_antenna_delay(void)
+{
+  uint16_t rx_delay;
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
+                  (uint8_t *) &rx_delay);
+  return rx_delay;
 }
 /**
  * \brief Get the current antenna delay. (~15.65 ps per tick)

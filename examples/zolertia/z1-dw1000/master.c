@@ -30,11 +30,11 @@ static const struct unicast_callbacks uc_cb = { recv_callback };
  *  Where SOURCE is the initiator of the ranging request
  *      and DEST the receiver of the ranging request
  *
- *  A ranging report will be construct as follow: SOURCE DEST PROPAGASION
+ *  A ranging report will be construct as follow: SOURCE DEST PROPAGATION
  *  Where SOURCE is the initiator of the ranging request (2 bytes)
  *      DEST the receiver of the ranging request (2 bytes)
  *      PROPAGATION is the propagation time (8 bytes)
- * the physical source (in the header) is used to determine the master node addr
+ * The physical source (in the header) is used to determine the master node addr
  */
 
 
@@ -80,11 +80,11 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
     for(i = 0; i < 8; i++){
       propagation_time |= (report[i+4] & 0xFF) >> (8 * i);
     }
-    printf("Propagation time between %.4X %.4X: %d\n",
-       source, dest, (int) propagation_time);
+    PRINTF("Propagation time between %.4X %.4X: ", source, dest);          
+    printf("%d\n", (int) propagation_time);
   }
   else{
-    PRINTF("Receive with unsuported size (%d) form %04X%04X\n",
+    PRINTF("Receive with unsupported size (%d) form %04X%04X\n",
                                             packetbuf_datalen(),
                                             from->u8[1],
                                             from->u8[0]);

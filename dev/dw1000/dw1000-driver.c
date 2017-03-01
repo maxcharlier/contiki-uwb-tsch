@@ -156,6 +156,7 @@ static uint64_t dw1000_driver_last_propagation_time_corrected;
 
 /* store the current DW1000 configuration */
 static dw1000_base_conf_t dw1000_conf;
+static dw1000_frame_quality last_packet_quality;
 
 static uint8_t volatile pending;
 
@@ -191,10 +192,12 @@ volatile uint16_t dw1000_driver_sfd_start_time;
 volatile uint16_t dw1000_driver_sfd_end_time;
 
 static volatile uint16_t last_packet_timestamp;
+
 /* start private function */
 inline void dw1000_schedule_reply(void);
 void dw1000_compute_propagation_time(void);
 void dw1000_compute_propagation_time_corrected(void);
+inline void  dw1000_update_frame_quality(void);
 /* end private function */
 
 /* PLATFORM DEPENDENT
@@ -573,6 +576,8 @@ dw1000_driver_transmit(unsigned short payload_len)
           tx_return = RADIO_TX_OK;
         }
       }
+      dw1000_update_frame_quality();
+      
       clear_rx_buffer = 1; /* true */
     }
   }
@@ -613,6 +618,8 @@ dw1000_driver_transmit(unsigned short payload_len)
       clear_rx_buffer = 1; /* true */
       dw1000_compute_propagation_time();
       dw1000_compute_propagation_time_corrected();
+
+      dw1000_update_frame_quality();
     }
   }
 
@@ -1271,7 +1278,9 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
              | DW_MLDEDONE_MASK);
     dw_init_rx();
 #endif /* ! DOUBLE_BUFFERING */
-    
+
+    dw1000_update_frame_quality();
+
     /* end of the interrupt */ 
     /* See Figure 14: Flow chart for using double RX buffering
      * Of the manual */
@@ -1649,4 +1658,20 @@ dw1000_driver_get_propagation_time(void){
 uint64_t
 dw1000_driver_get_propagation_time_corrected(void){
   return dw1000_driver_last_propagation_time_corrected;
+}
+
+/**
+ * \brief Update the quality information about the last packet received.
+ */
+void 
+dw1000_update_frame_quality(void){
+  dw_get_receive_quality(&last_packet_quality);
+}
+
+/**
+ * \brief Return the quality of the last received packet.
+ */
+dw1000_frame_quality
+dw1000_driver_get_packet_quality(void){
+  return last_packet_quality;
 }

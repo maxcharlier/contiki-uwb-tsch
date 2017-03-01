@@ -27,7 +27,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from);
 static struct unicast_conn uc;
 static const struct unicast_callbacks uc_cb = { recv_callback };
 
-
+#define SIZEOF_QUALITY 14
 /** 
  *  We have multiple types of message and there are defined by the value of 
  *  the first byte MODE:
@@ -87,7 +87,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
           process_poll(&frame_master_process);
         }
     } 
-    else if(mode == 0x02 && packetbuf_datalen() >= 13){
+    else if(mode == 0x02 && packetbuf_datalen() >= 13 + SIZEOF_QUALITY){
       PRINTF("Master receive a ranging response form %02X%02X\n", from->u8[1], 
         from->u8[0]);
       /* source, dest and report */
@@ -100,11 +100,17 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
       dest = data[3] | (data[4] << 8);
       printf("Propagation time between %.4X %.4X: ", source, dest); 
 #endif /* DEBUG */
-      int i = 0;
-      for(i = 0; i < 8; i++){
-        propagation_time |= ((unsigned long) (data[i+5] & 0xFF)) >> (8 * i);
-      }         
-      printf("%d\n", (int) propagation_time);
+
+      memcpy(&propagation_time, &data[5], 8);
+
+      // /* get quality */
+      dw1000_frame_quality quality ;
+      memcpy(&quality, &data[13], SIZEOF_QUALITY);
+
+      printf("0x%08X ", (unsigned int) propagation_time);
+
+      print_receive_quality(quality);
+
     }
     else if(mode == 0x03 && packetbuf_datalen() == 5){
       PRINTF("Node receive antenna delay settings form %02X%02X\n", from->u8[1], 
@@ -187,8 +193,11 @@ PROCESS_THREAD(frame_master_process, ev, data)
             while(dw1000_driver_is_ranging_request()){
               PROCESS_PAUSE();
             }
-            
-            printf("%d\n", (int) dw1000_driver_get_propagation_time());
+            printf("0x%08X ", 
+              (unsigned int) dw1000_driver_get_propagation_time());
+
+            print_receive_quality(dw1000_driver_get_packet_quality());
+
           }else
           {
             PRINTF("Master send the ranging request to the source.\n");
@@ -231,7 +240,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             PRINTF("Master apply the delay value\n");
             /* Master are the destination of the delay setter */
 
-            dw1000_driver_off();
+            // dw1000_driver_off();
 
             // clock_delay(42);
             dw_set_tx_antenna_delay(tx_delay);
@@ -242,8 +251,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
             // dw1000_driver_on();
 
             
-            printf("tx delay%d ", (unsigned int) dw_get_tx_antenna_delay());
-            printf("rx delay%d\n", (unsigned int) dw_get_rx_antenna_delay());
+            PRINTF("tx delay %d\n", (unsigned int) dw_get_tx_antenna_delay());
+            PRINTF("rx delay %d\n", (unsigned int) dw_get_rx_antenna_delay());
           }else
           {
             PRINTF("Master send the delay value settings.\n");
@@ -310,7 +319,6 @@ PROCESS_THREAD(frame_master_process, ev, data)
          *  report to the master node.
          **/
         PRINTF("Node make ranging\n");
-        int i;
         /* prepare and send the ranging request */
         linkaddr_t dest_addr;
         dest_addr.u8[0]= ranging_dest & 0xFF;
@@ -326,7 +334,10 @@ PROCESS_THREAD(frame_master_process, ev, data)
         }
 
         /* prepare and  send the ranging report to the master */
-        char report[13]; // 1 for mode, 2 for source, 2 for dest, 8 for report
+
+        // 1 for mode, 2 for source, 2 for dest, 8 for report
+
+        char report[13 + SIZEOF_QUALITY]; 
         report[0] = 0x02;
         /* source */
         report[1] = linkaddr_node_addr.u8[0];
@@ -334,12 +345,16 @@ PROCESS_THREAD(frame_master_process, ev, data)
         /* dest */
         report[3] = ranging_dest & 0xFF;
         report[4] = (ranging_dest >> 8) & 0xFF;
-        /* propagation time*/
-        for(i = 0; i < 8; i++){
-          report[i+5] = (dw1000_driver_get_propagation_time() << (8*i)) & 0xFF;
-        }
 
-        packetbuf_copyfrom(report, 13);
+
+        uint64_t propagation = dw1000_driver_get_propagation_time();
+        memcpy(&report[5], &propagation, 8);
+
+        /* get quality */
+        dw1000_frame_quality quality = dw1000_driver_get_packet_quality();
+        memcpy(&report[13], &quality, SIZEOF_QUALITY);
+
+        packetbuf_copyfrom(report, sizeof(report));
 
         linkaddr_t dest_addr2;
         dest_addr2.u8[0]= master_addr & 0xFF;

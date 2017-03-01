@@ -455,6 +455,44 @@ typedef struct {
   uint8_t auto_ack;
 } dw1000_base_driver;
 
+/**
+ * \brief DW1000 Quality information.
+ */
+typedef struct {
+  /**
+   * \Brief The First Path Amplitude (point 1) magnitude value.
+   */
+  uint16_t fp_ampl1;
+  /**
+   * \Brief The First Path Amplitude (point 2) magnitude value.
+   */
+  uint16_t fp_ampl2;
+  /**
+   * \Brief The First Path Amplitude (point 3) magnitude value.
+   */
+  uint16_t fp_ampl3;
+  /**
+   * \Brief The Preamble Accumulation Count value.
+   */
+  uint16_t rx_pacc;
+  /**
+   * \Brief The Channel Impulse Response Power value.
+   */
+  uint16_t cir_pwr;
+  /**
+   * \Brief Standard Deviation of Noise.
+   */
+  uint16_t std_noise;
+  /**
+   * \Brief if RXPACC is saturated and need to be corrected.
+   */
+  uint8_t n_correction;
+  /**
+   * \Brief The clock offset between the sender and the receiver.
+   */
+  int8_t clock_offset;
+} dw1000_frame_quality;
+
 extern dw1000_base_driver dw1000;
 
 /*===========================================================================*/
@@ -495,8 +533,9 @@ void dw_soft_reset(void);
 /* Diagnostics */
 float dw_get_noise_level(void);
 float dw_get_fp_ampl(void);
-void  dw_print_receive_ampl(void);
 
+void dw_get_receive_quality(dw1000_frame_quality* quality);
+void print_receive_quality(dw1000_frame_quality quality);
 /* RX/TX */
 void dw_enable_automatic_receiver_Re_Enable(void);
 void dw_disable_automatic_receiver_Re_Enable(void);
@@ -528,7 +567,7 @@ void     dw_set_dx_timestamp(uint64_t timestamp);
 void     dw_enable_ranging_frame(void);
 void     dw_disable_ranging_frame(void);
 uint8_t dw_is_ranging_frame(void);
-int32_t dw_get_clock_offset();
+int8_t dw_get_clock_offset();
 
 void dw_clear_pending_interrupt(uint64_t mask);
 

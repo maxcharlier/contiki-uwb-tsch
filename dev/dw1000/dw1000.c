@@ -1285,50 +1285,76 @@ dw_get_fp_ampl()
         & (DW_FP_AMPL2_MASK)) >> DW_FP_AMPL2);
 }
 /**
- * \brief Print value required for the computation of the First Path Power Level
- *        and the Receive Power.
- *        With the following format : F1 F2 F3 N C N_correction detailed in the manual:
+ * \brief Get value required for the computation of the First Path Power Level
+ *        and the Receive Power and noise information.
+ *        With the following format : F1 F2 F3 N C N_correction NOISE 
+ *        and clock_offset detailed in the manual:
  *        In the section 4.7.1 Estimating the signal power in the first path
  *        And in the section 4.7.2 Estimating the receive signal power
  *        N_correction == 1 if the value RXPACC is saturated
+ *        All value was unit16_t expect N_correction (uint8_t) and clock_offset.
  */
 void 
-dw_print_receive_ampl(void)
+dw_get_receive_quality(dw1000_frame_quality* quality)
 {
-  uint16_t fp_ampl1, fp_ampl2, fp_ampl3, rx_pacc, rx_pacc_nosat, cir_pwr;
+  uint16_t rx_pacc_nosat;
   /* Read FP_AMPL1 */
   dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_FP_AMPL1, 
-                                  DW_SUBLEN_FP_AMPL1, (uint8_t*) &fp_ampl1);
+                                  DW_SUBLEN_FP_AMPL1, 
+                                  (uint8_t*) &(quality->fp_ampl1));
 
   /* Read FP_AMPL2 */
   dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_FP_AMPL2, 
-                                  DW_SUBLEN_FP_AMPL2, (uint8_t*) &fp_ampl2);
+                                  DW_SUBLEN_FP_AMPL2, (uint8_t*) &(quality->fp_ampl2));
+
+  /* Read STD_NOISE */
+  dw_read_subreg(DW_REG_RX_FQUAL, 0, 2, (uint8_t*) &(quality->std_noise));
+
   /* Read FP_AMPL3 */
   dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_FP_AMPL3, 
-                                  DW_SUBLEN_FP_AMPL3, (uint8_t*) &fp_ampl3);
-  /* Read RXPACC */
+                                  DW_SUBLEN_FP_AMPL3, (uint8_t*) &(quality->fp_ampl3));
+
+  /* Read RXPACC */    
+  /* N = the Preamble Accumulation Count value reported in the RXPACC */
   /* we read only 2 bytes in place of the all register */
-  dw_read_subreg(DW_REG_RX_FINFO, 2, 2, (uint8_t*) &rx_pacc);
-  rx_pacc = rx_pacc >> (DW_RXPACC - 16);
-  rx_pacc &= (DW_RXPACC_MASK >> DW_RXPACC);
+  dw_read_subreg(DW_REG_RX_FINFO, 2, 2, (uint8_t*) &(quality->rx_pacc));
+  quality->rx_pacc = quality->rx_pacc >> (DW_RXPACC - 16);
+  quality->rx_pacc &= (DW_RXPACC_MASK >> DW_RXPACC);
+
   /* read RXPACC_NOSAT */
   dw_read_subreg(DW_REG_DRX_CONF, DW_SUBREG_RXPACC_NOSAT, 
                         DW_SUBLEN_RXPACC_NOSAT, (uint8_t*) &rx_pacc_nosat);
 
   /* CIR_PWR */
+  /* C = the Channel Impulse Response Power value reported in the CIR_PWR */
   dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_CIR_PWR, 
-                                  DW_SUBLEN_CIR_PWR, (uint8_t*) &cir_pwr);
-  printf("Value for the computation of Receive power F1 F2 F3 N C\n");
-  printf("%d %d %d %d %d", fp_ampl1, fp_ampl2, fp_ampl3, rx_pacc, cir_pwr);
+                                  DW_SUBLEN_CIR_PWR, (uint8_t*) &(quality->cir_pwr));
+
   /* check if RXPACC is saturated and need to be corrected */
-  if(rx_pacc == rx_pacc_nosat){
-    printf(" 1\n");
-  }
+  if(quality->rx_pacc == rx_pacc_nosat)
+    quality->n_correction = 0x01;
   else
-    printf(" 0\n");
+    quality->n_correction = 0x00;
+  quality->clock_offset = dw_get_clock_offset();
 }
 
-
+/**
+ * \brief Print value required for the computation of the First Path Power Level
+ *        and the Receive Power.
+ *        With the following format : F1 F2 F3 N C N_correction NOISE and the 
+ *        clock_offset detailed in the manual:
+ *        In the section 4.7.1 Estimating the signal power in the first path
+ *        And in the section 4.7.2 Estimating the receive signal power
+ *        N_correction == 1 if the value RXPACC is saturated.
+ */
+void 
+print_receive_quality(dw1000_frame_quality quality)
+{
+  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X 0x%02X\n", 
+      quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
+      quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
+      quality.std_noise, quality.clock_offset);
+}
 /*===========================================================================*/
 /* RX/TX                                                                     */
 /*===========================================================================*/
@@ -1610,12 +1636,13 @@ dw_get_antenna_delay()
 }
 /**
  *  \brief Get the Receiver Time Tracking Offset. This value is provide by 
- *      analysing the correction made by the phase-lock-loop (PLL) to decode the
+ *      analyzing the correction made by the phase-lock-loop (PLL) to decode the
  *      signal, it provide an estimate of the difference between the 
  *      transmitting and the receiver clock.
  * \return The Receiver Time Tracking Offset in part per million (ppm).
+ *        The value must be between -20 and 20 (theoretically).
  */
-int32_t
+int8_t
 dw_get_clock_offset(){
   /* Clock offset = RX TOFS / RX TTCKI */
   int32_t rx_tofs = 0L;
@@ -1643,7 +1670,11 @@ dw_get_clock_offset(){
   printf("RX TOFS %ld\n", (long int) rx_tofs);
   printf("RX TTCKI %lu\n", (long unsigned int) rx_ttcki);
   */
-  return (rx_tofs * 1000000LL) / rx_ttcki;
+  uint32_t clock_full = (rx_tofs * 1000000LL) / rx_ttcki;
+  uint8_t clock_offset = clock_full & 0xFF;
+  /* copy the sign of clock_full */
+  clock_offset |= clock_full >> (32 - 8);
+  return clock_offset;
 }
 /**
  * \brief Setter for the delayed transmit/receive register. If delayed operation

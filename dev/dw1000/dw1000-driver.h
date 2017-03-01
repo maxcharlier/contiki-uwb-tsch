@@ -73,3 +73,4 @@ uint32_t dw1000_driver_get_reply_time(void);
 void dw1000_driver_set_reply_time(uint32_t reply_time);
 uint64_t dw1000_driver_get_propagation_time(void);
 uint64_t dw1000_driver_get_propagation_time_corrected(void);
+dw1000_frame_quality dw1000_driver_get_packet_quality(void);

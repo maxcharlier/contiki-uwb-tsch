@@ -1350,10 +1350,10 @@ dw_get_receive_quality(dw1000_frame_quality* quality)
 void 
 print_receive_quality(dw1000_frame_quality quality)
 {
-  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X 0x%02X\n", 
+  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d\n", 
       quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
       quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
-      quality.std_noise, quality.clock_offset);
+      quality.std_noise, (int) quality.clock_offset);
 }
 /*===========================================================================*/
 /* RX/TX                                                                     */
@@ -1653,12 +1653,8 @@ dw_get_clock_offset(){
   rx_tofs &= DW_RXTOFS_MASK;
   /* convert a 19 signed bit number to a 32 bits signed number */
   if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
-      /* a signed int is represented by a two complement representation */
-      /* convert to a unsigned number => 
-          we use a mask because we use 32 bits in place of 19 */
-      // rx_tofs = (~rx_tofs & DW_RXTOFS_MASK) + 1; 
-      rx_tofs |= 0xFFF80000UL;
-      // rx_tofs = -rx_tofs;
+    /* a signed int is represented by a two complement representation */
+    rx_tofs = rx_tofs - DW_RXTOFS_MASK; 
   }
 
   /* brief dummy : The value in RXTTCKI will take just one of two values 
@@ -1670,10 +1666,10 @@ dw_get_clock_offset(){
   printf("RX TOFS %ld\n", (long int) rx_tofs);
   printf("RX TTCKI %lu\n", (long unsigned int) rx_ttcki);
   */
-  uint32_t clock_full = (rx_tofs * 1000000LL) / rx_ttcki;
+  int32_t clock_full = (rx_tofs * 1000000LL) / rx_ttcki;
   uint8_t clock_offset = clock_full & 0xFF;
   /* copy the sign of clock_full */
-  clock_offset |= clock_full >> (32 - 8);
+  clock_offset |= (clock_full >> (32 - 8)) & 0x80;
   return clock_offset;
 }
 /**

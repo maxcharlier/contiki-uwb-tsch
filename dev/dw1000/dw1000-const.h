@@ -476,7 +476,7 @@
 
 /* DW_REG_RX_TTCKO 0x14 */
 #define DW_RXTOFS         0                 /* \brief dummy */
-#define DW_RXTOFS_MASK    (0x7FFULL << 0)   /* \brief dummy */
+#define DW_RXTOFS_MASK    (0x7FFFFULL << 0)   /* \brief dummy */
 
 /* DW_REG_CHAN_CTRL 0x1F */
 #define DW_TXCHAN        0              /* \brief dummy */

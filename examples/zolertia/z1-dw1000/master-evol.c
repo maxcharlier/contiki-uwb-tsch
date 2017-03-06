@@ -104,7 +104,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
       memcpy(&propagation_time, &data[5], 8);
 
 
-      printf("0x%08X", (unsigned int) propagation_time);
+      printf("0x%08X ", (unsigned int) propagation_time);
       if(mode == 0x02){
         /* get quality */
         dw1000_frame_quality quality ;
@@ -114,7 +114,6 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
       else{
         printf("\n");
       }
-
     }
     else if(mode == 0x03 && packetbuf_datalen() == 5){
       PRINTF("Node receive antenna delay settings form %02X%02X\n", from->u8[1], 

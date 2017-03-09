@@ -1505,7 +1505,7 @@ dw1000_driver_set_reply_time(uint32_t reply_time)
 {
   if(reply_time == 0){
     reply_time = theorical_transmission_approx(dw1000_conf.preamble_length,
-                      dw1000_conf.data_rate, dw1000_conf.prf, 128) + 300;
+                      dw1000_conf.data_rate, dw1000_conf.prf, 128) + 400;
   }
   dw1000_driver_reply_time = reply_time;
 }

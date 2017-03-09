@@ -73,7 +73,7 @@ PROCESS_THREAD(frame_sender_process, ev, data)
       broadcast_send(&bc);
 #else
       linkaddr_t addr;
-      addr.u8[0]= 10;
+      addr.u8[0]= 7;
       addr.u8[1]= 0;
       // rtimer_clock_t t1 = RTIMER_NOW();
       i ++; 

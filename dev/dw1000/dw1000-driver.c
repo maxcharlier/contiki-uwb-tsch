@@ -1564,7 +1564,8 @@ dw1000_compute_propagation_time(void){
 void 
 dw1000_compute_propagation_time_corrected(void){
   uint64_t t_reply;
-  uint32_t rx_tofs = 0UL;
+  int32_t rx_tofs = 0L;
+  uint64_t rx_tofsU = 0UL;
   uint8_t  rx_tofs_negative = 0; /* false */
   uint64_t rx_ttcki = 0ULL;
   /* Compute the round time  t_round*/
@@ -1585,21 +1586,17 @@ dw1000_compute_propagation_time_corrected(void){
   rx_tofs &= DW_RXTOFS_MASK;
   /* convert a 19 signed bit number to a 32 bits signed number */
   if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
-      /* a signed int is represented by a two complement representation */
-      /* convert to a unsigned number => 
-          we use a mask because we use 32 bits in place of 19 */
-      rx_tofs = (~rx_tofs & DW_RXTOFS_MASK) + 1; 
-      rx_tofs_negative = 1; /* true */
+    /* a signed int is represented by a two complement representation */
+    rx_tofs = rx_tofs - DW_RXTOFS_MASK; /* convert to a 32 bits signed value */
+    rx_tofs_negative = 1;
+    rx_tofsU = -rx_tofs; /* only store the absolute value */
   }
-
+  else
+    rx_tofsU = rx_tofs;
   /* brief dummy : The value in RXTTCKI will take just one of two values 
       depending on the PRF: 0x01F00000 @ 16 MHz PRF, 
       and 0x01FC0000 @ 64 MHz PRF. */
-  if(dw1000_conf.prf == DW_PRF_16_MHZ){
-    rx_ttcki = 0x01F00000ULL;
-  } else{ /* prf == DW_PRF_64_MHZ */
-    rx_ttcki = 0x01FC0000ULL;
-  }
+  rx_ttcki = dw_read_reg_32(DW_REG_RX_TTCKI, DW_LEN_RX_TTCKI);
 
   PRINTF("clock offset %ld\n", (long int) dw_get_clock_offset());
   /* We are not able to use the formula Clock offset = RX TOFS / RX TTCKI 
@@ -1607,12 +1604,12 @@ dw1000_compute_propagation_time_corrected(void){
       We change "- (Clock offset * t_reply)" to "- RX TOFS * t_reply / RX TTCKI"
       We don't want to use signed number => we made tow cases in function of the
       sign of RX TOFS */
-  if(rx_tofs_negative){
+  if(rx_tofs_negative == 1){
     dw1000_driver_last_propagation_time_corrected += 
-                                              (t_reply * rx_tofs) / rx_ttcki;
+                                              (t_reply * rx_tofsU) / rx_ttcki;
   }else {
     dw1000_driver_last_propagation_time_corrected -= 
-                                              (t_reply * rx_tofs) / rx_ttcki;
+                                              (t_reply * rx_tofsU) / rx_ttcki;
   }
 
   /* dw1000_driver_last_propagation_time_corrected divided by 2 */

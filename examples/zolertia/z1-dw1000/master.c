@@ -138,7 +138,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             PROCESS_PAUSE();
           }
           
-          printf("%d\n", (int) dw1000_driver_get_propagation_time());
+          printf("%d\n", (int) dw1000_driver_get_propagation_time_corrected());
         }else
         {
           PRINTF("Master send the ranging request to the source.\n");
@@ -194,7 +194,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
     report[3] = (ranging_dest >> 8) & 0xFF;
     /* propagation time*/
     for(i = 0; i < 8; i++){
-      report[i+4] = (dw1000_driver_get_propagation_time() << (8*i)) & 0xFF;
+      report[i+4] = (dw1000_driver_get_propagation_time_corrected() << (8*i)) & 0xFF;
     }
 
     packetbuf_copyfrom(report, 12);

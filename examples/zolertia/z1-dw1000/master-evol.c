@@ -197,7 +197,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
               PROCESS_PAUSE();
             }
             printf("0x%08X ", 
-              (unsigned int) dw1000_driver_get_propagation_time());
+              (unsigned int) dw1000_driver_get_propagation_time_corrected());
 
             if(mode == 0x02){
               /* get quality */
@@ -350,7 +350,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
         report[4] = (ranging_dest >> 8) & 0xFF;
 
 
-        uint64_t propagation = dw1000_driver_get_propagation_time();
+        uint64_t propagation = dw1000_driver_get_propagation_time_corrected();
         memcpy(&report[5], &propagation, 8);
 
         if(mode == 0x02){

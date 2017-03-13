@@ -78,11 +78,11 @@
 #endif /* DW1000_CHANNEL */
 
 #ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
+#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
 #endif /* DW1000_DATA_RATE */
 
 #ifndef DW1000_PREAMBLE
-#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_256
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_1024
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
@@ -1596,7 +1596,11 @@ dw1000_compute_propagation_time_corrected(void){
   /* brief dummy : The value in RXTTCKI will take just one of two values 
       depending on the PRF: 0x01F00000 @ 16 MHz PRF, 
       and 0x01FC0000 @ 64 MHz PRF. */
-  rx_ttcki = dw_read_reg_32(DW_REG_RX_TTCKI, DW_LEN_RX_TTCKI);
+  if(dw1000_conf.prf == DW_PRF_16_MHZ){
+    rx_ttcki = 0x01F00000ULL;
+  } else{ /* prf == DW_PRF_64_MHZ */
+    rx_ttcki = 0x01FC0000ULL;
+  }
 
   PRINTF("clock offset %ld\n", (long int) dw_get_clock_offset());
   /* We are not able to use the formula Clock offset = RX TOFS / RX TTCKI 
@@ -1611,7 +1615,6 @@ dw1000_compute_propagation_time_corrected(void){
     dw1000_driver_last_propagation_time_corrected -= 
                                               (t_reply * rx_tofsU) / rx_ttcki;
   }
-
   /* dw1000_driver_last_propagation_time_corrected divided by 2 */
   dw1000_driver_last_propagation_time_corrected >>= 1;
 

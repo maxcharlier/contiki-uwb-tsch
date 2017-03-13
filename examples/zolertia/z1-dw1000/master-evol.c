@@ -120,8 +120,9 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
         from->u8[0]);
       /* source, dest and report */
       /* only available for the master*/
-      tx_delay = data[1] | (data[2] << 8);
-      rx_delay = data[3] | (data[4] << 8);  
+
+      memcpy(&tx_delay, &data[1], 2);
+      memcpy(&rx_delay, &data[3], 2);  
 
       process_poll(&frame_master_process);
     }
@@ -138,10 +139,12 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
       /* source, dest and report */
       /* only available for the master*/
       uint16_t tx_delay, rx_delay;
-      tx_delay = data[1] | (data[2] << 8);
-      rx_delay = data[3] | (data[4] << 8);
+
+      memcpy(&tx_delay, &data[1], 2);
+      memcpy(&rx_delay, &data[3], 2);  
+
       PRINTF("Delay antenna from %02X%02X: ", from->u8[1], from->u8[0]);          
-      printf("%d %d\n", (unsigned int) tx_delay, (unsigned int) rx_delay);
+      printf("0x%.4X 0x%.4X\n",  tx_delay, rx_delay);
     }
   }
   else{
@@ -217,11 +220,10 @@ PROCESS_THREAD(frame_master_process, ev, data)
             /* store the mode */
             report[0] = mode;
             /* source */
-            report[1] = source & 0xFF;
-            report[2] = (source >> 8) & 0xFF;
+            memcpy(&report[1], &source, 2);
             /* dest */
-            report[3] = dest & 0xFF;
-            report[4] = (dest >> 8) & 0xFF;
+            memcpy(&report[3], &dest, 2);
+
             packetbuf_copyfrom(report, 5);
 
             /* request an ACK */
@@ -240,8 +242,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
         rx_delay = strtol(str, &str, 16);
         if(dest > 0){
           PRINTF("dest: %.4X\n", dest);
-          PRINTF("tx_delay: %.4X %d\n", tx_delay, (unsigned int) tx_delay);
-          PRINTF("rx_delay: %.4X %d\n", rx_delay, (unsigned int) rx_delay);
+          PRINTF("tx_delay: 0x%.4X %u\n", tx_delay, (unsigned int) tx_delay);
+          PRINTF("rx_delay: 0x%.4X %u\n", rx_delay, (unsigned int) rx_delay);
 
           if((dest & 0xFF) == linkaddr_node_addr.u8[0] && 
              (dest >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
@@ -251,8 +253,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
             dw_set_tx_antenna_delay(tx_delay);
             dw_set_rx_antenna_delay(rx_delay);
 
-            PRINTF("tx delay %d\n", (unsigned int) dw_get_tx_antenna_delay());
-            PRINTF("rx delay %d\n", (unsigned int) dw_get_rx_antenna_delay());
+            PRINTF("tx delay %.4X\n", dw_get_tx_antenna_delay());
+            PRINTF("rx delay %.4X\n", dw_get_rx_antenna_delay());
           }else
           {
             PRINTF("Master send the delay value settings.\n");
@@ -263,12 +265,10 @@ PROCESS_THREAD(frame_master_process, ev, data)
             char report[5]; // 1 for mode, 2 for tx_delay, 2 for rx_delay
             /* store the mode */
             report[0] = mode;
-            /* source */
-            report[1] = tx_delay & 0xFF;
-            report[2] = (tx_delay >> 8) & 0xFF;
-            /* dest */
-            report[3] = rx_delay & 0xFF;
-            report[4] = (rx_delay >> 8) & 0xFF;
+
+            memcpy(&report[1], &tx_delay, 2);
+            memcpy(&report[3], &rx_delay, 2);
+
             packetbuf_copyfrom(report, 5);
 
             /* request an ACK */
@@ -290,8 +290,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
              (dest >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
             PRINTF("Master get the delay value: ");
             /* Master are the destination of the delay getter */
-            printf("%d ", (unsigned int) dw_get_tx_antenna_delay());
-            printf("%d\n", (unsigned int) dw_get_rx_antenna_delay());
+            printf("0x%.4X ", dw_get_tx_antenna_delay());
+            printf("0x%.4X\n", dw_get_rx_antenna_delay());
 
           }else
           {

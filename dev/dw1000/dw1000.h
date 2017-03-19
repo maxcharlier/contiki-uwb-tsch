@@ -146,8 +146,8 @@ typedef enum {
  * sections should use.
  */
 typedef enum {
-  DW_PRF_16_MHZ = 1, /* 16 MHz Pulse repetition */
-  DW_PRF_64_MHZ = 2  /* 64 MHz Pulse repetition */
+  DW_PRF_16_MHZ = 16, /* 16 MHz Pulse repetition */
+  DW_PRF_64_MHZ = 64  /* 64 MHz Pulse repetition */
 } dw1000_prf_t;
 
 /**
@@ -501,6 +501,8 @@ void dw1000_init(void);
 
 /* Configuration */
 void dw_conf(dw1000_base_conf_t *dw_conf);
+void dw_change_tx_power(uint32_t tx_power_val, uint8_t manual);
+uint32_t dw_get_tx_power(void);
 void dw_conf_rx(dw1000_rx_conf_t *rx_conf);
 void dw_conf_print(void);
 void dw_turn_frame_filtering_off(void);
@@ -509,6 +511,7 @@ void dw_enable_gpio_led(void);
 void dw_disable_gpio_led(void);
 void dw_set_sfd_timeout(uint16_t value);
 void dw_sfd_init(void);
+void dw_load_lde_code(void);
 
 /* RX / TX */
 void dw_init_rx(void);

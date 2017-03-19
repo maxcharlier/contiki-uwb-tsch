@@ -70,7 +70,7 @@ void print_buf(const char *prefix, uint8_t *buf, uint8_t buf_len);
 void print_frame(uint16_t frame_len, uint8_t *frame);
 void print_sys_status(uint64_t sys_status);
 
-long int
+unsigned long
 theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, 
                               uint8_t prf, uint32_t data_lenght);
 

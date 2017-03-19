@@ -210,6 +210,8 @@
 #define DW_SUBLEN_AON_CFG1   2          /* \brief dummy */
 
 #define DW_REG_LDE_IF        0x2E       /* \brief dummy */
+#define DW_SUBREG_LDE_CFG1   0x0806     /* \brief dummy */
+#define DW_SUBLEN_LDE_CFG1   1          /* \brief dummy */
 #define DW_SUBREG_LDE_RXANTD 0x1804     /* \brief dummy */
 #define DW_SUBLEN_LDE_RXANTD 2          /* \brief dummy */
 #define DW_SUBREG_LDE_CFG2   0x1806     /* \brief dummy */
@@ -480,7 +482,7 @@
 
 /* DW_REG_CHAN_CTRL 0x1F */
 #define DW_TXCHAN        0              /* \brief dummy */
-#define DW_TXCHAN_MASK   (0x1FUL << 0)  /* \brief dummy */
+#define DW_TXCHAN_MASK   (0x1FUL << 0)  /* \brief dummy */  
 #define DW_RXCHAN        5              /* \brief dummy */
 #define DW_RXCHAN_MASK   (0x1FUL << 5)  /* \brief dummy */
 #define DW_DWSFD         17             /* \brief dummy */
@@ -605,6 +607,12 @@
 #define DW_OPS_SEL       5              /* \brief dummy */
 #define DW_OPS_SEL_MASK  (0x3UL << 5)   /* \brief dummy */
 
+/* DW_SUBREG_LDE_CFG1        0x2E:2E:0806 */
+#define DW_NTM            0              /* \brief dummy */
+#define DW_NTM_MASK       (0xFUL << 0)   /* \brief dummy */
+#define DW_PMULT          5              /* \brief dummy */
+#define DW_PMULT_MASK     (0x7UL << 5)   /* \brief dummy */
+  
 /* DW_REG_PMSC 0x36 */
 /* DW_REG_PMSC_CTRL0 0x36:00 */
 #define DW_SYS_CLKS       0             /* \brief dummy */

@@ -600,7 +600,7 @@ print_sys_status(uint64_t sys_status)
  * \return An approximation of the theoretical time of a transmission 
  *         in millisecond.
  */
-long int
+unsigned long
 theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, 
                               uint8_t prf, uint32_t data_lenght)
 {

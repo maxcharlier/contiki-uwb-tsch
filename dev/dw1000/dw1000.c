@@ -124,19 +124,9 @@ dw1000_init()
   const uint32_t mask = DW_MRXDFR_MASK;
   dw_enable_interrupt(mask);
 
-  /* Load LDE Code */
-  /* For info, see DW1000 User Manual p. 22 */
-  /* TODO: Move this to dw1000_base_conf_t. */
-  const uint32_t lde1 = 0x0301;
-  const uint32_t lde2 = 0x8000;
-  const uint32_t lde3 = 0x0200;
 
-  dw_write_subreg(0x36, 0x00, 2, (uint8_t *)&lde1);
-  dw_write_subreg(0x2D, 0x06, 2, (uint8_t *)&lde2);
+  dw_load_lde_code();
 
-  dw1000_us_delay(150); /* Wait at least 150 us > see Table 4 p24 */
-
-  dw_write_subreg(0x36, 0x00, 2, (uint8_t *)&lde3);
 
   /* // Disable LDE */
   /* // TODO: Read old value and flip lderun bit */
@@ -166,7 +156,7 @@ dw1000_init()
   dw1000.conf.pac_size = DW_PAC_SIZE_8;
   dw1000.conf.sfd_type = DW_SFD_STANDARD;
   dw1000.conf.data_rate = DW_DATA_RATE_850_KBPS;
-  dw_conf(&dw1000.conf);
+  // dw_conf(&dw1000.conf);
   dw_turn_frame_filtering_off();
 
   dw1000_rx_conf_t rx_conf;
@@ -476,6 +466,23 @@ dw_sfd_init(void){
   sys_ctrl |= (DW_RXENAB_MASK);
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
 }
+
+/**
+ * \brief Force the load of the LDE code from the ROM memory to the RAM memory 
+ *    to be able to compute correctly the timestamps. 
+ *  See LDELOAD in the manual (Table 4)
+ */
+void
+dw_load_lde_code(void){
+  const uint16_t lde1 = 0x0301;
+  const uint16_t lde = DW_LDELOAD_MASK; /* load lde code */
+  const uint16_t lde3 = 0x0200;
+
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde1);
+  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 2, (uint8_t *)&lde);
+  dw1000_us_delay(150); /* Wait at least 150 us > see Table 4 p24 */
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde3);
+}
 /**
  * \brief apply a soft reset
  */
@@ -522,6 +529,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
   uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
   uint16_t lde_repc = 0;
+  uint8_t lde_cfg1 = 0;
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1, 
+      &lde_cfg1);
   uint16_t lde_cfg2 = 0;
   uint32_t agc_tune1_val;
   const uint32_t agc_tune2_val = 0x2502A907;  /* Always use this */
@@ -563,9 +573,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   chan_ctrl_val &= ~DW_TXCHAN_MASK;
   chan_ctrl_val &= ~DW_RXCHAN_MASK;
 
-  uint8_t channel = (uint8_t)((uint8_t)dw_conf->channel & 0x1F);
-  chan_ctrl_val |= channel;      /* tx chan */
-  chan_ctrl_val |= channel << 5; /* rx chan */
+  uint16_t channel = ((uint8_t)dw_conf->channel & 0x1F);
+  chan_ctrl_val |= (channel << DW_TXCHAN) & DW_TXCHAN_MASK;
+  chan_ctrl_val |= (channel << DW_RXCHAN) & DW_RXCHAN_MASK;
 
   switch(dw_conf->channel) {
   case DW_CHANNEL_1:
@@ -587,7 +597,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     rf_txctrl_val = 0x00086CC0;
     tc_pgdelay_val = 0xC5;
     fs_pllcfg_val = 0x08401009;
-    fs_plltune_val = 0x5E;
+    fs_plltune_val = 0x56;
     break;
   case DW_CHANNEL_4:
     rf_rxctrl_val = 0xBC;
@@ -601,16 +611,21 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     rf_txctrl_val = 0x001E3FE0;
     tc_pgdelay_val = 0xC0;
     fs_pllcfg_val = 0x0800041D;
-    fs_plltune_val = 0xA6;
+    fs_plltune_val = 0xBE;
     break;
   case DW_CHANNEL_7:
     rf_rxctrl_val = 0xBC;
     rf_txctrl_val = 0x001E7DE0;
     tc_pgdelay_val = 0x93;
     fs_pllcfg_val = 0x0800041D;
-    fs_plltune_val = 0xA6;
+    fs_plltune_val = 0xBE;
     break;
   }
+  /* Configure LDE for better performance*/
+  lde_cfg1 &= ~ DW_NTM_MASK;
+  lde_cfg1 |= 0xD << DW_NTM; /* recommended by the "Default Configurations 
+                              that should be modified" section in the manual. */ 
+
   /* Configure the TX power based on the channel and the PRF
       Based on the manual: Table 20: Reference values Register file: 
       0x1E – Transmit Power Control for Manual Transmit Power
@@ -660,7 +675,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     }
     break;
   }
-
   /* === Configure Preamble length */
   tx_fctrl_val &= ~DW_TXPSR_MASK;
   tx_fctrl_val &= ~DW_PE_MASK;
@@ -902,6 +916,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
+                  (uint8_t *) &lde_cfg1);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
                   (uint8_t *) &lde_cfg2);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
@@ -909,6 +925,41 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
 
   /* DW_LOG("Configuration complete."); */
+}
+/**
+ * \brief Change the TX Power value.
+ *      TX_POWER – Transmit Power Control
+ * 
+ * \param[in] tx_power_val   The new TX POWER configuration value.
+ *                           This value should follow the characteristic gives
+ *                            in the manual.
+ * \param[in] manual         True (1) if you want to use the manual mode.
+ *                           False(0) if you want use the Smart Transmit
+ *                                 Power Control.
+ *  /!\ Before use this mode you should disable the antenna (TRX off).
+ */
+void
+dw_change_tx_power(uint32_t tx_power_val, uint8_t manual){
+  uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
+  if(manual){
+      sys_cfg_val |= DW_DIS_STXP_MASK;  /* Disable Smart Transmit Power Control */
+  }
+  else{
+    sys_cfg_val &= ~DW_DIS_STXP_MASK;  /* Enable Smart Transmit Power Control */
+  }
+  dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
+  dw_sfd_init();
+}
+
+/**
+ * \brief return the TX POWEr value.
+ *    TX_POWER – Transmit Power Control
+ */
+uint32_t
+dw_get_tx_power(void){
+  uint32_t tx_power_val;
+  dw_read_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
+  return tx_power_val;
 }
 /**
  * \brief Configures the DW1000 to be ready to receive message. 
@@ -1588,6 +1639,7 @@ void
 dw_set_tx_antenna_delay(uint16_t tx_delay)
 {
   dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay);
+
 }
 /**
  * \brief Get the TX antenna delay.
@@ -1643,7 +1695,7 @@ dw_get_antenna_delay()
  *        The value must be between -20 and 20 (theoretically).
  */
 int8_t
-dw_get_clock_offset(){
+dw_get_clock_offset(void){
   /* Clock offset = RX TOFS / RX TTCKI */
   int32_t rx_tofs = 0L;
   uint32_t rx_ttcki = 0UL;
@@ -1651,11 +1703,20 @@ dw_get_clock_offset(){
   /* RX TOFS is a signed 19-bit number, the 19nd bit is the sign */
   dw_read_subreg(DW_REG_RX_TTCKO, 0x0, 3, (uint8_t *) &rx_tofs);
   rx_tofs &= DW_RXTOFS_MASK;
+
+  /*
+  printf("clock offset1 0x%.2X%.4X\n", (unsigned int) (rx_tofs >> 16), 
+                                      (unsigned int) rx_tofs); */
+
   /* convert a 19 signed bit number to a 32 bits signed number */
   if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
-    /* a signed int is represented by a two complement representation */
-    rx_tofs = rx_tofs - DW_RXTOFS_MASK; 
+    /* a signed int is represented in Ones' complement */
+    rx_tofs |= ~DW_RXTOFS_MASK; /* all bit between 31 and 19 are set to 1 */
   }
+
+  /*
+  printf("clock offset2 0x%.2X%.4X\n", (unsigned int) (rx_tofs >> 16), 
+                                      (unsigned int) rx_tofs); */
 
   /* brief dummy : The value in RXTTCKI will take just one of two values 
       depending on the PRF: 0x01F00000 @ 16 MHz PRF, 

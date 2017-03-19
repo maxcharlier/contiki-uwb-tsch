@@ -28,14 +28,16 @@ static struct unicast_conn uc;
 static const struct unicast_callbacks uc_cb = { recv_callback };
 
 #define SIZEOF_QUALITY 14
+
+void set_tr_delay(uint16_t tx_delay, uint16_t rx_delay);
 /** 
  *  We have multiple types of message and there are defined by the value of 
  *  the first byte MODE:
- *    - 0x01: Ranging Request 
+ *    - 0x01: Ranging Request  /response
  *       A ranging request will be construct as follow: 0x01 SOURCE DEST
  *         Where SOURCE is the initiator of the ranging request
  *         and DEST the receiver of the ranging request
- *    - 0x02: Ranging response
+ *    - 0x02: Ranging Request /response
  *       A ranging report will be construct as follow: 
  *       0x02 SOURCE DEST PROPAGATION QUALITY
  *       Where SOURCE is the initiator of the ranging request (2 bytes)
@@ -49,6 +51,10 @@ static const struct unicast_callbacks uc_cb = { recv_callback };
  *       0x04 DEST
  *    - 0X05: Get (response) the TX and RX delay, this is construct as follow:
  *       0x05 DEST TX_DELAY RX_DELAY
+ *    - 0X06: Set the TX power, this is construct as follow:
+ *       0x06 DEST TX_POWER
+ *    - 0X07: Get (response) the TX power, this is construct as follow:
+ *       0x07 DEST TX_POWER
  *
  * The physical source (in the header) is used to determine the master node addr
  */
@@ -60,6 +66,7 @@ static uint16_t ranging_dest; /* the destination of the ranging request */
 static uint16_t master_addr; /* the address of the master node */
 static uint16_t tx_delay; /* the tx_delay settings */
 static uint16_t rx_delay; /* the rx_delay settings */
+static uint32_t tx_power;
 
 /* used when a message is received */
 static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
@@ -138,13 +145,40 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
         from->u8[1], from->u8[0]);
       /* source, dest and report */
       /* only available for the master*/
-      uint16_t tx_delay, rx_delay;
 
       memcpy(&tx_delay, &data[1], 2);
       memcpy(&rx_delay, &data[3], 2);  
 
       PRINTF("Delay antenna from %02X%02X: ", from->u8[1], from->u8[0]);          
       printf("0x%.4X 0x%.4X\n",  tx_delay, rx_delay);
+    } 
+    else if(mode == 0x06 && packetbuf_datalen() == 5){
+      PRINTF("Node receive a new TX power settings form %02X%02X\n",
+        from->u8[1], from->u8[0]);
+
+      /* we need the master addr */
+      master_addr = from->u8[0] | from->u8[1] << 8;
+
+      memcpy(&tx_power, &data[1], 4);
+
+      process_poll(&frame_master_process);
+    } 
+    else if(mode == 0x07 && packetbuf_datalen() == 5){
+      PRINTF("Node receive a TX power response form %02X%02X\n",
+        from->u8[1], from->u8[0]);
+      /* source, dest and report */
+      memcpy(&tx_power, &data[1], 4);
+
+      PRINTF("TX POWER from %02X%02X: ", from->u8[1], from->u8[0]);          
+      printf("0x%.4X%.4X\n", (unsigned int) (tx_power>>16) , 
+               (unsigned int) (tx_power&0xFFFF)) ;
+    } 
+    else if(mode == 0x07 && packetbuf_datalen() == 1){
+      PRINTF("Node receive a TX power demande form %02X%02X\n",
+        from->u8[1], from->u8[0]);
+      /* we need the master addr */
+      master_addr = from->u8[0] | from->u8[1] << 8;
+      process_poll(&frame_master_process);
     }
   }
   else{
@@ -227,7 +261,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             packetbuf_copyfrom(report, 5);
 
             /* request an ACK */
-            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
 
             unicast_send(&uc, &addr);
             PRINTF("Ranging request sended.\n");
@@ -250,8 +284,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             PRINTF("Master apply the delay value\n");
             /* Master are the destination of the delay setter */
 
-            dw_set_tx_antenna_delay(tx_delay);
-            dw_set_rx_antenna_delay(rx_delay);
+            set_tr_delay(tx_delay, rx_delay);
 
             PRINTF("tx delay %.4X\n", dw_get_tx_antenna_delay());
             PRINTF("rx delay %.4X\n", dw_get_rx_antenna_delay());
@@ -272,7 +305,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             packetbuf_copyfrom(report, 5);
 
             /* request an ACK */
-            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
 
             unicast_send(&uc, &addr);
             PRINTF("Delay value settings sended.\n");
@@ -305,9 +338,83 @@ PROCESS_THREAD(frame_master_process, ev, data)
             report[0] = mode;
             packetbuf_copyfrom(report, 1);
             /* request an ACK */
-            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
             unicast_send(&uc, &addr);
             PRINTF("Delay value request sended.\n");
+          }
+        }
+      }
+      else if(mode == 0x06){ 
+        /* Set the TX POWER, this is construct as follow:
+        *  0x03 DEST TX_POWER */
+        uint16_t dest = strtol(str, &str, 16);
+        tx_power = strtol(str, &str, 16);
+        if(dest > 0){
+          PRINTF("dest: %.4X\n", dest);
+          PRINTF("tx_delay: 0x%.4X %u\n", tx_delay, (unsigned int) tx_delay);
+          PRINTF("rx_delay: 0x%.4X %u\n", rx_delay, (unsigned int) rx_delay);
+
+          if((dest & 0xFF) == linkaddr_node_addr.u8[0] && 
+             (dest >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
+            PRINTF("Master apply the tx power settings\n");
+            /* Master are the destination of the TX power setter */
+
+            dw1000_driver_off();
+            dw_change_tx_power(tx_power, 1);
+            dw1000_driver_on();
+          }else
+          {
+            PRINTF("Master send the TX POWER value settings.\n");
+            /* send the delay settings to the "dest" node */
+            linkaddr_t addr;
+            addr.u8[0]= dest & 0xFF;
+            addr.u8[1]= (dest >> 8) & 0xFF;
+            char report[5]; // 1 for mode, 2 for tx_delay, 2 for rx_delay
+            /* store the mode */
+            report[0] = mode;
+
+            memcpy(&report[1], &tx_power, 4);
+
+            packetbuf_copyfrom(report, 5);
+
+            /* request an ACK */
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
+
+            unicast_send(&uc, &addr);
+            PRINTF("Delay value settings sended.\n");
+          }
+        }
+      }
+      else if(mode == 0x07){ 
+        /* 0X04: Get the TX POWER, this is construct as follow:
+         *       0x04 DEST*/
+        uint16_t dest = strtol(str, &str, 16);
+        if(dest > 0){
+          PRINTF("dest: %.4X\n", dest);
+
+          if((dest & 0xFF) == linkaddr_node_addr.u8[0] && 
+             (dest >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
+            PRINTF("Master get the TX POWER value: ");
+            /* Master are the destination of the delay getter */
+            tx_power = dw_get_tx_power();
+            printf("0x%.4X%.4X\n", (unsigned int) (tx_power>>16) , 
+                  (unsigned int) (tx_power&0xFFFF)) ;
+
+          }else
+          {
+            PRINTF("Master send the TX POWER value request.\n");
+            /* send the delay settings request to the "dest" node */
+            linkaddr_t addr;
+            addr.u8[0]= dest & 0xFF;
+            addr.u8[1]= (dest >> 8) & 0xFF;
+            char report[1]; // 1 for mode
+            /* store the mode */
+            report[0] = mode;
+            packetbuf_copyfrom(report, 1);
+            /* request an ACK */
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
+            unicast_send(&uc, &addr);
+            PRINTF("TX POWER value request sended.\n");
           }
         }
       }
@@ -366,7 +473,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
         dest_addr2.u8[1]= (master_addr >> 8) & 0xFF;
 
         /* request an ACK */
-        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
 
         unicast_send(&uc, &dest_addr2);
       }
@@ -376,8 +483,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
          **/
         PRINTF("Node set antenna delay\n");
 
-        dw_set_tx_antenna_delay(tx_delay);
-        dw_set_rx_antenna_delay(rx_delay);
+        /* set the tx and rx delay */
+        set_tr_delay(tx_delay, rx_delay);
 
         PRINTF("tx_delay: 0x%.4X %d\n", tx_delay, (unsigned int) tx_delay);
         PRINTF("rx_delay: 0x%.4X %d\n", rx_delay, (unsigned int) rx_delay);
@@ -398,22 +505,68 @@ PROCESS_THREAD(frame_master_process, ev, data)
         char report[5]; // 1 for mode, 2 for tx_delay, 2 for rx_delay
         /* store the mode */
         report[0] = 0x05;
-        /* source */
-        report[1] = tx_delay & 0xFF;
-        report[2] = (tx_delay >> 8) & 0xFF;
-        /* dest */
-        report[3] = rx_delay & 0xFF;
-        report[4] = (rx_delay >> 8) & 0xFF;
+
+        memcpy(&report[1], &tx_delay, 2);
+        memcpy(&report[3], &rx_delay, 2);
+
         packetbuf_copyfrom(report, 5);
         /* request an ACK */
-        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
         unicast_send(&uc, &addr);
 
         PRINTF("tx_delay: %d\n", (unsigned int) tx_delay);
         PRINTF("rx_delay: %d\n", (unsigned int) rx_delay);
         PRINTF("Antenna delay report sent.\n");
       }
+      else if(mode == 0x06){
+        /** 
+         * This part is used to set the delay settings.
+         **/
+        PRINTF("Node set the TX POWER\n");
+
+        dw1000_driver_off();
+        dw_change_tx_power(tx_power, 1);
+        dw1000_driver_on();
+
+        PRINTF("TX POWER: 0x%.8X\n", tx_power);
+      }
+      else if(mode == 0x07){
+        /** 
+         * This part is used to get the TX POWER and send the report to
+         * the master node.
+         **/
+        PRINTF("Node get TX POWER\n");
+        tx_power = dw_get_tx_power();
+
+        /* send the delay configuration to the "master" node */
+        linkaddr_t addr;
+        addr.u8[0]= master_addr & 0xFF;
+        addr.u8[1]= (master_addr >> 8) & 0xFF;
+
+        char report[5]; // 1 for mode, 2 for tx_delay, 2 for rx_delay
+        /* store the mode */
+        report[0] = 0x07;
+
+        memcpy(&report[1], &tx_power, 4);
+
+        packetbuf_copyfrom(report, 5);
+        /* request an ACK */
+        packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
+        unicast_send(&uc, &addr);
+
+        PRINTF("TX POWER: 0x%.8X\n", tx_power);
+        PRINTF("TX POWER report sent.\n");
+      }
     }
   }
   PROCESS_END();
+}
+
+void set_tr_delay(uint16_t tx_delay, uint16_t rx_delay){
+  // dw1000_driver_off();
+  dw_set_tx_antenna_delay(tx_delay);
+  dw_set_rx_antenna_delay(rx_delay);
+  // dw_load_lde_code();
+  // dw_sfd_init();
+  // dw1000_driver_on();
 }

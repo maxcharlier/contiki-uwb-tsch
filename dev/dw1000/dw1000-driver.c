@@ -104,6 +104,10 @@
 /* max delay between RX to TX and TX to RX time*/
 #define IEEE802154_TURN_ARROUND_TIME 10l 
 
+/* Time take by the receiver to make the ranging response and to schedule it */
+/* this is platform dependent */
+#define DW1000_REPLY_TIME_COMPUTATION 400
+
 #if DW1000_IEEE802154_EXTENDED
 #define DW1000_MAX_PACKET_LEN 265
 #else
@@ -145,10 +149,14 @@ static int dw1000_driver_wait_ACK_num = 0;
 /* define if we are in the Single-sided Two-way Ranging protocol */
 static uint8_t dw1000_driver_sstwr = 0;
 
-/* Define the reply time. 
- * Note this value match with the clock of the DW1000 (125 MHz ~ 0.008µs) 
+/* Define the reply time (in micro second). 
  */
 static uint32_t dw1000_driver_reply_time;
+
+/* Define the real reply time
+ * Note this value match with the clock of the DW1000 (125 MHz ~ 0.008µs) 
+ */
+static uint32_t dw1000_driver_schedule_reply_time;
 
 static uint64_t dw1000_driver_last_propagation_time;
 
@@ -401,13 +409,15 @@ dw1000_driver_prepare(const void *payload,
 #endif
 #if DW1000_IEEE802154_EXTENDED
     /* In extended mode, there are not a RNG bit in the PHR.
-      We use a dedicaced trame of 10 bytes and we use the last byte 
+      We use a dedicated frame of 10 bytes and we use the last byte 
       to indicates a ranging request.  */
     data_len = 10;
     payload_len = 10;
 #else
     /* In standard mode we use the RNG bit in the PHR. */
     dw_enable_ranging_frame();
+    data_len = 9;
+    payload_len = 9;
 #endif
   }
 
@@ -488,7 +498,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* wait the effective TRX OFF */
     uint8_t sys_ctrl_lo;
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
-                  watchdog_periodic(); count_idle++;, 
+                  watchdog_periodic(); /* count_idle++; */, 
                   ((sys_ctrl_lo & DW_TRXOFF_MASK) == 0),
                   microsecond_to_clock_tik(50));
 #endif /* DEBUG */
@@ -501,9 +511,21 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
 
+if(dw1000_driver_sstwr){
+#if DW1000_IEEE802154_EXTENDED
+    /* In extended mode, there are not a RNG bit in the PHR.
+      We use a dedicated frame of 10 bytes and we use the last byte 
+      to indicates a ranging request.  */
+    payload_len = 10;
+#else
+    /* In standard mode we use the RNG bit in the PHR. */
+    payload_len = 9;
+#endif
+  }
+
   if(!dw1000_driver_sstwr){
     /* Initialize a no delayed transmission 
-      and wait for an ACK if an ack request is triggered */
+      and wait for an ACK if an ACK request is triggered */
     dw_init_tx(dw1000_driver_wait_ACK, 0); 
   } else{
     /* Initialize a no delayed transmission and wait for an ranging response 
@@ -559,12 +581,12 @@ dw1000_driver_transmit(unsigned short payload_len)
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0),
                     (theorical_transmission_approx(dw1000_conf.preamble_length,
-                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 2) + 
+                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 1) + 
                     DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
 
     PRINTF("Number of loop waiting ACK %d\n", count_ack);
 
-    // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+    print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
@@ -594,12 +616,17 @@ dw1000_driver_transmit(unsigned short payload_len)
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0)), 
                     theorical_transmission_approx(dw1000_conf.preamble_length,
-                    dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
-                    DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
-                    (dw1000_driver_reply_time  << 2));
-  // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+                      dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                      DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+                      dw1000_driver_reply_time);
+    // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
     PRINTF("Number of loop waiting the ranging response %d\n", count);
+    // printf("waiting time %d\n", (unsigned long int ) (theorical_transmission_approx(dw1000_conf.preamble_length,
+    //                 dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
+    //                 DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+    //                 DW1000_REPLY_TIME_COMPUTATION));
+
     // dw_print_receive_ampl();
 
     if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
@@ -1156,6 +1183,7 @@ dw1000_driver_interrupt(void)
           dw_idle();
         }
         dw1000_schedule_reply();
+
         /* read the lasted received message to prepare 
             response frame */
 
@@ -1171,10 +1199,11 @@ dw1000_driver_interrupt(void)
         /* Copy data to DW1000 */
         dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
 
-        dw_disable_ranging_frame();
-
         /* no ACK and delayed */
         dw_init_tx(0, 1);
+
+        dw_disable_ranging_frame();
+
 #if DEBUG_RANGING
         rtimer_clock_t t1 = RTIMER_NOW() - t0;
 #endif /* DEBUG_RANGING */
@@ -1187,7 +1216,7 @@ dw1000_driver_interrupt(void)
                       theorical_transmission_approx(dw1000_conf.preamble_length,
                       dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
-                      (dw1000_driver_reply_time  << 2));
+                      dw1000_driver_reply_time);
     // dw_print_receive_ampl();
 
 #if DEBUG_RANGING
@@ -1504,10 +1533,22 @@ void
 dw1000_driver_set_reply_time(uint32_t reply_time)
 {
   if(reply_time == 0){
+#if DW1000_IEEE802154_EXTENDED
     reply_time = theorical_transmission_approx(dw1000_conf.preamble_length,
-                      dw1000_conf.data_rate, dw1000_conf.prf, 128) + 400;
+                      dw1000_conf.data_rate, dw1000_conf.prf, 12) + 
+    DW1000_REPLY_TIME_COMPUTATION;
+#else
+    reply_time = theorical_transmission_approx(dw1000_conf.preamble_length,
+                      dw1000_conf.data_rate, dw1000_conf.prf, 11)
+    + DW1000_REPLY_TIME_COMPUTATION;
+#endif /* DW1000_IEEE802154_EXTENDED */
   }
+
   dw1000_driver_reply_time = reply_time;
+  dw1000_driver_schedule_reply_time = ((uint64_t) 
+                                  dw1000_driver_reply_time * 125) << 9;
+  printf("t reply  %d\n", (unsigned int) dw1000_driver_reply_time);
+  printf("t reply 2 %d\n", (unsigned int) dw1000_driver_schedule_reply_time);
 }
 /**
  * \brief Based on the reply time and the RX timestamps, this function schedule 
@@ -1520,7 +1561,54 @@ dw1000_schedule_reply(void)
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
   schedule_time &= DX_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
   /* The 10nd bit have a "value" of 125Mhz */
-  schedule_time += ((uint64_t) dw1000_driver_reply_time * 125) << 9; 
+  schedule_time += dw1000_driver_schedule_reply_time; 
+
+  dw_set_dx_timestamp(schedule_time);
+}
+/**
+ * \brief Based on the reply time and the RX timestamps, this function schedule 
+ *        the ranging reply message.
+ */
+void 
+dw1000_schedule_reply2(void)
+{
+  int32_t rx_tofs = 0L;
+  uint32_t rx_tofsU = 0UL;
+  uint64_t rx_ttcki = 0ULL;
+
+  uint64_t schedule_time = dw_get_rx_timestamp();
+  /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
+  schedule_time &= DX_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  
+  schedule_time += dw1000_driver_schedule_reply_time;
+
+  /* we want to take into a count the clock offset
+    Clock offset = RX TOFS / RX TTCKI */
+
+  /* brief dummy : The value in RXTTCKI will take just one of two values 
+      depending on the PRF: 0x01F00000 @ 16 MHz PRF, 
+      and 0x01FC0000 @ 64 MHz PRF. */
+  if(dw1000_conf.prf == DW_PRF_16_MHZ){
+    rx_ttcki = 0x01F00000ULL;
+  } else{ /* prf == DW_PRF_64_MHZ */
+    rx_ttcki = 0x01FC0000ULL;
+  }
+
+  /* RX TOFS is a signed 19-bit number, the 19nd bit is the sign */
+  dw_read_subreg(DW_REG_RX_TTCKO, 0x0, 3, (uint8_t *) &rx_tofs);
+  rx_tofs &= DW_RXTOFS_MASK;
+  /* convert a 19 signed bit number to a 32 bits signed number */
+  if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
+    /* a signed int is represented by a two complement representation */
+    rx_tofs |= ~DW_RXTOFS_MASK; /* all bit between 31 and 19 are set to 1 */
+    rx_tofsU = -rx_tofs; /* only store the absolute value */
+    schedule_time -= 
+          ((dw1000_driver_schedule_reply_time * rx_tofsU) / rx_ttcki) >> 1;
+  }
+  else{
+    schedule_time += 
+          ((dw1000_driver_schedule_reply_time * rx_tofs) / rx_ttcki) >> 1;
+  }
 
   dw_set_dx_timestamp(schedule_time);
 }
@@ -1539,12 +1627,10 @@ dw1000_compute_propagation_time(void){
                               dw_get_tx_timestamp(); 
 
   /* We shift the reply time to match with the time of the DW1000 */
-  dw1000_driver_last_propagation_time -= 
-                        ((uint64_t) dw1000_driver_reply_time * 125) << 9;
+  dw1000_driver_last_propagation_time -= dw1000_driver_schedule_reply_time;
 
   /* dw1000_driver_last_propagation_time divided by 2 */
   dw1000_driver_last_propagation_time >>= 1;
-
 }
 
 /**
@@ -1563,7 +1649,6 @@ dw1000_compute_propagation_time(void){
  */
 void 
 dw1000_compute_propagation_time_corrected(void){
-  uint64_t t_reply;
   int32_t rx_tofs = 0L;
   uint64_t rx_tofsU = 0UL;
   uint8_t  rx_tofs_negative = 0; /* false */
@@ -1572,10 +1657,12 @@ dw1000_compute_propagation_time_corrected(void){
   dw1000_driver_last_propagation_time_corrected = dw_get_rx_timestamp() - 
                               dw_get_tx_timestamp();      
 
-  /* We shift the reply time to match with the time of the DW1000 */
-  t_reply = ((uint64_t) dw1000_driver_reply_time * 125) << 9;
 
-  dw1000_driver_last_propagation_time_corrected -= t_reply;
+  // printf("t reply  %d\n", (unsigned int) dw1000_driver_reply_time);
+  // printf("t reply 2 %d\n", (unsigned int) t_reply);
+
+  dw1000_driver_last_propagation_time_corrected -= 
+                                    dw1000_driver_schedule_reply_time;
 
   /* we want to take into a count the clock offset
     Clock offset = RX TOFS / RX TTCKI */
@@ -1586,8 +1673,8 @@ dw1000_compute_propagation_time_corrected(void){
   rx_tofs &= DW_RXTOFS_MASK;
   /* convert a 19 signed bit number to a 32 bits signed number */
   if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
-    /* a signed int is represented by a two complement representation */
-    rx_tofs = rx_tofs - DW_RXTOFS_MASK; /* convert to a 32 bits signed value */
+    /* a signed int is represented in Ones' complement */
+    rx_tofs |= ~DW_RXTOFS_MASK; /* all bit between 31 and 19 are set to 1 */
     rx_tofs_negative = 1;
     rx_tofsU = -rx_tofs; /* only store the absolute value */
   }
@@ -1609,11 +1696,11 @@ dw1000_compute_propagation_time_corrected(void){
       We don't want to use signed number => we made tow cases in function of the
       sign of RX TOFS */
   if(rx_tofs_negative == 1){
-    dw1000_driver_last_propagation_time_corrected += 
-                                              (t_reply * rx_tofsU) / rx_ttcki;
-  }else {
     dw1000_driver_last_propagation_time_corrected -= 
-                                              (t_reply * rx_tofsU) / rx_ttcki;
+                  ((dw1000_driver_schedule_reply_time * rx_tofsU) / rx_ttcki);
+  }else {
+    dw1000_driver_last_propagation_time_corrected += 
+                  ((dw1000_driver_schedule_reply_time * rx_tofsU) / rx_ttcki);
   }
   /* dw1000_driver_last_propagation_time_corrected divided by 2 */
   dw1000_driver_last_propagation_time_corrected >>= 1;

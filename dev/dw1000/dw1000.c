@@ -1397,14 +1397,18 @@ dw_get_receive_quality(dw1000_frame_quality* quality)
  *        In the section 4.7.1 Estimating the signal power in the first path
  *        And in the section 4.7.2 Estimating the receive signal power
  *        N_correction == 1 if the value RXPACC is saturated.
+ *        
+ *        Also display the choose PRF and BitRate
+ *
  */
 void 
 print_receive_quality(dw1000_frame_quality quality)
 {
-  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d\n", 
+  printf("0x%4X 0x%4X 0x%4X 0x%4X 0x%4X 0x%2X 0x%4X %d 0x%1X 0x%4X\n", 
       quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
       quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
-      quality.std_noise, (int) quality.clock_offset);
+      quality.std_noise, (int) quality.clock_offset, dw1000->prf, 
+      dw1000->data_rate);
 }
 /*===========================================================================*/
 /* RX/TX                                                                     */

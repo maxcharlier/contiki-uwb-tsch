@@ -1407,8 +1407,8 @@ print_receive_quality(dw1000_frame_quality quality)
   printf("0x%4X 0x%4X 0x%4X 0x%4X 0x%4X 0x%2X 0x%4X %d 0x%1X 0x%4X\n", 
       quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
       quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
-      quality.std_noise, (int) quality.clock_offset, dw1000->prf, 
-      dw1000->data_rate);
+      quality.std_noise, (int) quality.clock_offset, dw1000.conf.prf, 
+      dw1000.conf.data_rate);
 }
 /*===========================================================================*/
 /* RX/TX                                                                     */

@@ -78,11 +78,11 @@
 #endif /* DW1000_CHANNEL */
 
 #ifndef DW1000_DATA_RATE
-#define DW1000_DATA_RATE         DW_DATA_RATE_110_KBPS
+#define DW1000_DATA_RATE         DW_DATA_RATE_6800_KBPS
 #endif /* DW1000_DATA_RATE */
 
 #ifndef DW1000_PREAMBLE
-#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_1024
+#define DW1000_PREAMBLE          DW_PREAMBLE_LENGTH_128
 #endif /* DW1000_PREAMBLE */
 
 #ifndef DW1000_PRF
@@ -106,7 +106,7 @@
 
 /* Time take by the receiver to make the ranging response and to schedule it */
 /* this is platform dependent */
-#define DW1000_REPLY_TIME_COMPUTATION 400
+#define DW1000_REPLY_TIME_COMPUTATION 500
 
 #if DW1000_IEEE802154_EXTENDED
 #define DW1000_MAX_PACKET_LEN 265
@@ -136,7 +136,7 @@
 
 #define DEBUG_LED 1
 
-#define DOUBLE_BUFFERING
+// #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
    the driver initialization */
@@ -148,6 +148,9 @@ static int dw1000_driver_wait_ACK_num = 0;
 
 /* define if we are in the Single-sided Two-way Ranging protocol */
 static uint8_t dw1000_driver_sstwr = 0;
+
+/* define if we are in the Symmetric double-sided two-way ranging protocol */
+static uint8_t dw1000_driver_sdstwr = 0;
 
 /* Define the reply time (in micro second). 
  */
@@ -203,6 +206,7 @@ static volatile uint16_t last_packet_timestamp;
 
 /* start private function */
 inline void dw1000_schedule_reply(void);
+void dw1000_schedule_reply2(void);
 void dw1000_compute_propagation_time(void);
 void dw1000_compute_propagation_time_corrected(void);
 inline void  dw1000_update_frame_quality(void);
@@ -317,7 +321,11 @@ dw1000_driver_init(void)
 
   dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
                         DW1000_PRF);
-
+printf("channel %d, data rate %d, preamble %d, prf %d\n", 
+  (unsigned int) DW1000_CHANNEL, 
+  (unsigned int) DW1000_DATA_RATE, 
+  (unsigned int) DW1000_PREAMBLE, 
+                        (unsigned int) DW1000_PRF);
   /* dw1000_driver_set_pan_addr is recall after by Contiki. */
   /* dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);  */
 
@@ -399,7 +407,7 @@ dw1000_driver_prepare(const void *payload,
   GET_LOCK();
   RIMESTATS_ADD(lltx);
 
-  if(dw1000_driver_sstwr){
+  if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
     PRINTF("Ranging request\n");
     /* we can not wait for an ACK if we are in a ranging protocol */
 #if DW1000_CONF_AUTOACK
@@ -416,8 +424,14 @@ dw1000_driver_prepare(const void *payload,
 #else
     /* In standard mode we use the RNG bit in the PHR. */
     dw_enable_ranging_frame();
-    data_len = 9;
-    payload_len = 9;
+    if(dw1000_driver_sstwr){
+      data_len = 9;
+      payload_len = 9;
+    }
+    else{
+      data_len = 10;
+      payload_len = 10;
+    }
 #endif
   }
 
@@ -445,7 +459,11 @@ dw1000_driver_prepare(const void *payload,
     dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 1, &ranging_value);
   }
 #endif
-
+  if(dw1000_driver_sdstwr){
+    uint8_t ranging_value = 0x01;
+    /* 10nd bytes */
+    dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 1, &ranging_value);
+  }
 
 #if DEBUG_VERBOSE
   uint8_t tempRead[8];
@@ -522,8 +540,14 @@ if(dw1000_driver_sstwr){
     payload_len = 9;
 #endif
   }
+  if(dw1000_driver_sdstwr){
+    payload_len = 10;
 
-  if(!dw1000_driver_sstwr){
+    printf("symmetric mode\n");
+  }
+
+
+  if(!(dw1000_driver_sstwr || dw1000_driver_sdstwr)){
     /* Initialize a no delayed transmission 
       and wait for an ACK if an ACK request is triggered */
     dw_init_tx(dw1000_driver_wait_ACK, 0); 
@@ -649,9 +673,117 @@ if(dw1000_driver_sstwr){
       dw1000_update_frame_quality();
     }
   }
+  /* we wait for the ranging response in symmetric mode */
+  if(dw1000_driver_sdstwr && tx_return == RADIO_TX_OK){
+    tx_return = RADIO_TX_ERR;
+    uint8_t count = 0;
+    sys_status_lo = 0x0; /* clear the value */
+
+    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
+                    &sys_status_lo); watchdog_periodic(); count++,
+                    (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
+                    ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
+                    (DW_RXFCE_MASK >> 8))) != 0)), 
+                    theorical_transmission_approx(dw1000_conf.preamble_length,
+                      dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                      DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+                      dw1000_driver_reply_time);
+
+    PRINTF("Number of loop waiting the ranging response %d\n", count);
+    /* we have receive the ranging response, now we compute the t_trop 
+      and we send a ranging response*/
+    if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
+      // printf("OK\n");
+        dw1000_compute_propagation_time();
+        dw1000_schedule_reply();
+        /* read the lasted received message to prepare 
+            response frame */
+
+        uint8_t ack_num;
+        dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
+        /* prepare an ACK */
+
+        uint8_t response[3];
+        make_ack(ack_num, 3, &response[0]);
+
+        dw_set_tx_frame_length(DW_ACK_LEN);
+
+        /* Copy data to DW1000 */
+        dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
+
+        /* wait for resp and delayed */
+        dw_init_tx(1, 1);
+
+        /* clear the sys status */
+        dw1000_driver_clear_pending_interrupt();
+
+        sys_status_lo = 0x0; /* clear the value */
+
+        /* wait the end of the transmission */
+        BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
+        &sys_status_lo); watchdog_periodic();,
+        ((sys_status_lo & DW_TXFRS_MASK) != 0),
+        (theorical_transmission_approx(dw1000_conf.preamble_length, 
+        dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 1 )+ 
+        DW1000_SPI_DELAY+
+        dw1000_driver_reply_time);
+
+        /* clear the sys status */
+        dw1000_driver_clear_pending_interrupt();
+        /* ranging response send OK */
+        if((sys_status_lo & DW_TXFRS_MASK) != 0) {
+          // printf("send ok\n");
+          /* the length of the ranging response is 11 */
+          BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
+                          &sys_status_lo); watchdog_periodic(); count++,
+                          (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
+                          ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
+                          (DW_RXFCE_MASK >> 8))) != 0)), 
+                          theorical_transmission_approx(dw1000_conf.preamble_length,
+                            dw1000_conf.data_rate, dw1000_conf.prf, 15) + 
+                            DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+                            dw1000_driver_reply_time);
+
+          /* we received the ranging response of the receiver and we made the 
+              correction on the t_prop */
+          if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
+            printf("tadam %d\n", dw_get_rx_extended_len());
+            uint32_t t_propReceiver;
+            dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 4, (uint8_t*) &t_propReceiver);
+            
+            uint8_t frame[13];
+            dw_read_subreg(DW_REG_RX_BUFFER, 0x0, 13, frame);
+            print_frame(13, frame);
+
+            printf("t prop %4X\n", t_propReceiver);
+            printf("prop %u\n", (unsigned int) dw1000_driver_last_propagation_time);
+            dw1000_driver_last_propagation_time += t_propReceiver;
+            printf("prop %u\n",(unsigned int)  dw1000_driver_last_propagation_time);
+            dw1000_driver_last_propagation_time = 
+                              dw1000_driver_last_propagation_time >> 1;
+            printf("prop %u\n", (unsigned int) dw1000_driver_last_propagation_time);
+
+#if DEBUG
+            count = 0;
+            BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
+                          &sys_status_lo); watchdog_periodic(); count++,
+                          ((sys_status_lo & (DW_LDEDONE_MASK >> 8)) != 0), 
+                          30);
+            PRINTF("Number of loop waiting the LDE done %d\n", count);
+            PRINTF("length of the ranging response %d\n", dw_get_rx_len());
+#endif /* DEBUG */
+
+          clear_rx_buffer = 1; /* true */
+
+          dw1000_update_frame_quality();
+          printf("pouet\n");
+        }
+      }
+    }
+  }
 
 
-  if(dw1000_driver_wait_ACK | dw1000_driver_sstwr) {
+  if(dw1000_driver_wait_ACK | dw1000_driver_sstwr | dw1000_driver_sdstwr) {
     dw_idle();  /* bug fix of waiting an ACK which
                    avoid the next transmission */
   }
@@ -671,13 +803,14 @@ if(dw1000_driver_sstwr){
 #endif /* DOUBLE_BUFFERING */
   }
 
-  if(dw1000_driver_wait_ACK | dw1000_driver_sstwr) {
+  if(dw1000_driver_wait_ACK | dw1000_driver_sstwr | dw1000_driver_sdstwr) {
     dw1000_driver_enable_interrupt();
   }
   /* disable the ranging bit in the PHY header for the next transmission. */
-  if(dw1000_driver_sstwr){
+  if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
     /* disable ranging request */
     dw1000_driver_sstwr = 0;
+    dw1000_driver_sdstwr = 0;
 
 #if !DW1000_IEEE802154_EXTENDED
     /* In standard mode, we disable the RNG bit in the PHR for the next trame.*/
@@ -1170,70 +1303,188 @@ dw1000_driver_interrupt(void)
       uint8_t ranging_value; /* use to check if the frame is a ranging frame */
       /* read the 10nd bytes */
       dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 1, &ranging_value);
-      is_ranging_frame = (dw_get_rx_extended_len() == 12) 
-                          && (ranging_value == 0x0U);
+      is_ranging_frame = (dw_get_rx_extended_len() == 12);
 #else
       is_ranging_frame = dw_is_ranging_frame();
 #endif
       if(is_ranging_frame){
+
+
+    dw1000_driver_disable_interrupt();  
         /* We made a new packet for the response
            And we program the response */
         if(receive_on) {
           /* we can not send the response if we are in RX mode */
           dw_idle();
         }
-        dw1000_schedule_reply();
-
-        /* read the lasted received message to prepare 
-            response frame */
-
-        uint8_t ack_num;
-        dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
-        /* prepare an ACK */
-
-        uint8_t response[3];
-        make_ack(ack_num, 3, &response[0]);
-
-        dw_set_tx_frame_length(DW_ACK_LEN);
-
-        /* Copy data to DW1000 */
-        dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
-
-        /* no ACK and delayed */
-        dw_init_tx(0, 1);
-
-        dw_disable_ranging_frame();
-
-#if DEBUG_RANGING
-        rtimer_clock_t t1 = RTIMER_NOW() - t0;
-#endif /* DEBUG_RANGING */
-        
-        /* wait the end of the transmission */
-        uint8_t sys_status_lo = 0x0;
-        BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
-                      &sys_status_lo); watchdog_periodic();,
-                      ((sys_status_lo & DW_TXFRS_MASK) != 0),
-                      theorical_transmission_approx(dw1000_conf.preamble_length,
-                      dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
-                      DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
-                      dw1000_driver_reply_time);
-    // dw_print_receive_ampl();
-
-#if DEBUG_RANGING
-        printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
-
-        uint64_t sys_status = 0x0;
-        dw_read_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *) &sys_status);
-        print_sys_status(sys_status);
-#endif /* DEBUG_RANGING */
-
-        if(receive_on) {
-          /* we reenable the RX state */
-          dw_init_rx();
+        uint8_t ranging_mode = 0x0; /* use yo get the ranging mode */
+        /* read the 10nd bytes */
+        if(dw_get_rx_extended_len() == 12){
+          dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 1, &ranging_mode);
         }
-        /* we do not change the rx buffer => the driver process make this */
-        
+        if (ranging_mode == 0x0){/* SS TWR */
+        printf("traitrise\n");
+          dw1000_schedule_reply();
+          /* read the lasted received message to prepare 
+              response frame */
+
+          uint8_t ack_num;
+          dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
+          /* prepare an ACK */
+
+          uint8_t response[3];
+          make_ack(ack_num, 3, &response[0]);
+
+          dw_set_tx_frame_length(DW_ACK_LEN);
+
+          /* Copy data to DW1000 */
+          dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
+
+          /* no ACK and delayed */
+          dw_init_tx(0, 1);
+
+          dw_disable_ranging_frame();
+
+#if DEBUG_RANGING
+          rtimer_clock_t t1 = RTIMER_NOW() - t0;
+#endif /* DEBUG_RANGING */
+          
+          /* wait the end of the transmission */
+          uint8_t sys_status_lo = 0x0;
+          BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
+                        &sys_status_lo); watchdog_periodic();,
+                        ((sys_status_lo & DW_TXFRS_MASK) != 0),
+                        theorical_transmission_approx(dw1000_conf.preamble_length,
+                        dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                        DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+                        dw1000_driver_reply_time);
+      // dw_print_receive_ampl();
+
+#if DEBUG_RANGING
+          printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
+
+          uint64_t sys_status = 0x0;
+          dw_read_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *) &sys_status);
+          print_sys_status(sys_status);
+#endif /* DEBUG_RANGING */
+
+          if(receive_on) {
+            /* we reenable the RX state */
+            dw_init_rx();
+          }
+          /* we do not change the rx buffer => the driver process make this */
+        }
+        else if (ranging_mode == 0x01){ /* SDS TWR */
+          dw1000_schedule_reply();
+          /* read the lasted received message to prepare 
+              response frame */
+
+          uint8_t ack_num;
+          dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
+          /* prepare an ACK */
+
+          uint8_t response[3];
+          make_ack(ack_num, 3, &response[0]);
+
+          dw_set_tx_frame_length(DW_ACK_LEN);
+
+          /* Copy data to DW1000 */
+          dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
+
+          /* no ACK and delayed */
+          dw_init_tx(1, 1);
+
+          dw_disable_ranging_frame();
+
+              // printf("gunter\n");
+          dw1000_driver_clear_pending_interrupt();
+          /* we save the frame of the initiator to make the response later */
+          uint8_t initiator_frame[13];
+          dw_read_subreg(DW_REG_RX_BUFFER, 0x0, 9, initiator_frame);
+
+#if DEBUG_RANGING
+          rtimer_clock_t t1 = RTIMER_NOW() - t0;
+#endif /* DEBUG_RANGING */
+          
+          /* wait the end of the transmission */
+          uint8_t sys_status_lo = 0x0;            
+          BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
+                  &sys_status_lo); watchdog_periodic();,
+                  ((sys_status_lo & DW_TXFRS_MASK) != 0),
+                  theorical_transmission_approx(dw1000_conf.preamble_length,
+                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                    dw1000_driver_reply_time << 1);
+
+
+      // dw_print_receive_ampl();
+          /* ranging response send OK */
+          if((sys_status_lo & DW_TXFRS_MASK) != 0) {
+              // printf("winter\n");
+            /* wait the ranging response */
+            BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
+                  &sys_status_lo); watchdog_periodic();,
+                  (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
+                  ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
+                  (DW_RXFCE_MASK >> 8))) != 0)), 
+                  theorical_transmission_approx(dw1000_conf.preamble_length,
+                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                    DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+                    dw1000_driver_reply_time << 1);
+            /* we receive the ranging response */
+            if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
+              // printf("winner\n");
+
+          // dw1000_schedule_reply();
+              dw1000_compute_propagation_time();
+              uint16_t dest_addr = initiator_frame[5] << 8 | initiator_frame[6];
+              uint16_t src_addr = initiator_frame[7] << 8 | initiator_frame[8];
+              initiator_frame[5] = src_addr >> 8 & 0xFF;
+              initiator_frame[6] = src_addr & 0xFF;
+              initiator_frame[7] = dest_addr >> 8 & 0xFF;
+              initiator_frame[8] = dest_addr & 0xFF;
+
+              /* propagation time */
+              memcpy(&initiator_frame[9], 
+                     &dw1000_driver_last_propagation_time, 4);
+
+              dw_set_tx_frame_length(15);
+
+              /* Copy data to DW1000 */
+              dw_write_reg(DW_REG_TX_BUFFER, 13, (uint8_t*) &initiator_frame[0]);
+
+              /* no wait and no delayed */
+              dw_init_tx(0, 0);
+              sys_status_lo = 0x0;
+              BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
+                    &sys_status_lo); watchdog_periodic();,
+                    ((sys_status_lo & DW_TXFRS_MASK) != 0),
+                    (theorical_transmission_approx(dw1000_conf.preamble_length, 
+                    dw1000_conf.data_rate, dw1000_conf.prf, 16) << 1 )+ 
+                    DW1000_SPI_DELAY);
+                print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+
+              print_frame(13, initiator_frame);
+        // dw_print_receive_ampl();
+              }
+          }
+
+#if DEBUG_RANGING
+          printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1));
+
+          uint64_t sys_status = 0x0;
+          dw_read_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *) &sys_status);
+          print_sys_status(sys_status);
+#endif /* DEBUG_RANGING */
+
+          if(receive_on) {
+            /* we reenable the RX state */
+            dw_init_rx();
+          }
+          /* we do not change the rx buffer => the driver process make this */
+        }
         PRINTF("interrupt is_ranging_frame\r\n");
+
+        dw1000_driver_enable_interrupt();
       }
 
 #if DEBUG_INTERRUPT
@@ -1497,7 +1748,7 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 void
 dw1000_driver_ranging_request(void)
 {
-  dw1000_driver_sstwr = 1;
+  dw1000_driver_sdstwr = 1;
 }
 /**
  * \brief Check if the driver is in ranging mode.
@@ -1507,7 +1758,7 @@ dw1000_driver_ranging_request(void)
 uint8_t 
 dw1000_driver_is_ranging_request(void)
 {
-  return dw1000_driver_sstwr == 1;
+  return dw1000_driver_sdstwr == 1;
 }
 /**
  * \brief Gets the reply time used in the Single-sided Two-way Ranging.
@@ -1744,7 +1995,7 @@ dw1000_driver_get_propagation_time(void){
  */
 uint64_t
 dw1000_driver_get_propagation_time_corrected(void){
-  return dw1000_driver_last_propagation_time_corrected;
+  return dw1000_driver_last_propagation_time;
 }
 
 /**

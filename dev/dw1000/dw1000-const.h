@@ -284,6 +284,8 @@
 #define DW_FFAM_MASK     (0x1UL << 5)   /* \brief dummy */
 #define DW_DIS_DRXB      12             /* \brief dummy */
 #define DW_DIS_DRXB_MASK (0x1UL << 12)  /* \brief dummy */
+#define DW_DIS_PHE       13             /* \brief dummy */
+#define DW_DIS_PHE_MASK  (0x1UL << 13)  /* \brief dummy */
 #define DW_PHR_MODE      16             /* \brief dummy */
 #define DW_PHR_MODE_MASK (0x3UL << 16)  /* \brief dummy */
 #define DW_DIS_STXP      18             /* \brief dummy */
@@ -607,7 +609,7 @@
 #define DW_OPS_SEL       5              /* \brief dummy */
 #define DW_OPS_SEL_MASK  (0x3UL << 5)   /* \brief dummy */
 
-/* DW_SUBREG_LDE_CFG1        0x2E:2E:0806 */
+/* DW_SUBREG_LDE_CFG1        0x2E:0806 */
 #define DW_NTM            0              /* \brief dummy */
 #define DW_NTM_MASK       (0xFUL << 0)   /* \brief dummy */
 #define DW_PMULT          5              /* \brief dummy */

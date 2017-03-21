@@ -146,8 +146,8 @@ typedef enum {
  * sections should use.
  */
 typedef enum {
-  DW_PRF_16_MHZ = 16, /* 16 MHz Pulse repetition */
-  DW_PRF_64_MHZ = 64  /* 64 MHz Pulse repetition */
+  DW_PRF_16_MHZ = 1, /* 16 MHz Pulse repetition */
+  DW_PRF_64_MHZ = 2  /* 64 MHz Pulse repetition */
 } dw1000_prf_t;
 
 /**

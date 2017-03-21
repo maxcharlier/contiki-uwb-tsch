@@ -517,10 +517,8 @@ dw1000_driver_transmit(unsigned short payload_len)
 #if DEBUG
   uint8_t count_idle = 0, count_txtrt = 0;
 #endif /* DEBUG */
-  uint8_t receiver_on = receive_on;
-  if(receiver_on) {
+  if(receive_on) {
     dw_idle();
-    receiver_on = 0;
   }
 
   if(dw1000_driver_wait_ACK | dw1000_driver_sstwr | dw1000_driver_sdstwr) {
@@ -630,7 +628,7 @@ if(dw1000_driver_sstwr){
     tx_return = RADIO_TX_ERR;
     uint8_t count = 0;
     sys_status_lo = 0x0; /* clear the value */
-    /* the length of the ranging response is 11 */
+    /* the length of the ranging response is 5 */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
                     &sys_status_lo); watchdog_periodic(); count++,
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
@@ -676,6 +674,7 @@ if(dw1000_driver_sstwr){
     uint8_t count = 0;
     sys_status_lo = 0x0; /* clear the value */
 
+    /* we wait for the first ranging response */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
                     &sys_status_lo); watchdog_periodic(); count++,
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
@@ -725,7 +724,7 @@ if(dw1000_driver_sstwr){
         /* ranging response send OK */
         if((sys_status_lo & DW_TXFRS_MASK) != 0) {
           // printf("send ok\n");
-          /* the length of the ranging response is 11 */
+          /* the length of the ranging response is 15 */
           count = 0;
           BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
                           &sys_status_lo); watchdog_periodic(); count++,
@@ -775,7 +774,7 @@ if(dw1000_driver_sstwr){
             PRINTF("length of the ranging response %d\n", dw_get_rx_len());
 #endif /* DEBUG */
 
-          clear_rx_buffer = 1; /* true */
+
 
           dw1000_update_frame_quality();
           // printf("pouet\n");
@@ -783,6 +782,7 @@ if(dw1000_driver_sstwr){
           tx_return = RADIO_TX_OK;
         }
       }
+      clear_rx_buffer = 1; /* true */
     }
   }
 
@@ -824,8 +824,12 @@ if(dw1000_driver_sstwr){
   }
 
   /* re-enable the rx state */
-  if(receiver_on){
-    dw1000_on();
+  if(receive_on){
+#ifdef DOUBLE_BUFFERING
+    dw_db_init_rx();
+#else
+    dw_init_rx();
+#endif /* DOUBLE_BUFFERING */
   }
   RELEASE_LOCK();
 
@@ -1466,7 +1470,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
   while(1) {
     PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
-        // rtPRINTFimer_clock_t t0 = RTIMER_NOW();
+        // rtimer_clock_t t0 = RTIMER_NOW();
     // /* avoid multiple interruption */
     // dw1000_driver_disable_interrupt();
 

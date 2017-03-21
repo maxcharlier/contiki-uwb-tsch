@@ -124,7 +124,6 @@ dw1000_init()
   const uint32_t mask = DW_MRXDFR_MASK;
   dw_enable_interrupt(mask);
 
-
   dw_load_lde_code();
 
 
@@ -156,7 +155,7 @@ dw1000_init()
   dw1000.conf.pac_size = DW_PAC_SIZE_8;
   dw1000.conf.sfd_type = DW_SFD_STANDARD;
   dw1000.conf.data_rate = DW_DATA_RATE_850_KBPS;
-  // dw_conf(&dw1000.conf);
+  dw_conf(&dw1000.conf);
   dw_turn_frame_filtering_off();
 
   dw1000_rx_conf_t rx_conf;
@@ -165,7 +164,7 @@ dw1000_init()
   rx_conf.timeout = 0;
   dw_conf_rx(&rx_conf);
 
-  dw_enable_automatic_receiver_Re_Enable();
+  // dw_enable_automatic_receiver_Re_Enable();
 
   /* Print information about the board */
   PRINTF("Initializing device: %lx\r\n", (unsigned long)dw_get_device_id());
@@ -623,7 +622,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   }
   /* Configure LDE for better performance*/
   lde_cfg1 &= ~ DW_NTM_MASK;
-  lde_cfg1 |= 0xD << DW_NTM; /* recommended by the "Default Configurations 
+  lde_cfg1 |= 0xC << DW_NTM; /* recommended by the "Default Configurations 
                               that should be modified" section in the manual. */ 
 
   /* Configure the TX power based on the channel and the PRF
@@ -885,6 +884,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     tx_fctrl_val |= (0x02UL << DW_TXBR) & DW_TXBR_MASK;
     break;
   }
+  /* Enable receiver abort on PHR error.*/
+  sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
@@ -1356,14 +1357,16 @@ dw_get_receive_quality(dw1000_frame_quality* quality)
 
   /* Read FP_AMPL2 */
   dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_FP_AMPL2, 
-                                  DW_SUBLEN_FP_AMPL2, (uint8_t*) &(quality->fp_ampl2));
+                                  DW_SUBLEN_FP_AMPL2, 
+                                  (uint8_t*) &(quality->fp_ampl2));
 
   /* Read STD_NOISE */
   dw_read_subreg(DW_REG_RX_FQUAL, 0, 2, (uint8_t*) &(quality->std_noise));
 
   /* Read FP_AMPL3 */
   dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_FP_AMPL3, 
-                                  DW_SUBLEN_FP_AMPL3, (uint8_t*) &(quality->fp_ampl3));
+                                  DW_SUBLEN_FP_AMPL3, 
+                                  (uint8_t*) &(quality->fp_ampl3));
 
   /* Read RXPACC */    
   /* N = the Preamble Accumulation Count value reported in the RXPACC */
@@ -1379,7 +1382,8 @@ dw_get_receive_quality(dw1000_frame_quality* quality)
   /* CIR_PWR */
   /* C = the Channel Impulse Response Power value reported in the CIR_PWR */
   dw_read_subreg(DW_REG_RX_FQUAL, DW_SUBREG_CIR_PWR, 
-                                  DW_SUBLEN_CIR_PWR, (uint8_t*) &(quality->cir_pwr));
+                                  DW_SUBLEN_CIR_PWR, 
+                                  (uint8_t*) &(quality->cir_pwr));
 
   /* check if RXPACC is saturated and need to be corrected */
   if(quality->rx_pacc == rx_pacc_nosat)
@@ -1407,7 +1411,8 @@ print_receive_quality(dw1000_frame_quality quality)
   printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d 0x%01X 0x%04X\n", 
       quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
       quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
-      quality.std_noise, (int) quality.clock_offset, dw1000.conf.prf, 
+      quality.std_noise, (int) quality.clock_offset, 
+      (dw1000.conf.prf == DW_PRF_16_MHZ) ? 16 : 64, 
       dw1000.conf.data_rate);
 }
 /*===========================================================================*/

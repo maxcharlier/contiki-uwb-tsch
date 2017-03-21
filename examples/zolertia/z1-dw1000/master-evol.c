@@ -196,7 +196,13 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("Node addr %02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
- 
+  printf("1 Ranging request\n");
+  printf("2 Ranging + quality request\n");
+  printf("3 set tx and rx antenna delay\n");
+  printf("4 get tx and rx antenna delay\n");
+  printf("6 set tx power\n");
+  printf("7 get tx power\n");
+  
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 
   for(;;) {
@@ -234,7 +240,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
               PROCESS_PAUSE();
             }
             printf("0x%08X ", 
-              (unsigned int) dw1000_driver_get_propagation_time_corrected());
+              (unsigned int) dw1000_driver_get_propagation_time());
 
             if(mode == 0x02){
               /* get quality */
@@ -457,7 +463,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
         report[4] = (ranging_dest >> 8) & 0xFF;
 
 
-        uint64_t propagation = dw1000_driver_get_propagation_time_corrected();
+        uint64_t propagation = dw1000_driver_get_propagation_time();
         memcpy(&report[5], &propagation, 8);
 
         if(mode == 0x02){

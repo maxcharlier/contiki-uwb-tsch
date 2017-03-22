@@ -479,7 +479,7 @@ dw_load_lde_code(void){
 
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde1);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 2, (uint8_t *)&lde);
-  dw1000_us_delay(150); /* Wait at least 150 us > see Table 4 p24 */
+  dw1000_us_delay(155); /* Wait at least 150 us > see Table 4 p24 */
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde3);
 }
 /**
@@ -925,6 +925,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &lde_repc);
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
 
+  dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
 }
 /**
@@ -2315,16 +2316,17 @@ dw_trxsoft_reset(void)
 
   /* Clear */
   uint32_t ctrlReg = dw_read_reg_32(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
-  ctrlReg &= ~DW_SYSCLKS_MASK; /*3nd bit */
+  // ctrlReg &= ~DW_SYSCLKS_MASK; /*3nd bit */
   ctrlReg &= ~((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK);
+  ctrlReg |= ((0x0EUL << DW_SOFTRESET) & DW_SOFTRESET_MASK);
   dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
 
+  dw1000_us_delay(10);
+
   /* Set */
-  uint8_t ctrlRegHigh;
-  dw_read_subreg(DW_SUBREG_PMSC_CTRL0, 0x3, 1, &ctrlRegHigh);
   /* SOFTRESET is the 28nd bit  >> 4nd byte*/
-  ctrlReg |= ((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK) >> 24; 
-  dw_write_subreg(DW_SUBREG_PMSC_CTRL0, 0x3, 1, &ctrlRegHigh);
+  ctrlReg |= ((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK); 
+  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
 }
 /**
  * \brief   Change the Receive Buffer Pointer.

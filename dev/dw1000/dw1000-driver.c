@@ -1918,14 +1918,25 @@ dw1000_schedule_reply2(void)
 void 
 dw1000_compute_propagation_time(void){
   /* Compute the round time */
-  dw1000_driver_last_propagation_time = dw_get_rx_timestamp() - 
-                              dw_get_tx_timestamp(); 
+  uint64_t rx_timestamp = dw_get_rx_timestamp();
+  uint64_t tx_timestamp = dw_get_tx_timestamp();
+  if(rx_timestamp > tx_timestamp){ /* avoid overflow */
+    dw1000_driver_last_propagation_time = rx_timestamp - tx_timestamp; 
 
-  /* We shift the reply time to match with the time of the DW1000 */
-  dw1000_driver_last_propagation_time -= dw1000_driver_schedule_reply_time;
+    /* avoid overflow */
+    if(dw1000_driver_last_propagation_time > dw1000_driver_schedule_reply_time){
+      /* We shift the reply time to match with the time of the DW1000 */
+      dw1000_driver_last_propagation_time -= dw1000_driver_schedule_reply_time;
 
-  /* dw1000_driver_last_propagation_time divided by 2 */
-  dw1000_driver_last_propagation_time >>= 1;
+      /* dw1000_driver_last_propagation_time divided by 2 */
+      dw1000_driver_last_propagation_time >>= 1;
+    }
+    else{
+      dw1000_driver_last_propagation_time = 0;
+    }
+  }
+  else
+    dw1000_driver_last_propagation_time = 0;
 }
 
 /**

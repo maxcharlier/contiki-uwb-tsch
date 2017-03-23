@@ -106,7 +106,7 @@
 
 /* Time take by the receiver to make the ranging response and to schedule it */
 /* this is platform dependent */
-#define DW1000_REPLY_TIME_COMPUTATION 600
+#define DW1000_REPLY_TIME_COMPUTATION 700
 
 #if DW1000_IEEE802154_EXTENDED
 #define DW1000_MAX_PACKET_LEN 265
@@ -603,6 +603,13 @@ if(dw1000_driver_sstwr){
   if((sys_status_lo & DW_TXFRS_MASK) != 0) {
     tx_return = RADIO_TX_OK;
   }
+
+  if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
+#if !DW1000_IEEE802154_EXTENDED
+    /* In standard mode, we disable the RNG bit in the PHR for the next trame.*/
+    dw_disable_ranging_frame();
+#endif
+  }
   /* Used to define if we want to clear interrupt 
    * and swap buffer in double buffering mode */
   // uint8_t clear_rx_buffer = 0; /* false */
@@ -831,11 +838,6 @@ if(dw1000_driver_sstwr){
     dw1000_driver_sstwr = 0;
     dw1000_driver_sdstwr = 0;
     // dw1000_driver_in_ranging = 0;
-
-#if !DW1000_IEEE802154_EXTENDED
-    /* In standard mode, we disable the RNG bit in the PHR for the next trame.*/
-    dw_disable_ranging_frame();
-#endif
   }
 
   /* re-enable the rx state
@@ -1388,10 +1390,11 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
     /* We are not interested by the 5nd bytes */
     uint32_t status = dw_read_reg_32( DW_REG_SYS_STATUS, 4);
     while (
+      /* if overrun or good message */
 #ifdef DOUBLE_BUFFERING
-    (status & DW_RXOVRR_MASK) ||
+      (status & DW_RXOVRR_MASK) ||
 #endif /* DOUBLE_BUFFERING */
-    (status & DW_RXDFR_MASK)){
+      (status & DW_RXDFR_MASK)){
 
       PRINTF("dw1000_process: calling receiver callback\r\n");
 
@@ -1407,70 +1410,95 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
       }
       else
 #endif /* DOUBLE_BUFFERING */
-  if(status & DW_RXFCG_MASK) { // no overrun and good CRC
-        packetbuf_clear();
-    /* packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp); */
-    len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+      if(status & DW_RXFCG_MASK) { // no overrun and good CRC
+        len = dw_get_rx_extended_len();
+        if(len > 5){ /* check if we have receive an ACK*/
 
-#ifndef DOUBLE_BUFFERING
-    dw_clear_pending_interrupt(DW_MRXFCE_MASK
-             | DW_MRXFCG_MASK
-             | DW_MRXDFR_MASK
-             | DW_MLDEDONE_MASK);
-    dw1000_on();
-#endif /* ! DOUBLE_BUFFERING */
+          /* not an ACK => process the message */
+          packetbuf_clear();
 
-    dw1000_update_frame_quality();
+          len = dw1000_driver_read(packetbuf_dataptr(), PACKETBUF_SIZE);
+          /* packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, last_packet_timestamp); */
 
-    /* end of the interrupt */ 
-    /* See Figure 14: Flow chart for using double RX buffering
-     * Of the manual */
+          dw1000_update_frame_quality();
+
+          /* end of the interrupt */ 
+          /* See Figure 14: Flow chart for using double RX buffering
+           * Of the manual */
 #ifdef DOUBLE_BUFFERING
-    status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-    if(status & DW_RXOVRR_MASK){ /* overrun may be occurs */
+          status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+          if(status & DW_RXOVRR_MASK){ /* overrun may be occurs */
+                  
+            dw_idle();
+            dw_trxsoft_reset();
+            dw_change_rx_buffer();
             
-      dw_idle();
-      dw_trxsoft_reset();
-      dw_change_rx_buffer();
-      
-      PRINTF("dw1000_process: RX Overrun case 2\n");
-      if(receive_on)
-        dw1000_on();
-    }
-    else{
-      if(dw_good_rx_buffer_pointer()){
-        dw_db_mode_clear_pending_interrupt();
-      }
-      dw_change_rx_buffer();
+            PRINTF("dw1000_process: RX Overrun case 2\n");
+            if(receive_on)
+              dw1000_on();
+          }
+          else{
+            if(dw_good_rx_buffer_pointer()){
+              dw_db_mode_clear_pending_interrupt();
+            }
+            dw_change_rx_buffer();
 #endif /* DOUBLE_BUFFERING */
-      packetbuf_set_datalen(len);
-    
-      PRINTF("dw1000_process: length %i\r\n", len);
-      
-      NETSTACK_RDC.input();
+            packetbuf_set_datalen(len);
+        
+            PRINTF("dw1000_process: length %i\r\n", len);
+            
+            NETSTACK_RDC.input();
+
+            dw_clear_pending_interrupt(DW_MRXFCE_MASK
+                     | DW_MRXFCG_MASK
+                     | DW_MRXDFR_MASK
+                     | DW_MLDEDONE_MASK);
+            dw1000_on();
 #ifdef DOUBLE_BUFFERING
-    }
+          }
 #endif /* DOUBLE_BUFFERING */
-  } else{ 
-    /**
-     * Bad CRC, drop the packet > no read
-     * Change the buffer pointer.
-    */
+        }
+        else{
+          /* we have receive an ACK 
+            We just swap the buffer */
 #ifdef DOUBLE_BUFFERING
-    if(dw_good_rx_buffer_pointer()){
-      dw_db_mode_clear_pending_interrupt();
-    }
-    dw_change_rx_buffer();
+          if(dw_good_rx_buffer_pointer()){
+            dw_db_mode_clear_pending_interrupt();
+          }
+          dw_change_rx_buffer();
 #else
-    dw_clear_pending_interrupt(DW_MRXFCE_MASK
-             | DW_MRXFCG_MASK
-             | DW_MRXDFR_MASK
-             | DW_MLDEDONE_MASK);
+          dw_clear_pending_interrupt(DW_MRXFCE_MASK
+                   | DW_MRXFCG_MASK
+                   | DW_MRXDFR_MASK
+                   | DW_MLDEDONE_MASK);
+          dw_init_rx();
 #endif /* DOUBLE_BUFFERING */
-    PRINTF("dw1000_process: bad CRC\n\r"); 
-  }
+          PRINTF("interrupt ACK\n");
+        }
+      } else{ 
+        /**
+         * Bad CRC, drop the packet > no read
+         * Change the buffer pointer.
+         */
+#ifdef DOUBLE_BUFFERING
+        if(dw_good_rx_buffer_pointer()){
+          dw_db_mode_clear_pending_interrupt();
+        }
+        dw_change_rx_buffer();
+#else
+        dw_clear_pending_interrupt(DW_MRXFCE_MASK
+                 | DW_MRXFCG_MASK
+                 | DW_MRXDFR_MASK
+                 | DW_MLDEDONE_MASK);
+        dw_init_rx();
+#endif /* DOUBLE_BUFFERING */
+        PRINTF("dw1000_process: bad CRC\n\r"); 
+      }
+      PRINTF("dw interrupt message\n");
       /* Read status register for the next iteration */
       status = dw_read_reg_64( DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+      // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+
     }
   }
   PROCESS_END();
@@ -1496,6 +1524,13 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
 // #endif /* ! DOUBLE_BUFFERING */
 
     // dw1000_driver_clear_pending_interrupt();
+
+#if !DW1000_IEEE802154_EXTENDED
+    if(dw_is_ranging_frame()){
+      /* In standard mode, we disable the RNG bit in the PHR for the response.*/
+      dw_disable_ranging_frame();
+    }
+#endif
 
     /* send the ranging response to compute the t prop 
       wait for response.
@@ -1632,8 +1667,8 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
 
     dw1000_driver_in_ranging = 0; /* False */
 
-
-    process_poll(&dw1000_driver_process);
+    PRINTF("dw interrupt sds twr\n");
+    // process_poll(&dw1000_driver_process);
   }
   PROCESS_END();
 }
@@ -1649,6 +1684,13 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
     /* we can not send the response if we are in RX mode */
     dw_idle();
 
+#if !DW1000_IEEE802154_EXTENDED
+    if(dw_is_ranging_frame()){
+      /* In standard mode, we disable the RNG bit in the PHR for the response.*/
+      dw_disable_ranging_frame();
+    }
+#endif
+
     /* don't wait a response */
     ranging_send_ack_sheduled(0, 1);
 
@@ -1657,6 +1699,7 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
     /* we reenable the RX state */
     dw1000_on();
     
+    PRINTF("dw interrupt ss twr\n");
     dw1000_driver_in_ranging = 0; /* False */
   }
   PROCESS_END();

@@ -4,12 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "dw1000-driver.h"
+#include "dw1000-util.h"
 #include "dw1000.h"
 
 // #define DEBUG 1
 
 /*---------------------------------------------------------------------------*/
 PROCESS(frame_master_process, "Frame master");
+PROCESS(receive_debug_process, "Receive debug");
 
 AUTOSTART_PROCESSES(&frame_master_process);
 /*---------------------------------------------------------------------------*/
@@ -70,6 +72,11 @@ static uint32_t tx_power;
 static char payload[30];
 static uint8_t payload_len;
 
+static uint8_t message_received = 0; /* indicate if a message was received */
+static uint8_t message_init = 0; /* indicate if a message was received */
+
+static uint32_t receive_debug = 0; /* indicate if a message was received */
+
 /* used when a message is received */
 static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
 {
@@ -84,6 +91,9 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
     master_addr = from->u8[0] | (from->u8[1] << 8);
 
     process_poll(&frame_master_process);
+
+    message_received = 1; 
+    message_init = 1;
   }
   else{
     PRINTF("Receive with unsupported size (%d) form %02X%02X\n", 
@@ -106,12 +116,15 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("     4 Get TX and RX antenna delay 4 DEST\n");
   printf("     6 Set TX power                5 DEST TX_POWER\n");
   printf("     7 Get TX power                6 DEST\n");
+  printf("     9 Print sys status and error counter\n");
+  printf("     A Reset error counter\n");
+  printf("     B display number of reset\n");
 
   switch(linkaddr_node_addr.u8[0]){
     case 0x6:
       dw_set_rx_antenna_delay(32739);
       break;
-      
+
     case 0x07:
       dw_set_rx_antenna_delay(32835);
       break;
@@ -128,8 +141,12 @@ PROCESS_THREAD(frame_master_process, ev, data)
       dw_set_rx_antenna_delay(33243);
       break;
   }
+  
+  // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
+
+  process_start(&receive_debug_process, NULL);
 
   for(;;) {
     PROCESS_WAIT_EVENT();
@@ -350,6 +367,17 @@ PROCESS_THREAD(frame_master_process, ev, data)
             PRINTF("TX POWER value request sended.\n");
           }
         }
+      }
+      else if(mode == 0x09){ 
+        print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+        print_error_counter();
+      }
+      else if(mode == 0x0A){ 
+        reset_error_counter();
+      }
+      else if(mode == 0x0B){ 
+        printf("Nb reinitialisation of the receiver %u\n",
+                  (unsigned int) receive_debug);
       }
     }
     else if(ev == PROCESS_EVENT_POLL){
@@ -577,4 +605,29 @@ void set_tr_delay(uint16_t tx_delay, uint16_t rx_delay){
   // dw_load_lde_code();
   // dw_sfd_init();
   // dw1000_driver_on();
+}
+
+/* use to reset the receiver if no message was received 
+    in the last two seconds */
+PROCESS_THREAD(receive_debug_process, ev, data)
+{
+  static struct etimer timer;
+
+  PROCESS_BEGIN();
+
+  etimer_set(&timer, CLOCK_SECOND * 2);
+  while (1) {
+    PROCESS_WAIT_EVENT();
+    if (ev == PROCESS_EVENT_TIMER) {
+      if(!message_received && message_init){
+        dw1000_driver_off();
+        dw1000_driver_on();
+        receive_debug +=1;
+      }
+      message_received = 0;
+      etimer_reset(&timer);
+    }
+  }
+  
+  PROCESS_END();
 }

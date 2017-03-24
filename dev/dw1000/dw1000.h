@@ -536,9 +536,15 @@ void dw_soft_reset(void);
 /* Diagnostics */
 float dw_get_noise_level(void);
 float dw_get_fp_ampl(void);
-
 void dw_get_receive_quality(dw1000_frame_quality* quality);
 void print_receive_quality(dw1000_frame_quality quality);
+
+/* Error counter*/
+void enable_error_counter(void);
+void disable_error_counter(void);
+void reset_error_counter(void);
+void print_error_counter(void);
+
 /* RX/TX */
 void dw_enable_automatic_receiver_Re_Enable(void);
 void dw_disable_automatic_receiver_Re_Enable(void);

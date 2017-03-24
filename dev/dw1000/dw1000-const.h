@@ -209,16 +209,6 @@
 #define DW_SUBREG_AON_CFG1   0x0B       /* \brief dummy */
 #define DW_SUBLEN_AON_CFG1   2          /* \brief dummy */
 
-#define DW_REG_LDE_IF        0x2E       /* \brief dummy */
-#define DW_SUBREG_LDE_CFG1   0x0806     /* \brief dummy */
-#define DW_SUBLEN_LDE_CFG1   1          /* \brief dummy */
-#define DW_SUBREG_LDE_RXANTD 0x1804     /* \brief dummy */
-#define DW_SUBLEN_LDE_RXANTD 2          /* \brief dummy */
-#define DW_SUBREG_LDE_CFG2   0x1806     /* \brief dummy */
-#define DW_SUBLEN_LDE_CFG2   2          /* \brief dummy */
-#define DW_SUBREG_LDE_REPC   0x2804     /* \brief dummy */
-#define DW_SUBLEN_LDE_REPC   2          /* \brief dummy */
-
 #define DW_REG_OTP_IF       0x2D        /* \brief dummy */
 #define DW_SUBREG_OTP_WDAT  0x00        /* \brief dummy */
 #define DW_SUBLEN_OTP_WDAT  4           /* \brief dummy */
@@ -235,35 +225,49 @@
 #define DW_SUBREG_OTP_SF    0x12        /* \brief dummy */
 #define DW_SUBLEN_OTP_SF    1           /* \brief dummy */
 
-#define DW_REG_PMSC         0x36        /* \brief dummy */
+#define DW_REG_LDE_IF        0x2E       /* \brief dummy */
+#define DW_SUBREG_LDE_CFG1   0x0806     /* \brief dummy */
+#define DW_SUBLEN_LDE_CFG1   1          /* \brief dummy */
+#define DW_SUBREG_LDE_RXANTD 0x1804     /* \brief dummy */
+#define DW_SUBLEN_LDE_RXANTD 2          /* \brief dummy */
+#define DW_SUBREG_LDE_CFG2   0x1806     /* \brief dummy */
+#define DW_SUBLEN_LDE_CFG2   2          /* \brief dummy */
+#define DW_SUBREG_LDE_REPC   0x2804     /* \brief dummy */
+#define DW_SUBLEN_LDE_REPC   2          /* \brief dummy */
 
-#define DW_SUBREG_PMSC_CTRL0 0x00           /* \brief dummy */
-#define DW_SUBLEN_PMSC_CTRL0 0x04           /* \brief dummy */
-#define DW_SYSCLKS           0              /* \brief dummy */
-#define DW_SYSCLKS_MASK      (0x3UL << 0)   /* \brief dummy */
-#define DW_RXCLKS            2              /* \brief dummy */
-#define DW_RXCLKS_MASK       (0x3UL << 2)   /* \brief dummy */
-#define DW_TXCLKS            4              /* \brief dummy */
-#define DW_TXCLKS_MASK       (0x3UL << 4)   /* \brief dummy */
-#define DW_GPCE              16             /* \brief dummy */
-#define DW_GPCE_MASK         (0x1UL << 16)  /* \brief dummy */
-#define DW_GPRN              17             /* \brief dummy */
-#define DW_GPRN_MASK         (0x1UL << 17)  /* \brief dummy */
-#define DW_GPDCE             18             /* \brief dummy */
-#define DW_GPDCE_MASK        (0x1UL << 18)  /* \brief dummy */
-#define DW_KHZCLKEN          23             /* \brief dummy */
-#define DW_KHZCLKEN_MASK     (0x1UL << 23)  /* \brief dummy */
-#define DW_SOFTRESET         28             /* \brief dummy */
-#define DW_SOFTRESET_MASK    (0xFUL << 28)  /* \brief dummy */
+#define DW_REG_EVC_CTRL      0x2F        /* \brief dummy */
+#define DW_LEN_EVC_CTRL      4           /* \brief dummy */
+#define DW_SUBREG_EVC_PHE    0x4         /* \brief dummy */
+#define DW_SUBLEN_EVC_PHE    2           /* \brief dummy */
+#define DW_SUBREG_EVC_RSE    0x6         /* \brief dummy */
+#define DW_SUBLEN_EVC_RSE    2           /* \brief dummy */
+#define DW_SUBREG_EVC_FCG    0x8         /* \brief dummy */
+#define DW_SUBLEN_EVC_FCG    2           /* \brief dummy */
+#define DW_SUBREG_EVC_FCE    0xA         /* \brief dummy */
+#define DW_SUBLEN_EVC_FCE    2           /* \brief dummy */
+#define DW_SUBREG_EVC_FFR    0xC         /* \brief dummy */
+#define DW_SUBLEN_EVC_FFR    2           /* \brief dummy */
+#define DW_SUBREG_EVC_OVR    0xE         /* \brief dummy */
+#define DW_SUBLEN_EVC_OVR    2           /* \brief dummy */
+#define DW_SUBREG_EVC_STO    0x10        /* \brief dummy */
+#define DW_SUBLEN_EVC_STO    2           /* \brief dummy */
+#define DW_SUBREG_EVC_PTO    0x12        /* \brief dummy */
+#define DW_SUBLEN_EVC_PTO    2           /* \brief dummy */
+#define DW_SUBREG_EVC_FWTO   0x14        /* \brief dummy */
+#define DW_SUBLEN_EVC_FWTO   2           /* \brief dummy */
+#define DW_SUBREG_EVC_TXFS   0x16        /* \brief dummy */
+#define DW_SUBLEN_EVC_TXFS   2           /* \brief dummy */
+#define DW_SUBREG_EVC_HPW    0x18        /* \brief dummy */
+#define DW_SUBLEN_EVC_HPW    2           /* \brief dummy */
+#define DW_SUBREG_EVC_TPW    0x1A        /* \brief dummy */
+#define DW_SUBLEN_EVC_TPW    2           /* \brief dummy */
 
-#define DW_SUBREG_PMSC_LEDC  0x28           /* \brief dummy */
-#define DW_SUBLEN_PMSC_LEDC  0x04           /* \brief dummy */
-#define DW_BLINK_TIM         0              /* \brief dummy */
-#define DW_BLINK_TIM_MASK    (0xFFUL << 0)  /* \brief dummy */
-#define DW_BLNKEN            8              /* \brief dummy */
-#define DW_BLNKEN_MASK       (0x01UL << 8)  /* \brief dummy */
-#define DW_BLNKNOW           16             /* \brief dummy */
-#define DW_BLNKNOW_MASK      (0xFUL << 16)  /* \brief dummy */
+#define DW_REG_PMSC          0x36        /* \brief dummy */
+#define DW_SUBREG_PMSC_CTRL0 0x00        /* \brief dummy */
+#define DW_SUBLEN_PMSC_CTRL0 0x04        /* \brief dummy */
+
+#define DW_SUBREG_PMSC_LEDC  0x28        /* \brief dummy */
+#define DW_SUBLEN_PMSC_LEDC  0x04        /* \brief dummy */
 
 /*=================================================
    =========== Bitfields
@@ -340,6 +344,12 @@
 #define DW_HRBPT_MASK     (0x1UL << 24) /* \brief dummy */
 
 /* DW_REG_SYS_MASK 0x0E */
+#define DW_MTXFRB        4              /* \brief dummy */
+#define DW_MTXFRB_MASK   (0x1UL << 4)   /* \brief dummy */
+#define DW_MTXPRS        5              /* \brief dummy */
+#define DW_MTXPRS_MASK   (0x1UL << 5)   /* \brief dummy */
+#define DW_MTXPHS        6              /* \brief dummy */
+#define DW_MTXPHS_MASK   (0x1UL << 6)   /* \brief dummy */
 #define DW_MTXFRS        7              /* \brief dummy */
 #define DW_MTXFRS_MASK   (0x1UL << 7)   /* \brief dummy */
 #define DW_MRXPRD        8              /* \brief dummy */
@@ -578,6 +588,12 @@
 #define DW_SAR_WVBAT      8             /* \brief dummy */
 #define DW_SAR_WVBAT_MASK (0xFFUL << 8) /* \brief dummy */
 
+/* DW_REG_AON_WCFG      0x2C */
+/* DW_SUBREG_AON_WCFG   0x2C:00 */
+#define DW_ONW_LLDE      11               /* \brief dummy */
+#define DW_ONW_LLDE_MASK (0x1UL << 11)  /* \brief dummy */
+
+
 /* DW_REG_OTP_IF 0x2D */
 /* DW_SUBREG_OTP_WDAT  0x2D:00 */
 /* DW_SUBREG_OTP_ADDR  0x2D:04 */
@@ -614,12 +630,80 @@
 #define DW_NTM_MASK       (0xFUL << 0)   /* \brief dummy */
 #define DW_PMULT          5              /* \brief dummy */
 #define DW_PMULT_MASK     (0x7UL << 5)   /* \brief dummy */
-  
+
+/* DW_REG_EVC_CTRL      0x2F:00        */
+#define DW_EVC_EN            0              /* \brief dummy */
+#define DW_EVC_EN_MASK       (0x1UL << 0)   /* \brief dummy */
+#define DW_EVC_CLR           1              /* \brief dummy */
+#define DW_EVC_CLR_MASK      (0x1UL << 1)   /* \brief dummy */
+#define DW_REG_EVC_CTRL_MASK (0x3UL << 0)
+/* DW_SUBREG_EVC_PHE    0x2F:04         */
+#define DW_EVC_PHE            0              /* \brief dummy */
+#define DW_EVC_PHE_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_RSE    0x2F:06         */
+#define DW_EVC_RSE            0              /* \brief dummy */
+#define DW_EVC_RSE_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_FCG    0x2F:08         */
+#define DW_EVC_FCG            0              /* \brief dummy */
+#define DW_EVC_FCG_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_FCE    0x2F:0A         */
+#define DW_EVC_FCE            0              /* \brief dummy */
+#define DW_EVC_FCE_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_FFR    0x2F:0C         */
+#define DW_EVC_FFR            0              /* \brief dummy */
+#define DW_EVC_FFR_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_OVR    0x2F:0E         */
+#define DW_EVC_OVR            0              /* \brief dummy */
+#define DW_EVC_OVR_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_STO    0x2F:10         */
+#define DW_EVC_STO            0              /* \brief dummy */
+#define DW_EVC_STO_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_PTO    0x2F:12         */
+#define DW_EVC_PTO            0              /* \brief dummy */
+#define DW_EVC_PTO_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_FWTO   0x2F:14         */
+#define DW_EVC_FWTO           0              /* \brief dummy */
+#define DW_EVC_FWTO_MASK      (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_TXFS   0x2F:14         */
+#define DW_EVC_TXFS           0              /* \brief dummy */
+#define DW_EVC_TXFS_MASK      (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_HPW    0x2F:18         */
+#define DW_EVC_HPW            0              /* \brief dummy */
+#define DW_EVC_HPW_MASK       (0xFFFUL << 0) /* \brief dummy */
+/* DW_SUBREG_EVC_TPW    0x2F:1A         */
+#define DW_EVC_TPW            0              /* \brief dummy */
+#define DW_EVC_TPW_MASK       (0xFFFUL << 0) /* \brief dummy */
+
 /* DW_REG_PMSC 0x36 */
 /* DW_REG_PMSC_CTRL0 0x36:00 */
-#define DW_SYS_CLKS       0             /* \brief dummy */
-#define DW_SYS_CLKS_MASK  (0x3UL << 0)  /* \brief dummy */
-#define DW_ADCCE          10            /* \brief dummy */
-#define DW_ADCCE_MASK     (0x1UL << 10) /* \brief dummy */
+#define DW_SYS_CLKS          0              /* \brief dummy */
+#define DW_SYS_CLKS_MASK     (0x3UL << 0)   /* \brief dummy */
+#define DW_SYSCLKS           0              /* \brief dummy */
+#define DW_SYSCLKS_MASK      (0x3UL << 0)   /* \brief dummy */
+#define DW_RXCLKS            2              /* \brief dummy */
+#define DW_RXCLKS_MASK       (0x3UL << 2)   /* \brief dummy */
+#define DW_TXCLKS            4              /* \brief dummy */
+#define DW_TXCLKS_MASK       (0x3UL << 4)   /* \brief dummy */
+#define DW_ADCCE             10             /* \brief dummy */
+#define DW_ADCCE_MASK        (0x1UL << 10)  /* \brief dummy */
+#define DW_GPCE              16             /* \brief dummy */
+#define DW_GPCE_MASK         (0x1UL << 16)  /* \brief dummy */
+#define DW_GPRN              17             /* \brief dummy */
+#define DW_GPRN_MASK         (0x1UL << 17)  /* \brief dummy */
+#define DW_GPDCE             18             /* \brief dummy */
+#define DW_GPDCE_MASK        (0x1UL << 18)  /* \brief dummy */
+#define DW_KHZCLKEN          23             /* \brief dummy */
+#define DW_KHZCLKEN_MASK     (0x1UL << 23)  /* \brief dummy */
+#define DW_SOFTRESET         28             /* \brief dummy */
+#define DW_SOFTRESET_MASK    (0xFUL << 28)  /* \brief dummy */
+
+/* DW_REG_PMSC 0x36 */
+/* DW_SUBREG_PMSC_LEDC  0x36:28 */
+#define DW_BLINK_TIM         0              /* \brief dummy */
+#define DW_BLINK_TIM_MASK    (0xFFUL << 0)  /* \brief dummy */
+#define DW_BLNKEN            8              /* \brief dummy */
+#define DW_BLNKEN_MASK       (0x01UL << 8)  /* \brief dummy */
+#define DW_BLNKNOW           16             /* \brief dummy */
+#define DW_BLNKNOW_MASK      (0xFUL << 16)  /* \brief dummy */
 
 #endif /* DW1000_CONST_H */

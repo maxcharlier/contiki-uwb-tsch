@@ -143,17 +143,17 @@
 static int dw1000_driver_init_down = 0;
 
 /* Used to avoid multiple interrupt in ranging mode */
-static int dw1000_driver_in_ranging = 0;
+static int volatile dw1000_driver_in_ranging = 0;
 
 /* define if transmission wait for an ACK. */
 static int dw1000_driver_wait_ACK = 0;
 static int dw1000_driver_wait_ACK_num = 0;
 
 /* define if we are in the Single-sided Two-way Ranging protocol */
-static uint8_t dw1000_driver_sstwr = 0;
+static uint8_t volatile dw1000_driver_sstwr = 0;
 
 /* define if we are in the Symmetric double-sided two-way ranging protocol */
-static uint8_t dw1000_driver_sdstwr = 0;
+static uint8_t volatile dw1000_driver_sdstwr = 0;
 
 /* Define the reply time (in micro second). 
  */
@@ -230,7 +230,7 @@ static int dw1000_driver_read(void *buf, unsigned short bufsize);
 
 static int dw1000_driver_cca(void);
 
-static void dw1000_on(void);
+// static void dw1000_on(void);
 static void dw1000_off(void);
 
 static int dw1000_driver_receiving_packet(void);
@@ -314,16 +314,16 @@ dw1000_driver_init(void)
 
   dw1000_arch_init();
 
-  // dw1000_init();
+  dw1000_init();
 
   /* Check if SPI communication works by reading device ID */
-  assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+  // assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
   /* Init dw1000 */
-  dw_soft_reset(); /* Simple reset of device. */
+  // dw_soft_reset(); /* Simple reset of device. */
 
   /* load the program to compute the timestamps */
-  dw_load_lde_code();
+  // dw_load_lde_code();
 
 
 #if DW1000_IEEE802154_EXTENDED
@@ -363,6 +363,7 @@ dw1000_driver_init(void)
   dw_disable_gpio_led();
 #endif
   
+  enable_error_counter(); /* /!\ Increase the power consumption. */
 
   dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
 
@@ -728,7 +729,6 @@ if(dw1000_driver_sstwr){
       dw_change_rx_buffer();
 #endif /* DOUBLE_BUFFERING */
 
-
           // printf("send 2\n");
         sys_status_lo = 0x0;
         /* wait the end of the transmission */
@@ -809,11 +809,11 @@ if(dw1000_driver_sstwr){
 
 // #endif /* CONPLEXE_CODE */
 
-  // if(dw1000_driver_wait_ACK | dw1000_driver_sstwr | dw1000_driver_sdstwr) {
+  if(dw1000_driver_wait_ACK | dw1000_driver_sstwr | dw1000_driver_sdstwr) {
     dw_idle();  /* bug fix of waiting an ACK which
                    avoid the next transmission */
-  // }
-
+    dw1000_driver_enable_interrupt();
+  }
 //   if(clear_rx_buffer){
 // #ifdef DOUBLE_BUFFERING
 //     /* double buffering! swap the buffer */
@@ -846,6 +846,10 @@ if(dw1000_driver_sstwr){
   if(receive_on){
     dw1000_on();
   }
+  else{
+    dw1000_driver_clear_pending_interrupt();
+  }
+
   RELEASE_LOCK();
 
   ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
@@ -1026,15 +1030,20 @@ dw1000_driver_on(void)
 /**
  * \brief Turn the radio on.
  */
-static void
+void
 dw1000_on(void)
 {
-  dw1000_driver_clear_pending_interrupt();
   dw1000_driver_enable_interrupt();
 
 #ifdef DOUBLE_BUFFERING
   dw_db_init_rx();
 #else
+  dw_idle();
+  uint8_t sys_ctrl_val;
+  BUSYWAIT_UPDATE_UNTIL(dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val); 
+            watchdog_periodic();,
+            ((sys_ctrl_val & ((1 << DW_TRXOFF) & DW_TRXOFF_MASK)) == 0),
+            500);
   dw_init_rx();
 #endif /* DOUBLE_BUFFERING */
   /* The receiver has a delay of 16μs after issuing the enable receiver command,
@@ -1277,7 +1286,7 @@ void
 dw1000_driver_enable_interrupt(void)
 {
   dw1000_driver_clear_pending_interrupt();
-  dw_enable_interrupt(DW_MRXDFR_MASK | DW_RXOVRR_MASK);
+  dw_enable_interrupt(DW_MRXFCE_MASK | DW_MRXDFR_MASK | DW_RXOVRR_MASK);
 }
 /**
  * \brief Disable interrupt
@@ -1293,7 +1302,14 @@ dw1000_driver_disable_interrupt(void)
 void
 dw1000_driver_clear_pending_interrupt(void)
 {
-  dw_clear_pending_interrupt(0x33767FFFEULL);
+  // dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
+  dw_clear_pending_interrupt(DW_MTXFRB_MASK
+    | DW_MTXPRS_MASK
+    | DW_MRXFCE_MASK
+    | DW_MTXPHS_MASK
+         | DW_MRXFCG_MASK
+         | DW_MRXDFR_MASK
+         | DW_MLDEDONE_MASK);
 }
 /*
  * \brief Interrupt leaves frame intact in FIFO.
@@ -1492,7 +1508,7 @@ PROCESS_THREAD(dw1000_driver_process, ev, data){
                  | DW_MLDEDONE_MASK);
         dw_init_rx();
 #endif /* DOUBLE_BUFFERING */
-        PRINTF("dw1000_process: bad CRC\n\r"); 
+        printf("dw1000_process: bad CRC\n\r"); 
       }
       PRINTF("dw interrupt message\n");
       /* Read status register for the next iteration */
@@ -1512,18 +1528,12 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
   while(1) {
     PROCESS_YIELD_UNTIL(ev == PROCESS_EVENT_POLL);
 
-        // rtimer_clock_t t0 = RTIMER_NOW();
-    // /* avoid multiple interruption */
-    // dw1000_driver_disable_interrupt();
+    // rtimer_clock_t t0 = RTIMER_NOW();
 
     /* we can not send the response if we are in RX mode */
-// #ifdef DOUBLE_BUFFERING
-    // dw_trxoff_db_mode();
-// #else
     dw_idle();
-// #endif /* ! DOUBLE_BUFFERING */
 
-    // dw1000_driver_clear_pending_interrupt();
+    dw1000_driver_clear_pending_interrupt();
 
 #if !DW1000_IEEE802154_EXTENDED
     if(dw_is_ranging_frame()){
@@ -1590,23 +1600,8 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
 
         dw1000_compute_propagation_time();
 
-  // uint8_t frame[dw_get_rx_extended_len()];
-  // dw_read_reg(DW_REG_RX_BUFFER, dw_get_rx_extended_len(), (uint8_t *)frame);
-  // print_frame(dw_get_rx_extended_len(), frame);
-
-    // dw1000_schedule_reply(); 
-        // uint16_t dest_addr = initiator_frame[5] << 8 | initiator_frame[6];
-        // uint16_t src_addr = initiator_frame[7] << 8 | initiator_frame[8];
-        // initiator_frame[5] = src_addr >> 8 & 0xFF;
-        // initiator_frame[6] = src_addr & 0xFF;
-        // initiator_frame[7] = dest_addr >> 8 & 0xFF;
-        // initiator_frame[8] = dest_addr & 0xFF;
-        // memcpy(&initiator_frame[9], &dw1000_driver_last_propagation_time, 4);
-
-
         dw_set_tx_frame_length(15);
 
-        // dw_write_reg(DW_REG_TX_BUFFER, 13, (uint8_t*) &initiator_frame[0]);
         /* Copy the response frame to the DW1000 */
         /* header CRTL, seq num, PAN ID */
         dw_write_reg(DW_REG_TX_BUFFER, 5, (uint8_t*) &initiator_frame[0]);
@@ -1639,13 +1634,6 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
         // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
         // print_frame(9, initiator_frame);
-
-#ifdef DOUBLE_BUFFERING
-        if(dw_good_rx_buffer_pointer()){
-          dw_db_mode_clear_pending_interrupt();
-        }
-        dw_change_rx_buffer();
-#endif /* ! DOUBLE_BUFFERING */
       }
     }
 
@@ -1656,11 +1644,6 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     dw_read_reg(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS, (uint8_t *) &sys_status);
     print_sys_status(sys_status);
 #endif /* DEBUG_RANGING */
-
-    dw_clear_pending_interrupt(DW_MRXFCE_MASK
-         | DW_MRXFCG_MASK
-         | DW_MRXDFR_MASK
-         | DW_MLDEDONE_MASK);
 
     /* we reenable the RX state */
     dw1000_on();

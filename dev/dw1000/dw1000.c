@@ -1416,6 +1416,110 @@ print_receive_quality(dw1000_frame_quality quality)
       (dw1000.conf.prf == DW_PRF_16_MHZ) ? 16 : 64, 
       dw1000.conf.data_rate);
 }
+
+/*===========================================================================*/
+/* Error counter                                                             */
+/*===========================================================================*/
+/**
+ * \brief Event Counters Enable. 
+ *  Waring: The Event Counters increase the power consumption.
+ */
+void 
+enable_error_counter(void){
+  uint16_t value = (0x1 << DW_EVC_EN) & DW_EVC_EN_MASK;
+  dw_write_reg(DW_REG_EVC_CTRL, 2, (uint8_t *) &value);
+}
+
+/**
+ * \brief Event Counters Disable.
+ */
+void 
+disable_error_counter(void){
+  uint16_t value = 0;
+  dw_write_reg(DW_REG_EVC_CTRL, 2, (uint8_t *) &value);
+}
+/**
+ * \brief Reset the counter of each counter.
+ */
+void 
+reset_error_counter(void){
+  uint16_t value = (0x1 << DW_EVC_CLR) & DW_EVC_CLR_MASK;
+  /* we need to write at least 2 bytes according the user manual */
+  dw_write_reg(DW_REG_EVC_CTRL, 2, (uint8_t *) &value);
+  enable_error_counter();
+}
+/**
+ * \brief Display the value of each counter.
+ */
+void
+print_error_counter(void){
+  printf("-----------------------------------\n");
+  printf("-----------Error Counter-----------\n");
+  uint16_t value;
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_PHE, 2, (uint8_t*) &value);
+  value &= DW_EVC_PHE_MASK;
+  if( value > 0)
+    printf("PHR Error Event Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_RSE, 2, (uint8_t*) &value);
+  value &= DW_EVC_RSE_MASK;
+  if( value > 0)
+    printf("Reed Solomon decoder (Frame Sync Loss) Error Event Counter %d\n", 
+            value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_FCG, 2, (uint8_t*) &value);
+  value &= DW_EVC_FCG_MASK;
+  if( value > 0)
+    printf("Frame Check Sequence Good Event Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_FCE, 2, (uint8_t*) &value);
+  value &= DW_EVC_FCE_MASK;
+  if( value > 0)
+    printf("Frame Check Sequence Error Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_FFR, 2, (uint8_t*) &value);
+  value &= DW_EVC_FFR_MASK;
+  if( value > 0)
+    printf("Frame Filter Rejection Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_OVR, 2, (uint8_t*) &value);
+  value &= DW_EVC_OVR_MASK;
+  if( value > 0)
+    printf("RX Overrun Error Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_STO, 2, (uint8_t*) &value);
+  value &= DW_EVC_STO_MASK;
+  if( value > 0)
+    printf("SFD Timeout Error Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_PTO, 2, (uint8_t*) &value);
+  value &= DW_EVC_PTO_MASK;
+  if( value > 0)
+    printf("Preamble Detection Timeout Event Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_FWTO, 2, (uint8_t*) &value);
+  value &= DW_EVC_FWTO_MASK;
+  if( value > 0)
+    printf("RX Frame Wait Timeout Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_TXFS, 2, (uint8_t*) &value);
+  value &= DW_EVC_TXFS_MASK;
+  if( value > 0)
+    printf("TX Frame Sent Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_HPW, 2, (uint8_t*) &value);
+  value &= DW_EVC_TPW_MASK;
+  if( value > 0)
+    printf("Half Period Warning Counter %d\n", value);
+
+  dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_TPW, 2, (uint8_t*) &value);
+  value &= DW_EVC_TPW_MASK;
+  if( value > 0)
+    printf("Transmitter Power-Up Warning Counter %d\n", value);
+  printf("-----------------------------------\n");
+}
+
+
 /*===========================================================================*/
 /* RX/TX                                                                     */
 /*===========================================================================*/

@@ -138,7 +138,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
       break;
 
     case 0x0A:
-      dw_set_rx_antenna_delay(33243);
+      dw_set_rx_antenna_delay(33643);
       break;
   }
   

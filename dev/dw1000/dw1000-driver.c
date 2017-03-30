@@ -230,7 +230,7 @@ static int dw1000_driver_read(void *buf, unsigned short bufsize);
 
 static int dw1000_driver_cca(void);
 
-// static void dw1000_on(void);
+static void dw1000_on(void);
 static void dw1000_off(void);
 
 static int dw1000_driver_receiving_packet(void);

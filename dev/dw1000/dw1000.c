@@ -475,12 +475,22 @@ void
 dw_load_lde_code(void){
   const uint16_t lde1 = 0x0301;
   const uint16_t lde = DW_LDELOAD_MASK; /* load lde code */
-  const uint16_t lde3 = 0x0200;
+  const uint8_t lde3[2] = {0x00, 0x02};
 
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde1);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 2, (uint8_t *)&lde);
   dw1000_us_delay(155); /* Wait at least 150 us > see Table 4 p24 */
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde3);
+
+  /* From DecaRanging software:
+     Need to write lower byte separately before setting the higher byte(s) */
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 1, &lde3[0]);
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0 + 1, 1, &lde3[1]);
+
+  // uint16_t value;
+  // /* active load lde wake up */
+  // dw_read_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
+  // value |= (0x1 << DW_ONW_LLDE) & DW_ONW_LLDE_MASK;
+  // dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
 }
 /**
  * \brief apply a soft reset
@@ -509,8 +519,11 @@ dw_soft_reset(void)
   dw1000_us_delay(10);
 
   /* Set SOFTRESET to all ones */
-  ctrlReg &= ~DW_SYSCLKS_MASK; /* Set SYSCLKS to 00 > Auto system clock. */
   ctrlReg |= DW_SOFTRESET_MASK; /* Set SOFTRESET to all ones */
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                  (uint8_t *)&ctrlReg);
+
+  ctrlReg &= ~DW_SYSCLKS_MASK; /* Set SYSCLKS to 00 > Auto system clock. */
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
                   (uint8_t *)&ctrlReg);
 
@@ -529,11 +542,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
   uint16_t lde_repc = 0;
   uint8_t lde_cfg1 = 0;
-  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1, 
-      &lde_cfg1);
   uint16_t lde_cfg2 = 0;
   uint32_t agc_tune1_val;
-  const uint32_t agc_tune2_val = 0x2502A907;  /* Always use this */
+  const uint32_t agc_tune2_val = 0x2502A907UL;  /* Always use this */
   const uint16_t agc_tune3_val = 0x0035;    /* Always use this */
   uint32_t drx_tune0b_val;
   uint16_t drx_tune1a_val;
@@ -542,10 +553,11 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t drx_tune4h_val;
   uint32_t rf_rxctrl_val;
   uint32_t rf_txctrl_val;
-  uint32_t tc_pgdelay_val;
+  uint8_t tc_pgdelay_val;
   uint32_t fs_pllcfg_val;
   uint32_t fs_plltune_val;
   uint32_t tx_power_val;
+  uint8_t fs_xtal_val;
 
   /* === Configure PRF */
   tx_fctrl_val &= ~DW_TXPRF_MASK;
@@ -621,9 +633,10 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     break;
   }
   /* Configure LDE for better performance*/
-  lde_cfg1 &= ~ DW_NTM_MASK;
-  lde_cfg1 |= 0xC << DW_NTM; /* recommended by the "Default Configurations 
-                              that should be modified" section in the manual. */ 
+  lde_cfg1 &= ~DW_NTM_MASK;
+  lde_cfg1 |= (0xD << DW_NTM) & DW_NTM_MASK; 
+  lde_cfg1 &= ~DW_PMULT_MASK;
+  lde_cfg1 |= (0x3 << DW_PMULT) & DW_PMULT_MASK;
 
   /* Configure the TX power based on the channel and the PRF
       Based on the manual: Table 20: Reference values Register file: 
@@ -822,6 +835,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* === Configure SFD */
   /* TODO: Implement user specified */
   chan_ctrl_val &= ~DW_DWSFD_MASK;
+  chan_ctrl_val &= ~DW_TNSSFD_MASK;
+  chan_ctrl_val &= ~DW_RNSSFD_MASK;
 
   if(dw_conf->sfd_type == DW_SFD_USER_SPECIFIED) {
     DW_ERROR("dw_conf - SFD: User specified SFD not implemented");
@@ -831,7 +846,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     chan_ctrl_val &= ~((1UL << DW_DWSFD) & DW_DWSFD_MASK);
     break;
   case DW_SFD_NON_STANDARD:
-    chan_ctrl_val |= (1UL << DW_DWSFD) & DW_DWSFD_MASK;
+    chan_ctrl_val |= (1UL << DW_DWSFD) & DW_DWSFD_MASK; /* use DW ns SFD */
+    chan_ctrl_val |= (1UL << DW_TNSSFD) & DW_TNSSFD_MASK; /* enable ns TX SFD */
+    chan_ctrl_val |= (1UL << DW_RNSSFD) & DW_RNSSFD_MASK; /* enable ns RX SFD */
     break;
   case DW_SFD_USER_SPECIFIED:
     /* Not implemented yet! */
@@ -887,6 +904,12 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* Enable receiver abort on PHR error.*/
   sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
+  /* Configure the Crystal Trim Setting
+      We use midrange value of 0x10
+      Bits 7:5 must always be set to binary “011”. */
+  fs_xtal_val = DW_FS_XTAL_RESERVED_MASK | 
+                ((0x10 << DW_XTALT) & DW_XTALT_MASK);
+
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
   dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
@@ -917,6 +940,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
+  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
+                  (uint8_t *) &fs_xtal_val);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
                   (uint8_t *) &lde_cfg1);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
@@ -1662,11 +1687,13 @@ dw_get_rx_timestamp(void)
  *        significant bits are zero.
  * \param timestamp The reeded timestamps will be placed here. 
  */
-inline void 
-dw_get_tx_raw_timestamp(uint64_t timestamp)
+uint64_t
+dw_get_tx_raw_timestamp(void)
 {
+  uint64_t value = 0x0;
   dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
-                  (uint8_t*) &timestamp);
+                  (uint8_t*) &value);
+  return value;
 }
 /**
  * \brief Gets the timestamps for the latest transmitted frame.
@@ -1741,8 +1768,8 @@ dw_is_ranging_frame(void)
 void
 dw_set_antenna_delay(uint16_t antenna_delay)
 {
-  dw_set_tx_antenna_delay(antenna_delay * 0.44);
-  dw_set_rx_antenna_delay(antenna_delay * 0.56);
+  dw_set_tx_antenna_delay((uint16_t) (((uint32_t) (antenna_delay) * 44) / 100));
+  dw_set_rx_antenna_delay((uint16_t) (((uint32_t) (antenna_delay) * 56) / 100));
 }
 /**
  * \brief Set the TX antenna delay.
@@ -1753,7 +1780,6 @@ void
 dw_set_tx_antenna_delay(uint16_t tx_delay)
 {
   dw_write_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay);
-
 }
 /**
  * \brief Get the TX antenna delay.
@@ -2419,18 +2445,13 @@ dw_trxsoft_reset(void)
   /* To apply a receiver-only soft reset, clear and set bit 28 only. */
 
   /* Clear */
-  uint32_t ctrlReg = dw_read_reg_32(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0);
-  // ctrlReg &= ~DW_SYSCLKS_MASK; /*3nd bit */
-  ctrlReg &= ~((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK);
-  ctrlReg |= ((0x0EUL << DW_SOFTRESET) & DW_SOFTRESET_MASK);
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
-
-  dw1000_us_delay(10);
+  // ctrlReg &= ~((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK);
+  uint8_t ctrlReg = 0x0EUL << (DW_SOFTRESET - 24);
+  dw_write_subreg(DW_REG_PMSC, 0x3, 1, &ctrlReg);
 
   /* Set */
-  /* SOFTRESET is the 28nd bit  >> 4nd byte*/
-  ctrlReg |= ((0x01UL << DW_SOFTRESET) & DW_SOFTRESET_MASK); 
-  dw_write_reg(DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t *)&ctrlReg);
+  ctrlReg |= 0x0FUL << (DW_SOFTRESET - 24);
+  dw_write_subreg(DW_REG_PMSC, 0x3, 1, &ctrlReg);
 }
 /**
  * \brief   Change the Receive Buffer Pointer.

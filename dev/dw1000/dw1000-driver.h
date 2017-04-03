@@ -67,10 +67,10 @@ void dw1000_driver_config(dw1000_channel_t channel,
 /* Ranging                                                                   */
 /*===========================================================================*/
 
-void dw1000_driver_ranging_request(void);
+void dw1000_driver_sstwr_request(void);
+void dw1000_driver_sdstwr_request(void);
 uint8_t dw1000_driver_is_ranging_request(void);
 uint32_t dw1000_driver_get_reply_time(void);
 void dw1000_driver_set_reply_time(uint32_t reply_time);
 uint64_t dw1000_driver_get_propagation_time(void);
-uint64_t dw1000_driver_get_propagation_time_corrected(void);
 dw1000_frame_quality dw1000_driver_get_packet_quality(void);

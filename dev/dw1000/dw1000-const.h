@@ -194,6 +194,8 @@
 #define DW_SUBLEN_FS_PLLCFG  4          /* \brief dummy */
 #define DW_SUBREG_FS_PLLTUNE 0x0B       /* \brief dummy */
 #define DW_SUBLEN_FS_PLLTUNE 1          /* \brief dummy */
+#define DW_SUBREG_FS_XTALT   0x0E       /* \brief dummy */
+#define DW_SUBLEN_FS_XTALT   1          /* \brief dummy */
 
 #define DW_REG_AON_WCFG      0x2C       /* \brief dummy */
 #define DW_SUBREG_AON_WCFG   0x00       /* \brief dummy */
@@ -588,6 +590,12 @@
 #define DW_SAR_WVBAT      8             /* \brief dummy */
 #define DW_SAR_WVBAT_MASK (0xFFUL << 8) /* \brief dummy */
 
+/* DW_REG_FS_CTRL       0x2B */
+/* DW_SUBREG_FS_XTALT   0x0E */
+#define DW_FS_XTAL_RESERVED_MASK (0x60) /* \brief dummy */
+#define DW_XTALT          0             /* \brief dummy */
+#define DW_XTALT_MASK     (0x1FUL << 0) /* \brief dummy */
+
 /* DW_REG_AON_WCFG      0x2C */
 /* DW_SUBREG_AON_WCFG   0x2C:00 */
 #define DW_ONW_LLDE      11               /* \brief dummy */
@@ -627,7 +635,7 @@
 
 /* DW_SUBREG_LDE_CFG1        0x2E:0806 */
 #define DW_NTM            0              /* \brief dummy */
-#define DW_NTM_MASK       (0xFUL << 0)   /* \brief dummy */
+#define DW_NTM_MASK       (0x1FUL << 0)   /* \brief dummy */
 #define DW_PMULT          5              /* \brief dummy */
 #define DW_PMULT_MASK     (0x7UL << 5)   /* \brief dummy */
 

@@ -564,7 +564,7 @@ void     dw_disable_rx_timeout(void);
 uint64_t dw_get_rx_timestamp(void);
 inline uint64_t dw_get_rx_raw_timestamp(void);
 uint64_t dw_get_tx_timestamp(void);
-inline void  dw_get_tx_raw_timestamp(uint64_t timestamp);
+uint64_t dw_get_tx_raw_timestamp(void);
 void     dw_set_antenna_delay(uint16_t antenna_delay);
 void     dw_set_tx_antenna_delay(uint16_t tx_delay);
 uint16_t dw_get_tx_antenna_delay(void);

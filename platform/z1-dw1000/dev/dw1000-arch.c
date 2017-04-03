@@ -155,7 +155,7 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr,
       SPI_WRITE_FAST((subreg_addr >> 7) & 0xFF);
     } else {
       /* extended address bit = 0 */
-      SPI_WRITE_FAST(0x00 | (subreg_addr & 0x7F));
+      SPI_WRITE_FAST(subreg_addr & 0x7F);
     }
   }
   SPI_WAITFORTx_ENDED();
@@ -204,7 +204,7 @@ void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr,
       SPI_WRITE_FAST((subreg_addr >> 7) & 0xFF);
     } else {
       /* extended address bit = 0 */
-      SPI_WRITE_FAST(0x00 | (subreg_addr & 0x7F));
+      SPI_WRITE_FAST(subreg_addr & 0x7F);
     }
   }
   

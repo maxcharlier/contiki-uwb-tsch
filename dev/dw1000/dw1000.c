@@ -558,6 +558,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t fs_plltune_val;
   uint32_t tx_power_val;
   uint8_t fs_xtal_val;
+  uint8_t ec_crtl_val;
+  dw_read_reg(DW_REG_EC_CTRL, 1, &ec_crtl_val);
 
   /* === Configure PRF */
   tx_fctrl_val &= ~DW_TXPRF_MASK;
@@ -905,10 +907,15 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
   /* Configure the Crystal Trim Setting
-      We use midrange value of 0x10
+      We use default value of 0x00
       Bits 7:5 must always be set to binary “011”. */
   fs_xtal_val = DW_FS_XTAL_RESERVED_MASK | 
-                ((0x10 << DW_XTALT) & DW_XTALT_MASK);
+                ((0x0 << DW_XTALT) & DW_XTALT_MASK);
+
+  /* enable the Clock PLL lock detect tune 
+      Required when using the Crystal Trim Setting 
+      Enable reliability of the Clock PLL Loc bit in the SYS STATUS*/
+  ec_crtl_val |= (0x01 << DW_PLLLDT) & DW_PLLLDT_MASK;
 
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
@@ -949,6 +956,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
+  dw_write_reg(DW_REG_EC_CTRL, 1, (uint8_t *) &ec_crtl_val);
 
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */

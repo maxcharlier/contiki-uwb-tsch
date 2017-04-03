@@ -148,6 +148,9 @@
 #define DW_REG_TX_ANTD      0x18        /* \brief dummy */
 #define DW_LEN_TX_ANTD      2           /* \brief dummy */
 
+#define DW_REG_EC_CTRL      0x24        /* \brief dummy */
+#define DW_LEN_EC_CTRL      4           /* \brief dummy */
+
 #define DW_REG_GPIO_CTRL    0x26        /* \brief dummy */
 #define DW_LEN_GPIO_CTRL    4           /* \brief dummy */
 #define DW_SUBREG_GPIO_MODE 0x00        /* \brief dummy */
@@ -512,6 +515,9 @@
 #define DW_RX_PCODE      27             /* \brief dummy */
 #define DW_RX_PCODE_MASK (0x1FUL << 27) /* \brief dummy */
 
+/* DW_REG_EC_CTRL      0x24 */
+#define DW_PLLLDT        2              /* \brief dummy */
+#define DW_PLLLDT_MASK   (0x1FUL << 2)  /* \brief dummy */ 
 /* DW_REG_GPIO_CTRL 0x26 */
 /* DW_SUBREG_GPIO_MODE 0x26:00*/
 #define DW_MSGP8_MASK (0x3 << 22)   /* \brief dummy */

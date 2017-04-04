@@ -120,33 +120,37 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("     A Reset error counter\n");
   printf("     B display number of reset\n");
 
+  /* set the antenna delay, we set these values with the antenna set to off */
+  dw1000_driver_off();
   switch(linkaddr_node_addr.u8[0]){
     case 0x6:
-      dw_set_rx_antenna_delay(32739);
+      dw_set_antenna_delay(32739);
       break;
 
     case 0x07:
-      dw_set_rx_antenna_delay(32835);
+      dw_set_antenna_delay(32835);
       break;
 
     case 0x08:
-      dw_set_rx_antenna_delay(32691);
+      dw_set_antenna_delay(32691);
       break;
 
     case 0x09:
-      dw_set_rx_antenna_delay(32709);
+      dw_set_antenna_delay(32709);
       break;
 
     case 0x0A:
-      dw_set_rx_antenna_delay(33643);
+      dw_set_antenna_delay(33643);
       break;
   }
-  
-  // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+  dw1000_driver_on();
+
+  printf("tx delay %d\n", dw_get_tx_antenna_delay());
+  printf("rx delay %d\n", dw_get_rx_antenna_delay());
 
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 
-  process_start(&receive_debug_process, NULL);
+  // process_start(&receive_debug_process, NULL);
 
   for(;;) {
     PROCESS_WAIT_EVENT();
@@ -173,7 +177,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             addr.u8[0]= dest & 0xFF;
             addr.u8[1]= (dest >> 8) & 0xFF;
 
-            dw1000_driver_ranging_request(); 
+            dw1000_driver_sdstwr_request(); 
             packetbuf_copyfrom("", 0);
             unicast_send(&uc, &addr);
             PRINTF("Propagation time between %.4X %.4X: ", source, dest);
@@ -369,6 +373,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
         }
       }
       else if(mode == 0x09){ 
+        dw_conf_print();
         print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
         print_error_counter();
       }
@@ -402,7 +407,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             dest_addr.u8[0]= dest & 0xFF;
             dest_addr.u8[1]= (dest >> 8) & 0xFF;
 
-            dw1000_driver_ranging_request(); 
+            dw1000_driver_sdstwr_request(); 
             packetbuf_copyfrom("", 0);
             unicast_send(&uc, &dest_addr);
 
@@ -599,12 +604,10 @@ PROCESS_THREAD(frame_master_process, ev, data)
 }
 
 void set_tr_delay(uint16_t tx_delay, uint16_t rx_delay){
-  // dw1000_driver_off();
+  dw1000_driver_off();
   dw_set_tx_antenna_delay(tx_delay);
   dw_set_rx_antenna_delay(rx_delay);
-  // dw_load_lde_code();
-  // dw_sfd_init();
-  // dw1000_driver_on();
+  dw1000_driver_on();
 }
 
 /* use to reset the receiver if no message was received 

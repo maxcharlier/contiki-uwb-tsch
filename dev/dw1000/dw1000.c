@@ -429,17 +429,17 @@ dw_disable_gpio_led(void)
  *        Example of value (from 
  *        https://github.com/damaki/DW1000/wiki/Configuring-the-DW1000)
  *        Expected Rx Preamble Length   Data Rate     Recommended SFD Timeout
- *          64                            110 kbps      64 + 64
- *          64                            850 kbps      64 + 8
- *          64                            6.8 Mbps      64 + 8
- *          1024                          110 kbps      1024 + 64
- *          1024                          850 kbps      1024 + 8
- *          4096                          6.8 Mbps      4096 + 8
+ *          64                            110 kbps      64 + 64 + 1
+ *          64                            850 kbps      64 + 8 + 1
+ *          64                            6.8 Mbps      64 + 8 + 1
+ *          1024                          110 kbps      1024 + 64 + 1
+ *          1024                          850 kbps      1024 + 8 + 1
+ *          4096                          6.8 Mbps      4096 + 8 + 1
  *
  *      /!\ Please do NOT set DRX_SFDTOC to zero (disabling SFD detection 
  *          timeout). With the SFD timeout disabled and in the event of false 
  *          preamble detection, the IC will remain in receive mode until 
- *          commanded to do otherwise by the external microcontroller. This can
+ *          commanded to do otherwise by the external micro-controller. This can
  *          lead to significant reduction in battery life.
  *      ==> If you set a value of 0 this value will replace by the default value
  *          4096+64+1 symbols
@@ -586,51 +586,51 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   chan_ctrl_val &= ~DW_TXCHAN_MASK;
   chan_ctrl_val &= ~DW_RXCHAN_MASK;
 
-  uint16_t channel = ((uint8_t)dw_conf->channel & 0x1F);
+  uint16_t channel = ((uint8_t)dw_conf->channel & 0xF);
   chan_ctrl_val |= (channel << DW_TXCHAN) & DW_TXCHAN_MASK;
   chan_ctrl_val |= (channel << DW_RXCHAN) & DW_RXCHAN_MASK;
 
   switch(dw_conf->channel) {
   case DW_CHANNEL_1:
     rf_rxctrl_val = 0xD8;
-    rf_txctrl_val = 0x00005C40;
+    rf_txctrl_val = 0x00005C40UL;
     tc_pgdelay_val = 0xC9;
-    fs_pllcfg_val = 0x09000407;
+    fs_pllcfg_val = 0x09000407UL;
     fs_plltune_val = 0x1E;
     break;
   case DW_CHANNEL_2:
     rf_rxctrl_val = 0xD8;
-    rf_txctrl_val = 0x00045CA0;
+    rf_txctrl_val = 0x00045CA0UL;
     tc_pgdelay_val = 0xC2;
-    fs_pllcfg_val = 0x08400508;
+    fs_pllcfg_val = 0x08400508UL;
     fs_plltune_val = 0x26;
     break;
   case DW_CHANNEL_3:
     rf_rxctrl_val = 0xD8;
-    rf_txctrl_val = 0x00086CC0;
+    rf_txctrl_val = 0x00086CC0UL;
     tc_pgdelay_val = 0xC5;
-    fs_pllcfg_val = 0x08401009;
+    fs_pllcfg_val = 0x08401009UL;
     fs_plltune_val = 0x56;
     break;
   case DW_CHANNEL_4:
     rf_rxctrl_val = 0xBC;
-    rf_txctrl_val = 0x00045C80;
+    rf_txctrl_val = 0x00045C80UL;
     tc_pgdelay_val = 0x95;
-    fs_pllcfg_val = 0x08400508;
+    fs_pllcfg_val = 0x08400508UL;
     fs_plltune_val = 0x26;
     break;
   case DW_CHANNEL_5:
     rf_rxctrl_val = 0xD8;
-    rf_txctrl_val = 0x001E3FE0;
+    rf_txctrl_val = 0x001E3FE0UL;
     tc_pgdelay_val = 0xC0;
-    fs_pllcfg_val = 0x0800041D;
+    fs_pllcfg_val = 0x0800041DUL;
     fs_plltune_val = 0xBE;
     break;
   case DW_CHANNEL_7:
     rf_rxctrl_val = 0xBC;
-    rf_txctrl_val = 0x001E7DE0;
+    rf_txctrl_val = 0x001E7DE0UL;
     tc_pgdelay_val = 0x93;
-    fs_pllcfg_val = 0x0800041D;
+    fs_pllcfg_val = 0x0800041DUL;
     fs_plltune_val = 0xBE;
     break;
   }
@@ -806,30 +806,30 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   switch(dw_conf->pac_size) {
   case DW_PAC_SIZE_8:
     if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x311A002D;
+      drx_tune2_val = 0x311A002DUL;
     } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x313B006B;
+      drx_tune2_val = 0x313B006BUL;
     }
     break;
   case DW_PAC_SIZE_16:
     if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x331A0052;
+      drx_tune2_val = 0x331A0052UL;
     } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x333B00BE;
+      drx_tune2_val = 0x333B00BEUL;
     }
     break;
   case DW_PAC_SIZE_32:
     if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x351A009A;
+      drx_tune2_val = 0x351A009AUL;
     } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x353B015E;
+      drx_tune2_val = 0x353B015EUL;
     }
     break;
   case DW_PAC_SIZE_64:
     if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x371A011D;
+      drx_tune2_val = 0x371A011DUL;
     } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x373B0296;
+      drx_tune2_val = 0x373B0296UL;
     }
     break;
   }
@@ -849,8 +849,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     break;
   case DW_SFD_NON_STANDARD:
     chan_ctrl_val |= (1UL << DW_DWSFD) & DW_DWSFD_MASK; /* use DW ns SFD */
-    chan_ctrl_val |= (1UL << DW_TNSSFD) & DW_TNSSFD_MASK; /* enable ns TX SFD */
-    chan_ctrl_val |= (1UL << DW_RNSSFD) & DW_RNSSFD_MASK; /* enable ns RX SFD */
     break;
   case DW_SFD_USER_SPECIFIED:
     /* Not implemented yet! */
@@ -881,10 +879,10 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   }
   /* == Configure SFD timeout */
   if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
-    dw_set_sfd_timeout(dw_conf->preamble_length + 64);
+    dw_set_sfd_timeout(dw_conf->preamble_length + 64 + 1);
   }
   else{
-    dw_set_sfd_timeout(dw_conf->preamble_length + 8);
+    dw_set_sfd_timeout(dw_conf->preamble_length + 8 + 1);
   }
   /* === Configure Data rate */
   sys_cfg_val &= ~DW_RXM110K_MASK;
@@ -907,10 +905,10 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
   /* Configure the Crystal Trim Setting
-      We use default value of 0x00
+      We use the mid range value (0x0F)
       Bits 7:5 must always be set to binary “011”. */
   fs_xtal_val = DW_FS_XTAL_RESERVED_MASK | 
-                ((0x0 << DW_XTALT) & DW_XTALT_MASK);
+                ((0x0F << DW_XTALT) & DW_XTALT_MASK);
 
   /* enable the Clock PLL lock detect tune 
       Required when using the Crystal Trim Setting 
@@ -947,6 +945,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
+  dw_write_reg(DW_REG_EC_CTRL, 1, (uint8_t *) &ec_crtl_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
                   (uint8_t *) &fs_xtal_val);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
@@ -956,7 +955,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
-  dw_write_reg(DW_REG_EC_CTRL, 1, (uint8_t *) &ec_crtl_val);
 
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
@@ -1138,6 +1136,12 @@ dw_conf_print()
   uint32_t tc_pgdelay_val = 0;
   uint32_t fs_pllcfg_val = 0;
   uint32_t fs_plltune_val = 0;
+  uint32_t ec_crtl_val = 0;
+  uint32_t fs_xtal_val = 0;
+  uint32_t lde_cfg1 = 0;
+  uint32_t lde_cfg2 = 0;
+  uint32_t lde_repc = 0;
+  uint32_t tx_power_val = 0;
 
   sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
@@ -1168,7 +1172,16 @@ dw_conf_print()
                                     DW_SUBLEN_FS_PLLCFG);
   fs_plltune_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE,
                                     DW_SUBLEN_FS_PLLTUNE);
-
+  dw_read_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
+  dw_read_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
+                  (uint8_t *) &fs_xtal_val);
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
+                  (uint8_t *) &lde_cfg1);
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
+                  (uint8_t *) &lde_cfg2);
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
+                  (uint8_t *) &lde_repc);
+  dw_read_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
 
   printf("============================\r\n");
   printf("DW1000 Current Configuration\r\n");
@@ -1193,6 +1206,12 @@ dw_conf_print()
   printf("tc_pgdelay : %08" PRIx32 "\r\n", tc_pgdelay_val);
   printf("fs_pllcfg  : %08" PRIx32 "\r\n", fs_pllcfg_val);
   printf("fs_plltune : %08" PRIx32 "\r\n", fs_plltune_val);
+  printf("ec_crtl    : %08" PRIx32 "\r\n", ec_crtl_val);
+  printf("fs_xtal    : %08" PRIx32 "\r\n", fs_xtal_val);
+  printf("lde_cfg1   : %08" PRIx32 "\r\n", lde_cfg1);
+  printf("lde_cfg2   : %08" PRIx32 "\r\n", lde_cfg2);
+  printf("lde_repc   : %08" PRIx32 "\r\n", lde_repc);
+  printf("tx_power   : %08" PRIx32 "\r\n", tx_power_val);
 }
 /*===========================================================================*/
 /* Utility                                                                   */
@@ -1954,10 +1973,9 @@ dw_generate_extendedUniqueID()
 void
 dw_idle(void)
 {
-  /* read and write only one bit > DW_TRXOFF is the 6nd bit. */
-  uint8_t sys_ctrl_val;
-  dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val);
-  sys_ctrl_val |= (1 << DW_TRXOFF) & DW_TRXOFF_MASK;
+  /* write only one bit > DW_TRXOFF is the 6nd bit. */
+  /* assume that SYS_CTRL is always empty */
+  uint8_t sys_ctrl_val= (1 << DW_TRXOFF) & DW_TRXOFF_MASK;
   dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val);
 
   dw1000.state = DW_STATE_IDLE;
@@ -1972,9 +1990,8 @@ dw_init_rx(void)
   dw1000.state = DW_STATE_RECEIVING;
   /* Enable antenna */
   /* RXENAB is the 8nd bit (first in the second byte) */
-  uint8_t sys_ctrl_val;
-  dw_read_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
-  sys_ctrl_val |= (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
+  /* assume that SYS_CTRL is always empty */
+  uint8_t sys_ctrl_val = (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
   dw_write_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
 }
 /**

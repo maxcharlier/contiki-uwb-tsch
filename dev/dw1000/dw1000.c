@@ -470,6 +470,10 @@ dw_sfd_init(void){
  * \brief Force the load of the LDE code from the ROM memory to the RAM memory 
  *    to be able to compute correctly the timestamps. 
  *  See LDELOAD in the manual (Table 4)
+ *    /!\ Warning:
+ *    Ensure that the SPI operating frequency is set < 3MHz. 
+ *    (During procedure the system uses the 19.2 MHz XTI clock which will
+ *    not support higher SPI data rates)
  */
 void
 dw_load_lde_code(void){
@@ -493,7 +497,11 @@ dw_load_lde_code(void){
   // dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
 }
 /**
- * \brief apply a soft reset
+ * \brief Apply a soft reset
+ *    /!\ Warning:
+ *    Ensure that the SPI operating frequency is set < 3MHz. 
+ *    (During procedure the system uses the 19.2 MHz XTI clock which will
+ *    not support higher SPI data rates)
  */
 void
 dw_soft_reset(void)

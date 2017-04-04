@@ -106,7 +106,7 @@
 
 /* Time take by the receiver to make the ranging response and to schedule it */
 /* this is platform dependent */
-#define DW1000_REPLY_TIME_COMPUTATION 700
+#define DW1000_REPLY_TIME_COMPUTATION 750
 
 #if DW1000_IEEE802154_EXTENDED
 #define DW1000_MAX_PACKET_LEN 265
@@ -137,7 +137,7 @@
 
 #define DEBUG_LED 1
 
-#define DOUBLE_BUFFERING
+// #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
    the driver initialization */
@@ -317,7 +317,6 @@ dw1000_driver_init(void)
   /* Check if SPI communication works by reading device ID */
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
-  /* Init dw1000 */
   /* Simple reset of device. */
   dw_soft_reset(); /* Need to be call with a SPI speed < 4MH */
 
@@ -367,7 +366,6 @@ dw1000_driver_init(void)
 
   /* because in some case the ranging request bit TR is TRUE */
   dw_disable_ranging_frame();
-
 
   process_start(&dw1000_driver_process, NULL);
   process_start(&dw1000_driver_process_ss_twr, NULL);
@@ -576,7 +574,7 @@ if(dw1000_driver_sstwr){
 
   if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
 #if !DW1000_IEEE802154_EXTENDED
-    /* In standard mode, we disable the RNG bit in the PHR for the next trame.*/
+    /* In standard mode, we disable the RNG bit in the PHR for the next frame.*/
     dw_disable_ranging_frame();
 #endif
   }
@@ -635,10 +633,11 @@ if(dw1000_driver_sstwr){
 
 #if DEBUG
       PRINTF("length of the ranging response %d\n", dw_get_rx_len());
-      PRINTF("waiting time %d\n", (unsigned long int ) (theorical_transmission_approx(dw1000_conf.preamble_length,
-                    dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
-                    DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
-                    DW1000_REPLY_TIME_COMPUTATION));
+      PRINTF("waiting time %d\n", (unsigned long int ) 
+              (theorical_transmission_approx(dw1000_conf.preamble_length,
+              dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
+              DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
+              DW1000_REPLY_TIME_COMPUTATION));
 #endif /* DEBUG */
 
       /* compute the propagation time with the clock offset correction */
@@ -798,7 +797,6 @@ if(dw1000_driver_sstwr){
           }
         }
       }
-      // clear_rx_buffer = 1; /* true */
     }
   } /* end SDS TWR */
 
@@ -1018,6 +1016,11 @@ dw1000_on(void)
   }
 #endif /* DOUBLE_BUFFERING */
 
+  uint32_t sys_ctrl;
+  dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 4, (uint8_t *) &sys_ctrl);
+  if(sys_ctrl != 0)
+    printf("init rx Sys ctrl value %lu\n", sys_ctrl);
+  
   dw_idle();
   uint8_t sys_ctrl_val;
   BUSYWAIT_UPDATE_UNTIL(dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val); 
@@ -1546,25 +1549,30 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     dw_change_rx_buffer();
 #endif /* ! DOUBLE_BUFFERING */
 
-    uint8_t sys_status_lo = 0x0;
+    uint32_t sys_status = 0x0;
     /* wait the end of the transmission */
-    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
-              &sys_status_lo); watchdog_periodic();,
-              ((sys_status_lo & DW_TXFRS_MASK) != 0),
+    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, 
+              (uint8_t*) &sys_status); watchdog_periodic();,
+              ((sys_status & (DW_TXFRS_MASK | DW_HPDWARN_MASK))  != 0),
               theorical_transmission_approx(dw1000_conf.preamble_length, 
               dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
               DW1000_SPI_DELAY + dw1000_driver_reply_time);
+    /* HPDWARN => we abort the send */
+    if((sys_status & DW_HPDWARN_MASK) != 0){
+      dw_idle();
+      printf("process_sds_twr HPDWARN\n");
+    }
 
     dw1000_driver_clear_pending_interrupt();
 
     /* ranging response send OK */
-    if((sys_status_lo & DW_TXFRS_MASK) != 0) {
+    if((sys_status & DW_TXFRS_MASK) != 0) {
       /* compute the difference between the expected reply time and 
             the real reply time to correct further the propagation time 
             in the sender side.*/
       uint16_t t_reply_corrector = dw_get_tx_timestamp() - rx_timestamp0 
                                     - dw1000_driver_schedule_reply_time;
-      sys_status_lo = 0x0;
+      uint8_t sys_status_lo = 0x0;
       /* wait the ranging response */
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
             &sys_status_lo); watchdog_periodic();,
@@ -1618,8 +1626,6 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
       }
     }
 
-    dw_idle();
-    dw_trxsoft_reset();
     dw_idle();
 
 #if DEBUG_RANGING
@@ -1773,13 +1779,21 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 
   if(data_rate == DW_DATA_RATE_110_KBPS) {
     dw1000_conf.data_rate = DW_DATA_RATE_110_KBPS;
-    dw1000_conf.pac_size = DW_PAC_SIZE_32;
   } else if(data_rate == DW_DATA_RATE_850_KBPS) {
     dw1000_conf.data_rate = DW_DATA_RATE_850_KBPS;
-    dw1000_conf.pac_size = DW_PAC_SIZE_16;
   } else { /* 6800 kbps */
     dw1000_conf.data_rate = DW_DATA_RATE_6800_KBPS;
+  }
+
+  /* PAC size choose, based on the Table 6: Recommended PAC size */
+  if(preamble_length < 256){
     dw1000_conf.pac_size = DW_PAC_SIZE_8;
+  } else if(preamble_length < 1024){
+    dw1000_conf.pac_size = DW_PAC_SIZE_16;
+  } else if(preamble_length == 1024){
+    dw1000_conf.pac_size = DW_PAC_SIZE_32;
+  }else{
+    dw1000_conf.pac_size = DW_PAC_SIZE_64;
   }
 
   dw_conf(&dw1000_conf);
@@ -1861,8 +1875,9 @@ dw1000_driver_set_reply_time(uint32_t reply_time)
   dw1000_driver_reply_time = reply_time;
   dw1000_driver_schedule_reply_time = ((uint64_t) 
                                   dw1000_driver_reply_time * 125) << 9;
-  printf("t reply  %d\n", (unsigned int) dw1000_driver_reply_time);
-  printf("t reply 2 %d\n", (unsigned int) dw1000_driver_schedule_reply_time);
+  printf("DW10000 Reply Time %lu (ms) %lu (Decawave time)\n", 
+                                          dw1000_driver_reply_time,
+                                          dw1000_driver_schedule_reply_time);
 }
 /**
  * \brief Based on the reply time and the RX timestamps, this function schedule 
@@ -2070,8 +2085,11 @@ dw1000_driver_get_packet_quality(void){
  *  \return If the message was correctly sent.
  */
 uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send){
-  uint8_t sys_status_lo = 0x0; /* clear the value */
+  uint32_t sys_status = 0x0; /* clear the value */
   uint8_t ack_num;
+
+  /* clear the sys status */
+  dw1000_driver_clear_pending_interrupt();
 
   dw1000_schedule_reply();
 
@@ -2091,20 +2109,25 @@ uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send){
   /* wait for resp and delayed */
   dw_init_tx(wait_for_resp, 1);
 
-  /* clear the sys status */
-  dw1000_driver_clear_pending_interrupt();
-
   if(wait_send){
     /* wait the end of the transmission */
-    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
-              &sys_status_lo); watchdog_periodic();,
-              ((sys_status_lo & DW_TXFRS_MASK) != 0),
+    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, 
+              (uint8_t*) &sys_status); watchdog_periodic();,
+              ((sys_status & (DW_TXFRS_MASK | DW_HPDWARN_MASK))  != 0),
               theorical_transmission_approx(dw1000_conf.preamble_length, 
               dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
               DW1000_SPI_DELAY + dw1000_driver_reply_time);
+    if((sys_status & DW_HPDWARN_MASK) != 0){
+      dw_idle();
+      printf("ranging_send_ack_sheduled HPDWARN\n"  );
+      return 0;
+    }
+    if((sys_status & DW_TXFRS_MASK) == 0){
 
+      printf("ranging_send_ack_sheduled TXFRS error\n"  );
+    }
     /* ranging response send OK */
-    return ((sys_status_lo & DW_TXFRS_MASK) != 0);
+    return ((sys_status & DW_TXFRS_MASK) != 0);
   }
   return 1;
 }

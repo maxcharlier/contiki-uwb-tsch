@@ -499,9 +499,9 @@
 
 /* DW_REG_CHAN_CTRL 0x1F */
 #define DW_TXCHAN        0              /* \brief dummy */
-#define DW_TXCHAN_MASK   (0x1FUL << 0)  /* \brief dummy */  
-#define DW_RXCHAN        5              /* \brief dummy */
-#define DW_RXCHAN_MASK   (0x1FUL << 5)  /* \brief dummy */
+#define DW_TXCHAN_MASK   (0xFUL << 0)  /* \brief dummy */  
+#define DW_RXCHAN        4              /* \brief dummy */
+#define DW_RXCHAN_MASK   (0xFUL << 4)  /* \brief dummy */
 #define DW_DWSFD         17             /* \brief dummy */
 #define DW_DWSFD_MASK    (0x1UL << 17)  /* \brief dummy */
 #define DW_RXPRF         18             /* \brief dummy */

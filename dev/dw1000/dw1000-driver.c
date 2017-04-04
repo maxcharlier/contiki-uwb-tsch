@@ -319,13 +319,13 @@ dw1000_driver_init(void)
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
   /* Simple reset of device. */
-  dw_soft_reset(); /* Need to be call with a SPI speed < 4MH */
+  dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
 
   /* clear all interrupt */
   dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
 
   /* load the program to compute the timestamps */
-  dw_load_lde_code(); /* Need to be call with a SPI speed < 4MH */
+  dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
 
 #if DW1000_IEEE802154_EXTENDED
   PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, ");

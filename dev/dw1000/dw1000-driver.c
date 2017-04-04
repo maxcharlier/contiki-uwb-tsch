@@ -214,6 +214,7 @@ void dw1000_compute_prop_time_sdstwr(void);
 void dw1000_compute_prop_time_sstwr(void);
 inline void  dw1000_update_frame_quality(void);
 uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send);
+uint16_t convert_payload_len(uint16_t payload_len);
 /* end private function */
 
 /* PLATFORM DEPENDENT
@@ -402,24 +403,12 @@ dw1000_driver_prepare(const void *payload,
       ((uint8_t *)payload)[0] &= ~(1UL << 5);
     }
 #endif
-#if DW1000_IEEE802154_EXTENDED
-    /* In extended mode, there are not a RNG bit in the PHR.
-      We use a dedicated frame of 10 bytes and we use the last byte 
-      to indicates a ranging request.  */
-    data_len = 10;
-    payload_len = 10;
-#else
+#if !DW1000_IEEE802154_EXTENDED
     /* In standard mode we use the RNG bit in the PHR. */
     dw_enable_ranging_frame();
-    if(dw1000_driver_sstwr){
-      data_len = 9;
-      payload_len = 9;
-    }
-    else{
-      data_len = 10;
-      payload_len = 10;
-    }
 #endif
+    payload_len = convert_payload_len(payload_len);
+    data_len = payload_len;
   }
 
   if(!DW1000_CONF_CHECKSUM) {
@@ -509,20 +498,8 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
 
-if(dw1000_driver_sstwr){
-#if DW1000_IEEE802154_EXTENDED
-    /* In extended mode, there are not a RNG bit in the PHR.
-      We use a dedicated frame of 10 bytes and we use the last byte 
-      to indicates a ranging request.  */
-    payload_len = 10;
-#else
-    /* In standard mode we use the RNG bit in the PHR. */
-    payload_len = 9;
-#endif
-  }
-  if(dw1000_driver_sdstwr){
-    payload_len = 10;
-  }
+  /* if we are in ranging, the size change. */
+  payload_len = convert_payload_len(payload_len);
 
 
   if(!(dw1000_driver_sstwr || dw1000_driver_sdstwr)){
@@ -2130,4 +2107,27 @@ uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send){
     return ((sys_status & DW_TXFRS_MASK) != 0);
   }
   return 1;
+}
+
+/**
+ * \brief Convert the size of the payload based on the mode.
+ *        If ranging, the payload size is changed.
+ *        /!\ Private function.
+ * */
+uint16_t convert_payload_len(uint16_t payload_len){
+  if(dw1000_driver_sstwr){
+#if DW1000_IEEE802154_EXTENDED
+    /* In extended mode, there are not a RNG bit in the PHR.
+      We use a dedicated frame of 10 bytes and we use the last byte 
+      to indicates a ranging request.  */
+    payload_len = 10;
+#else
+    /* In standard mode we use the RNG bit in the PHR. */
+    payload_len = 9;
+#endif
+  }
+  if(dw1000_driver_sdstwr){
+    payload_len = 10;
+  }
+  return payload_len;
 }

@@ -11,6 +11,7 @@
 
 /*---------------------------------------------------------------------------*/
 PROCESS(frame_master_process, "Frame master");
+PROCESS(receive_process, "Receive manager");
 PROCESS(receive_debug_process, "Receive debug");
 
 AUTOSTART_PROCESSES(&frame_master_process);
@@ -90,7 +91,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
 
     master_addr = from->u8[0] | (from->u8[1] << 8);
 
-    process_poll(&frame_master_process);
+    process_poll(&receive_process);
 
     message_received = 1; 
     message_init = 1;
@@ -150,6 +151,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
 
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 
+  process_start(&receive_process, NULL);
   // process_start(&receive_debug_process, NULL);
 
   for(;;) {
@@ -385,7 +387,19 @@ PROCESS_THREAD(frame_master_process, ev, data)
                   (unsigned int) receive_debug);
       }
     }
-    else if(ev == PROCESS_EVENT_POLL){
+  }
+  PROCESS_END();
+}
+
+/* Use to manage a response */
+PROCESS_THREAD(receive_process, ev, data)
+{
+
+  PROCESS_BEGIN();
+
+  while (1) {
+    PROCESS_WAIT_EVENT();
+    if(ev == PROCESS_EVENT_POLL){
       if(mode == 0x01 || mode == 0x02){
         if(payload_len == 5){
           uint16_t source, dest;
@@ -600,8 +614,10 @@ PROCESS_THREAD(frame_master_process, ev, data)
       }
     }
   }
+  
   PROCESS_END();
 }
+
 
 void set_tr_delay(uint16_t tx_delay, uint16_t rx_delay){
   dw1000_driver_off();

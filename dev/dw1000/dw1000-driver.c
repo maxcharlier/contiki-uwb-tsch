@@ -286,22 +286,7 @@ static uint8_t receive_on;
 /*---------------------------------------------------------------------------*/
 static uint8_t locked, lock_on, lock_off;
 
-#define GET_LOCK() locked++
-static void
-RELEASE_LOCK()
-{
-  if(locked == 1) {
-    if(lock_on) {
-      dw1000_on();
-      lock_on = 0;
-    }
-    if(lock_off) {
-      dw1000_off();
-      lock_off = 0;
-    }
-  }
-  locked--;
-}
+
 /*---------------------------------------------------------------------------*/
 
 /**
@@ -384,7 +369,7 @@ dw1000_driver_prepare(const void *payload,
 {
   PRINTF("dw1000_driver_prepare\r\n");
 
-  uint32_t data_len = payload_len;
+  uint16_t data_len = payload_len;
 #if DW1000_CONF_AUTOACK
   dw1000_driver_wait_ACK = (((uint8_t *)payload)[0] & (1 << 5)) ? 1 : 0;
   if(dw1000_driver_wait_ACK) {
@@ -392,7 +377,6 @@ dw1000_driver_prepare(const void *payload,
   }
 #endif
 
-  GET_LOCK();
   RIMESTATS_ADD(lltx);
 
   if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
@@ -452,7 +436,7 @@ dw1000_driver_prepare(const void *payload,
   PRINTF("payload_len %i\r\n", payload_len);
   PRINTF("Data len %i\r\n", (unsigned int)data_len);
 #endif
-  RELEASE_LOCK();
+  // RELEASE_LOCK();
 
   return 0;
 }
@@ -481,7 +465,6 @@ dw1000_driver_transmit(unsigned short payload_len)
               dw1000_driver_sstwr);
 
   int tx_return = RADIO_TX_ERR;
-  GET_LOCK();
 #if DEBUG
   uint8_t count_idle = 0, count_txtrt = 0;
 #endif /* DEBUG */
@@ -548,7 +531,6 @@ dw1000_driver_transmit(unsigned short payload_len)
   if((sys_status_lo & DW_TXFRS_MASK) != 0) {
     tx_return = RADIO_TX_OK;
   }
-
   if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
 #if !DW1000_IEEE802154_EXTENDED
     /* In standard mode, we disable the RNG bit in the PHR for the next frame.*/
@@ -801,8 +783,6 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw1000_driver_clear_pending_interrupt();
   }
 
-  RELEASE_LOCK();
-
   ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
 
 #if DEBUG_VERBOSE
@@ -846,8 +826,6 @@ dw1000_driver_read(void *buf, unsigned short bufsize)
 
   PRINTF("dw1000_driver_read\r\n");
 
-  GET_LOCK();
-
 #if DW1000_IEEE802154_EXTENDED
   int len = dw_get_rx_extended_len();
 #else
@@ -856,19 +834,16 @@ dw1000_driver_read(void *buf, unsigned short bufsize)
 
   if(len > DW1000_MAX_PACKET_LEN) {
     RIMESTATS_ADD(toolong);
-    RELEASE_LOCK();
     return 0;
   }
 
   if(len <= FOOTER_LEN) {
     RIMESTATS_ADD(tooshort);
-    RELEASE_LOCK();
     return 0;
   }
 
   if(len - FOOTER_LEN > bufsize) {
     RIMESTATS_ADD(toolong);
-    RELEASE_LOCK();
     return 0;
   }
 
@@ -886,7 +861,6 @@ dw1000_driver_read(void *buf, unsigned short bufsize)
 #endif
 
   pending--;
-  RELEASE_LOCK();
   return len;
 }
 /**
@@ -902,7 +876,6 @@ dw1000_driver_cca(void)
 {
   PRINTF("dw1000_driver_cca\r\n");
   /*
-     GET_LOCK();
 
      dw_idle();
      dw1000_driver_disable_interrupt();
@@ -918,7 +891,6 @@ dw1000_driver_cca(void)
      BUSYWAIT_UNTIL((dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & 
                       DW_RXPRD_MASK) == 0, RTIMER_SECOND / 3000);
      dw1000_driver_enable_interrupt();
-     RELEASE_LOCK();
      return (dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & 
               DW_RXPRD_MASK) == 0;
    */
@@ -973,9 +945,7 @@ dw1000_driver_on(void)
     return 1;
   }
 
-  GET_LOCK();
   dw1000_on();
-  RELEASE_LOCK();
   return 1;
 }
 /**
@@ -1036,7 +1006,6 @@ dw1000_driver_off(void)
     return 0;
   }
 
-  GET_LOCK();
   /* If we are currently receiving a packet (indicated by SFD == 1),
      we don't actually switch the radio off now, but signal that the
      driver should switch off the radio once the packet has been
@@ -1048,7 +1017,6 @@ dw1000_driver_off(void)
   } else {
     dw1000_off();
   }
-  RELEASE_LOCK();
   return 1;
 }
 /**
@@ -1664,9 +1632,7 @@ dw1000_driver_set_pan_addr(unsigned pan,
                            unsigned addr,
                            const uint8_t *ieee_addr)
 {
-  uint16_t i = 0;
-
-  GET_LOCK();
+  uint8_t i = 0;
 
   uint16_t pan_id = pan & 0xFFFF;
   dw_set_pan_id(pan_id);
@@ -1681,7 +1647,6 @@ dw1000_driver_set_pan_addr(unsigned pan,
     }
     dw_set_extendedUniqueID(euid);
   }
-  RELEASE_LOCK();
 }
 /**
  * \brief   Configure the transceiver for a wished channel and data rate.

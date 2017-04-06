@@ -633,6 +633,34 @@ theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate,
 
   return t_shr + t_prf + t_mac;
 }
+
+/**
+ * \brief Compute the theoretical time of the transmission of a paload with 
+ *     a length of data_lenght.
+ *
+ * \param data_rate          The data rate (110, 850 or 8600) in kbps.
+ * \param data_lenght        The data length in bytes.
+ *
+ * \return An approximation of the theoretical time of a transmission 
+ *         in millisecond.
+ */
+unsigned long
+theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght)
+{
+  uint32_t s_mac; /* to have a correct precision */
+
+  /* duration of a data symbol  (*100 000) */
+  if(data_rate == DW_DATA_RATE_110_KBPS) {
+    s_mac = 820513;
+  } else if(data_rate == DW_DATA_RATE_850_KBPS) {
+    s_mac = 102564;
+  } else { /* data_rate == 6800 kbps */
+    s_mac = 12821;
+  }
+
+  return (s_mac * ((8 * data_lenght) 
+          + ReedSolomonParityBit(data_lenght))) / 100000;
+}
 /**
  * \brief Convert a duration in micro second to a number of clock ticks
  * \param duration A delay in micro second.

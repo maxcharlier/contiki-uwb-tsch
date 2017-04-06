@@ -118,7 +118,11 @@
  * Min value is 11: 9 for the header and 2 for the FCS */
 #define DW1000_RANGING_MAX_LEN 11
 
-#define DW1000_RANGING_FINAL_LEN 17
+/* the length of the final ranging response in SDS TWR */
+#define DW1000_RANGING_FINAL_SDS_LEN 17
+
+/* the length of the final ranging response in SS TWR */
+#define DW1000_RANGING_FINAL_SS_LEN 13
 /* #define DEBUG_RANGING 1 */
 
 #define DEBUG_VERBOSE 0
@@ -211,7 +215,7 @@ static volatile uint16_t last_packet_timestamp;
 inline void dw1000_schedule_reply(void);
 void dw1000_schedule_reply2(void);
 void dw1000_compute_prop_time_sdstwr(void);
-void dw1000_compute_prop_time_sstwr(void);
+void dw1000_compute_prop_time_sstwr(uint16_t t_reply_offset);
 inline void  dw1000_update_frame_quality(void);
 uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
@@ -575,19 +579,20 @@ dw1000_driver_transmit(unsigned short payload_len)
     sys_status_lo = 0x0; /* clear the value */
 
     /* wait for a ranging response */
-    /* the length of the ranging response is 5 */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
                     &sys_status_lo); watchdog_periodic(); count++,
                     (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
                     (DW_RXFCE_MASK >> 8))) != 0)), 
                     theorical_transmission_approx(dw1000_conf.preamble_length,
-                      dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                      dw1000_conf.data_rate, dw1000_conf.prf, 
+                      DW1000_RANGING_FINAL_SS_LEN) + 
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                       dw1000_driver_reply_time);
     PRINTF("Number of loop waiting the ranging response %d\n", count);
 
-    if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
+    if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0 && 
+      dw_get_rx_len() == DW1000_RANGING_FINAL_SS_LEN) {
       tx_return = RADIO_TX_OK;
 
 #if DEBUG
@@ -599,8 +604,12 @@ dw1000_driver_transmit(unsigned short payload_len)
               DW1000_REPLY_TIME_COMPUTATION));
 #endif /* DEBUG */
 
+      uint16_t t_reply_offset;
+      dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 2, (uint8_t*) &t_reply_offset);
+
+      printf("t_reply_offset %u\n", t_reply_offset);
       /* compute the propagation time with the clock offset correction */
-      dw1000_compute_prop_time_sstwr();
+      dw1000_compute_prop_time_sstwr(t_reply_offset);
 
       dw1000_update_frame_quality();
     }
@@ -685,7 +694,7 @@ dw1000_driver_transmit(unsigned short payload_len)
                       (DW_RXFCE_MASK >> 8))) != 0)), 
                       theorical_transmission_approx(dw1000_conf.preamble_length,
                         dw1000_conf.data_rate, dw1000_conf.prf, 
-                        DW1000_RANGING_FINAL_LEN) + 
+                        DW1000_RANGING_FINAL_SDS_LEN) + 
                         DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                         dw1000_driver_reply_time);
         
@@ -707,7 +716,7 @@ dw1000_driver_transmit(unsigned short payload_len)
             correction on the t_prop */
         if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
           /* check if the message have the good size */
-          if(dw_get_rx_extended_len() == DW1000_RANGING_FINAL_LEN){
+          if(dw_get_rx_extended_len() == DW1000_RANGING_FINAL_SDS_LEN){
             int32_t t_propReceiver;
             dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 4, 
                                                     (uint8_t*) &t_propReceiver);
@@ -1539,7 +1548,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
 
         dw1000_compute_prop_time_sdstwr();
 
-        dw_set_tx_frame_length(DW1000_RANGING_FINAL_LEN);
+        dw_set_tx_frame_length(DW1000_RANGING_FINAL_SDS_LEN);
 
         /* Copy the response frame to the DW1000 */
         /* header CRTL, seq num, PAN ID */
@@ -1566,7 +1575,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
               ((sys_status_lo & DW_TXFRS_MASK) != 0),
               (theorical_transmission_approx(dw1000_conf.preamble_length, 
               dw1000_conf.data_rate, dw1000_conf.prf, 
-              DW1000_RANGING_FINAL_LEN) << 1 )+ 
+              DW1000_RANGING_FINAL_SDS_LEN) << 1 )+ 
               DW1000_SPI_DELAY);
       }
     }
@@ -1609,9 +1618,71 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
     }
 #endif
 
-    /* don't wait a response */
-    ranging_send_ack_sheduled(0, 1);
+    /* clear the sys status */
+    dw1000_driver_clear_pending_interrupt();
 
+    /* We construct the response frame.
+      These frame will contain the offset between the real reply time 
+      and the expected reply time.*/
+
+    /* we save the frame of the initiator to build the response */
+    uint8_t initiator_frame[9];
+    dw_read_subreg(DW_REG_RX_BUFFER, 0x0, 9, initiator_frame);
+
+
+    dw_set_tx_frame_length(DW1000_RANGING_FINAL_SS_LEN);
+
+    /* Copy the response frame to the DW1000 */
+    /* header CRTL, seq num, PAN ID */
+    dw_write_reg(DW_REG_TX_BUFFER, 0x5, (uint8_t*) &initiator_frame[0]);
+    /* src */
+    dw_write_subreg(DW_REG_TX_BUFFER, 0x5, 2,  
+                    (uint8_t*) &initiator_frame[7]);
+    /* dst */
+    dw_write_subreg(DW_REG_TX_BUFFER, 0x7, 2,  
+                    (uint8_t*) &initiator_frame[5]);
+
+    dw1000_schedule_reply();
+
+    /* no wait for response and delayed */
+    dw_init_tx(0, 1);
+
+    /* wait the transmission of the PHR => indicated the update of the 
+        TX timestamps
+      Check also the HPDWARN, if HPDWARN the reply time is to short*/
+    uint32_t sys_status = 0x0; /* clear the value */
+    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, 
+            (uint8_t*) &sys_status); watchdog_periodic();,
+            ((sys_status & (DW_TXPHS_MASK | DW_HPDWARN_MASK))  != 0),
+            dw1000_conf.preamble_length + dw1000_driver_reply_time);
+    if((sys_status & DW_HPDWARN_MASK) != 0){
+      dw_idle(); /* abort the transmission */
+      printf("process_ss_twr HPDWARN\n");
+      return 0;
+    }
+    if((sys_status & DW_TXPHS_MASK) != 0){
+      /* compute the difference between the expected reply time and 
+        the real reply time to correct further the propagation time 
+        in the sender side.*/
+      uint16_t t_reply_offset = dw_get_tx_timestamp() - dw_get_rx_timestamp() 
+                                - dw1000_driver_schedule_reply_time;
+
+      dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 2,  
+                      (uint8_t*) &t_reply_offset);
+      uint8_t sys_status_lo;
+      /* wait the end of the transmission */
+      BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
+                    &sys_status_lo); watchdog_periodic();,
+                    ((sys_status_lo & DW_TXFRS_MASK)  != 0),
+                    theorical_transmission_payload(dw1000_conf.data_rate, 
+                      DW1000_RANGING_FINAL_SS_LEN) + DW1000_SPI_DELAY);
+      if((sys_status_lo & DW_TXFRS_MASK) != 0){ 
+        printf("process_ss_twr: reply time offset send correctly %u\n",
+              t_reply_offset);
+      }
+      // print_sys_status(sys_status_lo);
+    }
+    
     dw1000_update_frame_quality();
 
     /* we reenable the RX state */
@@ -1917,11 +1988,12 @@ dw1000_compute_prop_time_sdstwr(void){
  *        transmitting and the receiver clock.
  */
 void 
-dw1000_compute_prop_time_sstwr(void){
+dw1000_compute_prop_time_sstwr(uint16_t t_reply_offset){
   int32_t rx_tofs = 0L;
   uint64_t rx_tofsU = 0UL;
   uint8_t  rx_tofs_negative = 0; /* false */
   uint64_t rx_ttcki = 0ULL;
+  uint32_t reply_time = dw1000_driver_schedule_reply_time;
   /* Compute the round time  t_round*/
   dw1000_driver_last_prop_time = dw_get_rx_timestamp() - 
                               dw_get_tx_timestamp();      
@@ -1929,7 +2001,9 @@ dw1000_compute_prop_time_sstwr(void){
   PRINTF("t reply  %d Deca Time\n", (unsigned int) dw1000_driver_reply_time);
   PRINTF("t reply 2 %d ms\n", (unsigned int) t_reply);
 
-  dw1000_driver_last_prop_time -= dw1000_driver_schedule_reply_time;
+  /* correct the reply time */
+  reply_time += t_reply_offset;
+  dw1000_driver_last_prop_time -= reply_time;
 
   /* we want to take into a count the clock offset
     Clock offset = RX TOFS / RX TTCKI */
@@ -1962,11 +2036,11 @@ dw1000_compute_prop_time_sstwr(void){
       We don't want to use signed number => we made tow cases in function of the
       sign of RX TOFS */
   if(rx_tofs_negative == 1){
-    dw1000_driver_last_prop_time -= 
-                  ((dw1000_driver_schedule_reply_time * rx_tofsU) / rx_ttcki);
-  }else {
     dw1000_driver_last_prop_time += 
-                  ((dw1000_driver_schedule_reply_time * rx_tofsU) / rx_ttcki);
+                  ((reply_time * rx_tofsU) / rx_ttcki);
+  }else {
+    dw1000_driver_last_prop_time -= 
+                  ((reply_time * rx_tofsU) / rx_ttcki);
   }
   /* dw1000_driver_last_prop_time divided by 2 */
   dw1000_driver_last_prop_time = dw1000_driver_last_prop_time / 2;

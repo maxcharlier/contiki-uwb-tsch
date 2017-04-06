@@ -73,6 +73,8 @@ void print_sys_status(uint64_t sys_status);
 unsigned long
 theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, 
                               uint8_t prf, uint32_t data_lenght);
+unsigned long
+theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght);
 
 inline rtimer_clock_t microsecond_to_clock_tik(int duration);
 inline int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks);

@@ -568,6 +568,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint8_t fs_xtal_val;
   uint8_t ec_crtl_val;
   dw_read_reg(DW_REG_EC_CTRL, 1, &ec_crtl_val);
+  uint8_t user_sfd_lenght = 0;
 
   /* === Configure PRF */
   tx_fctrl_val &= ~DW_TXPRF_MASK;
@@ -857,6 +858,29 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     break;
   case DW_SFD_NON_STANDARD:
     chan_ctrl_val |= (1UL << DW_DWSFD) & DW_DWSFD_MASK; /* use DW ns SFD */
+    /* The user manual specify that TNSSFD and RNSSFD are ignored when DWSFD 
+        is set but the receiver do not detect message without theses tow bits */
+    chan_ctrl_val |= DW_TNSSFD_MASK;
+    chan_ctrl_val |= DW_RNSSFD_MASK;
+
+    /* We need to specify the length of the non-standard SFD. */
+    /* This value must be set only for data rate greater 
+        or equal than 850 kbps
+        Value choose according the "Table 21: Recommended SFD sequence 
+        configurations for best performance" of the manual.*/
+    switch(dw_conf->data_rate) {
+      case DW_DATA_RATE_110_KBPS:
+         /* Default value, there are not operational effect.
+            The SFD length is always 64 at 110 kbps */
+        user_sfd_lenght = 0; 
+      break;
+      case DW_DATA_RATE_850_KBPS:
+        user_sfd_lenght = 16;
+      break;
+      case DW_DATA_RATE_6800_KBPS:
+        user_sfd_lenght = 8;
+      break;
+    }
     break;
   case DW_SFD_USER_SPECIFIED:
     /* Not implemented yet! */
@@ -926,6 +950,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
   dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
+  dw_write_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
+                  (uint8_t *) &user_sfd_lenght);
   dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1,
                   (uint8_t *) &agc_tune1_val);
@@ -963,7 +989,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
-
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
 }
@@ -1150,6 +1175,7 @@ dw_conf_print()
   uint32_t lde_cfg2 = 0;
   uint32_t lde_repc = 0;
   uint32_t tx_power_val = 0;
+  uint8_t  user_sfd_lenght = 0;
 
   sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
@@ -1190,6 +1216,8 @@ dw_conf_print()
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
   dw_read_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
+  dw_read_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
+                  (uint8_t *) &user_sfd_lenght);
 
   printf("============================\r\n");
   printf("DW1000 Current Configuration\r\n");
@@ -1220,6 +1248,7 @@ dw_conf_print()
   printf("lde_cfg2   : %08" PRIx32 "\r\n", lde_cfg2);
   printf("lde_repc   : %08" PRIx32 "\r\n", lde_repc);
   printf("tx_power   : %08" PRIx32 "\r\n", tx_power_val);
+  printf("user_sfd_lenght   : %08X\r\n", user_sfd_lenght);
 }
 /*===========================================================================*/
 /* Utility                                                                   */

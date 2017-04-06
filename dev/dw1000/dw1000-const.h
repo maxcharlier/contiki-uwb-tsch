@@ -148,6 +148,11 @@
 #define DW_REG_TX_ANTD      0x18        /* \brief dummy */
 #define DW_LEN_TX_ANTD      2           /* \brief dummy */
 
+#define DW_REG_USR_SFD       0x21        /* \brief dummy */
+#define DW_LEN_USR_SFD       41           /* \brief dummy */
+#define DW_SUBREG_SFD_LENGTH 0x00        /* \brief dummy */
+#define DW_SUBLEN_SFD_LENGTH 1           /* \brief dummy */
+
 #define DW_REG_EC_CTRL      0x24        /* \brief dummy */
 #define DW_LEN_EC_CTRL      4           /* \brief dummy */
 

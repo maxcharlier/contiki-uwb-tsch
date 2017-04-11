@@ -32,8 +32,8 @@
 
 /**
  * \file
- *         Hardware abstraction library for the decawave
- *            dw1000 specific driver.
+ *         Hardware abstraction library for the DecaWave
+ *            DW1000 specific driver.
  *          Based on the work of Hasan Derhamy & Kim Albertsson
  * \author
  *         Charlier Maximilien  <maximilien-charlier@outlook.com>
@@ -80,7 +80,7 @@ void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr,
 /*========================== Public Declarations ============================*/
 
 /**
- * \brief Singleton instance of the dw1000 driver. This instance mirrors the
+ * \brief Singleton instance of the DW1000 driver. This instance mirrors the
  * configuration on the actual device. Also provides a global access point to
  * device receive buffer data.
  */
@@ -91,7 +91,7 @@ dw1000_base_driver dw1000;
  *        Enable interrupt for receiver data frame ready event.
  *        Load LDE Code
  *        Initialize channel, data rate, preamble
- *        Define rx configuration
+ *        Define RX configuration
  *        Enable RX, TX, SFD and RK0 LED.
  */
 void
@@ -108,7 +108,7 @@ dw1000_init()
   /* Check if SPI communication works by reading device ID */
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
-  /* Init dw1000 */
+  /* Init the DW1000 */
   dw_soft_reset(); /* Simple reset of device. */
 
   dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
@@ -176,7 +176,7 @@ dw1000_init()
  *      between TX mode and RX modes.
  *
  * Configuration of the Automatic ACK Turnaround Time (ACK_TIM).
- * Decawave recommend a min value of 0 at 110 kbps, 2 at 850 kbps and
+ * DecaWave recommend a min value of 0 at 110 kbps, 2 at 850 kbps and
  * 3 at 6800 kbps [ACK_TIM field]. 
  * But the IEEE 802.15.4 standard specifies a 12 symbol +/- 0.5 symbols 
  * turnaround time for ACK transmission [5.3.2 Automatic Receiver Re-Enable]. 
@@ -362,16 +362,16 @@ dw_enable_gpio_led(void)
   data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, 
                             DW_SUBLEN_PMSC_LEDC);
   data |= (1UL << DW_BLNKEN) & DW_BLNKEN_MASK; /* enable blink mode */
-  data |= (0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK; /* force leds to blink 
+  data |= (0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK; /* force LEDs to blink 
                                                       once */
   data &= ~DW_BLINK_TIM_MASK; /* set Blink time count value to 0 */
-  data |= (0xF << DW_BLINK_TIM) & DW_BLINK_TIM_MASK; /* blink time to 20ms 
-                                                        (default 400ms) */
+  data |= (0xF << DW_BLINK_TIM) & DW_BLINK_TIM_MASK; /* blink time to 20 ms 
+                                                        (default 400 ms) */
 
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
                   (uint8_t *)&data);
 
-  /* reset force blink bits. Needed to make the leds blinking */
+  /* reset force blink bits. Needed to make the LEDs blinking */
   data &= ~((0xFUL << DW_BLNKNOW) & DW_BLNKNOW_MASK); 
 
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
@@ -408,7 +408,7 @@ dw_disable_gpio_led(void)
   data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, 
                             DW_SUBLEN_PMSC_LEDC);
   data &= ~DW_BLNKEN_MASK; /* reset blink mode */
-  data &= ~DW_BLNKNOW_MASK; /* force leds to blink once */
+  data &= ~DW_BLNKNOW_MASK; /* force LEDs to blink once */
   data &= ~DW_BLINK_TIM_MASK; /* reset Blink time count value */
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, DW_SUBLEN_PMSC_LEDC, 
                   (uint8_t *)&data);
@@ -478,7 +478,7 @@ dw_sfd_init(void){
 void
 dw_load_lde_code(void){
   const uint16_t lde1 = 0x0301;
-  const uint16_t lde = DW_LDELOAD_MASK; /* load lde code */
+  const uint16_t lde = DW_LDELOAD_MASK; /* load LDE code */
   const uint8_t lde3[2] = {0x00, 0x02};
 
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde1);
@@ -489,12 +489,18 @@ dw_load_lde_code(void){
      Need to write lower byte separately before setting the higher byte(s) */
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 1, &lde3[0]);
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0 + 1, 1, &lde3[1]);
+}
 
-  // uint16_t value;
-  // /* active load lde wake up */
-  // dw_read_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
-  // value |= (0x1 << DW_ONW_LLDE) & DW_ONW_LLDE_MASK;
-  // dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
+/**
+ * \brief Enable the automatic load of the LDE code on Wake UP (after a SLEEP).
+ */
+void
+dw_active_lde_on_wakeup(void){
+  uint16_t value;
+  /* active load lde wake up */
+  dw_read_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
+  value |= (0x1 << DW_ONW_LLDE) & DW_ONW_LLDE_MASK;
+  dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
 }
 /**
  * \brief Apply a soft reset
@@ -1491,19 +1497,15 @@ dw_get_receive_quality(dw1000_frame_quality* quality)
  *        In the section 4.7.1 Estimating the signal power in the first path
  *        And in the section 4.7.2 Estimating the receive signal power
  *        N_correction == 1 if the value RXPACC is saturated.
- *        
- *        Also display the choose PRF and BitRate
  *
  */
 void 
 print_receive_quality(dw1000_frame_quality quality)
 {
-  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d 0x%01X 0x%04X\n", 
+  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d", 
       quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
       quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
-      quality.std_noise, (int) quality.clock_offset, 
-      (dw1000.conf.prf == DW_PRF_16_MHZ) ? 16 : 64, 
-      dw1000.conf.data_rate);
+      quality.std_noise, (int) quality.clock_offset);
 }
 
 /*===========================================================================*/
@@ -1895,10 +1897,10 @@ dw_get_antenna_delay()
  *      analyzing the correction made by the phase-lock-loop (PLL) to decode the
  *      signal, it provide an estimate of the difference between the 
  *      transmitting and the receiver clock.
- * \return The Receiver Time Tracking Offset in part per million (ppm).
- *        The value must be between -20 and 20 (theoretically).
+ * \return The Receiver Time Tracking Offset in part per million (ppm) * 100.
+ *        The value must be between -20*100 and 20*100 (theoretically).
  */
-int8_t
+int16_t
 dw_get_clock_offset(void){
   /* Clock offset = RX TOFS / RX TTCKI */
   int32_t rx_tofs = 0L;
@@ -1913,7 +1915,7 @@ dw_get_clock_offset(void){
                                       (unsigned int) rx_tofs); */
 
   /* convert a 19 signed bit number to a 32 bits signed number */
-  if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
+  if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19th bit is 1 => negative number */
     /* a signed int is represented in Ones' complement */
     rx_tofs |= ~DW_RXTOFS_MASK; /* all bit between 31 and 19 are set to 1 */
   }
@@ -1931,10 +1933,10 @@ dw_get_clock_offset(void){
   printf("RX TOFS %ld\n", (long int) rx_tofs);
   printf("RX TTCKI %lu\n", (long unsigned int) rx_ttcki);
   */
-  int32_t clock_full = (rx_tofs * 1000000LL) / rx_ttcki;
-  uint8_t clock_offset = clock_full & 0xFF;
+  int32_t clock_full = (rx_tofs * (1000000LL * 100LL)) / rx_ttcki;
+  int16_t clock_offset = clock_full & 0x7FFF;
   /* copy the sign of clock_full */
-  clock_offset |= (clock_full >> (32 - 8)) & 0x80;
+  clock_offset |= (clock_full >> (32 - 16)) & 0x8000;
   return clock_offset;
 }
 /**
@@ -2010,7 +2012,7 @@ dw_generate_extendedUniqueID()
 void
 dw_idle(void)
 {
-  /* write only one bit > DW_TRXOFF is the 6nd bit. */
+  /* write only one bit > DW_TRXOFF is the 6th bit. */
   /* assume that SYS_CTRL is always empty */
   uint8_t sys_ctrl_val= (1 << DW_TRXOFF) & DW_TRXOFF_MASK;
   dw_write_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_val);
@@ -2018,7 +2020,7 @@ dw_idle(void)
   dw1000.state = DW_STATE_IDLE;
 }
 /**
- * \brief Initiates a new reception on the dw1000. Assumes that it has been
+ * \brief Initiates a new reception on the DW1000. Assumes that it has been
  * configured already.
  */
 void
@@ -2026,9 +2028,25 @@ dw_init_rx(void)
 {
   dw1000.state = DW_STATE_RECEIVING;
   /* Enable antenna */
-  /* RXENAB is the 8nd bit (first in the second byte) */
+  /* RXENAB is the 8th bit (first in the second byte) */
   /* assume that SYS_CTRL is always empty */
   uint8_t sys_ctrl_val = (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
+  dw_write_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
+}
+/**
+ * \brief Initiates a new reception on the DW1000. Assumes that it has been
+ * configured already.
+ */
+void 
+dw_init_delayed_rx(void)
+{
+  dw1000.state = DW_STATE_RECEIVING;
+  /* Enable antenna */
+  /* RXENAB is the 8th bit (first in the second byte) */
+  /* RXDLYE is the 9th bit (second in the second byte) */
+  /* assume that SYS_CTRL is always empty */
+  uint8_t sys_ctrl_val = (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
+  sys_ctrl_val |= (1 << (DW_RXDLYE - 8) & (DW_RXDLYE_MASK >> 8));
   dw_write_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
 }
 /**
@@ -2461,7 +2479,7 @@ dw_enable_double_buffering(void)
   /* enable double-buffered with DIS_DRXB to 0. */
   uint8_t cfgReg;
   dw_read_subreg(DW_REG_SYS_CFG, 0x1, 1, &cfgReg);
-  cfgReg &= ~(DW_DIS_DRXB_MASK >> 8); /* 12nd bit */
+  cfgReg &= ~(DW_DIS_DRXB_MASK >> 8); /* 12th bit */
   dw_write_subreg(DW_REG_SYS_CFG, 0x1, 1, &cfgReg);
 
   dw_enable_automatic_receiver_Re_Enable();
@@ -2477,8 +2495,8 @@ dw_good_rx_buffer_pointer(void)
 {
   uint8_t statusReg;
   dw_read_subreg(DW_REG_SYS_STATUS, 0x3, 1, &statusReg);
-  /* HSRBP is the 30nd bit */
-  /* ICRBP is the 31nd bit */
+  /* HSRBP is the 30th bit */
+  /* ICRBP is the 31th bit */
   return (((statusReg & (DW_HSRBP_MASK >> 24)) >> (DW_HSRBP - 24)) ==  
           ((statusReg & (DW_ICRBP_MASK >> 24)) >> (DW_ICRBP - 24))); 
 }
@@ -2524,7 +2542,7 @@ dw_change_rx_buffer(void)
   /* Host Side Receive Buffer Pointer Toggle to 1. */
   uint8_t ctrlReg;
   dw_read_subreg(DW_REG_SYS_CTRL, 0x3, 1, &ctrlReg);
-  ctrlReg |= DW_HRBPT_MASK >> 24; /* 24nd bit > first bit of the 4nd byte */
+  ctrlReg |= DW_HRBPT_MASK >> 24; /* 24th bit > first bit of the 4th byte */
   dw_write_subreg(DW_REG_SYS_CTRL, 0x3, 1, &ctrlReg);
 }
 /**
@@ -2540,10 +2558,10 @@ dw_trxoff_db_mode(void)
   uint8_t maskReg;
   /* read/write only one byte */
   dw_read_subreg(DW_REG_SYS_MASK, 0x1, 1, &maskReg);
-  maskReg |= (DW_MRXFCE_MASK          /* 15nd bit */
-    | DW_MRXFCG_MASK                  /* 14nd bit */
-    | DW_MRXDFR_MASK                  /* 13nd bit */
-    | DW_MLDEDONE_MASK) >> 8;         /* 10nd bit */
+  maskReg |= (DW_MRXFCE_MASK          /* 15th bit */
+    | DW_MRXFCG_MASK                  /* 14th bit */
+    | DW_MRXDFR_MASK                  /* 13th bit */
+    | DW_MLDEDONE_MASK) >> 8;         /* 10th bit */
   dw_write_subreg(DW_REG_SYS_MASK, 0x1, 1, (uint8_t *) &maskReg);
 
   /* Set TXRXOFF bit = 1, in reg:0D,
@@ -2552,23 +2570,23 @@ dw_trxoff_db_mode(void)
 
   /* Clear RX event flags in SYS_STATUS reg:0F; bits FCE,
       FCG, DFR, LDE_DONE */
-  uint8_t statusReg = (DW_RXFCE_MASK  /* 15nd bit */
-    | DW_RXFCG_MASK                   /* 14nd bit */
-    | DW_RXDFR_MASK                   /* 13nd bit */
-    | DW_LDEDONE_MASK) >> 8;          /* 10nd bit */
+  uint8_t statusReg = (DW_RXFCE_MASK  /* 15th bit */
+    | DW_RXFCG_MASK                   /* 14th bit */
+    | DW_RXDFR_MASK                   /* 13th bit */
+    | DW_LDEDONE_MASK) >> 8;          /* 10th bit */
   dw_write_subreg(DW_REG_SYS_STATUS, 0x1, 1, (uint8_t *)&statusReg);
 
   /* Unmask Double buffered status
       bits; FCE, FCG, DFR, LDE_DONE */
   dw_read_subreg(DW_REG_SYS_MASK, 0x1, 1, &maskReg);
-  maskReg &= ~((DW_MRXFCE_MASK        /* 15nd bit */
-    | DW_MRXFCG_MASK                  /* 14nd bit */
-    | DW_MRXDFR_MASK                  /* 13nd bit */
-    | DW_MLDEDONE_MASK) >> 8);        /* 10nd bit */
+  maskReg &= ~((DW_MRXFCE_MASK        /* 15th bit */
+    | DW_MRXFCG_MASK                  /* 14th bit */
+    | DW_MRXDFR_MASK                  /* 13th bit */
+    | DW_MLDEDONE_MASK) >> 8);        /* 10th bit */
   dw_write_subreg(DW_REG_SYS_MASK, 0x1, 1, (uint8_t *) &maskReg);
 }
 /**
- * \brief Initiates a new reception on the dw1000.
+ * \brief Initiates a new reception on the DW1000.
  *        Before start the transmission check if the Receive Buffer Pointer
  *        is good if not, change the receiver pointer.
  *

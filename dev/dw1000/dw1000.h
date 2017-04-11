@@ -484,13 +484,13 @@ typedef struct {
    */
   uint16_t std_noise;
   /**
+   * \Brief The clock offset between the sender and the receiver.
+   */
+  int16_t clock_offset;
+  /**
    * \Brief if RXPACC is saturated and need to be corrected.
    */
   uint8_t n_correction;
-  /**
-   * \Brief The clock offset between the sender and the receiver.
-   */
-  int8_t clock_offset;
 } dw1000_frame_quality;
 
 extern dw1000_base_driver dw1000;
@@ -512,9 +512,11 @@ void dw_disable_gpio_led(void);
 void dw_set_sfd_timeout(uint16_t value);
 void dw_sfd_init(void);
 void dw_load_lde_code(void);
+void dw_active_lde_on_wakeup(void);
 
 /* RX / TX */
 void dw_init_rx(void);
+void dw_init_delayed_rx(void);
 
 /* Utility */
 
@@ -576,7 +578,7 @@ void     dw_set_dx_timestamp(uint64_t timestamp);
 void     dw_enable_ranging_frame(void);
 void     dw_disable_ranging_frame(void);
 uint8_t dw_is_ranging_frame(void);
-int8_t dw_get_clock_offset();
+int16_t dw_get_clock_offset();
 
 void dw_clear_pending_interrupt(uint64_t mask);
 

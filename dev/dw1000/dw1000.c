@@ -558,13 +558,13 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint8_t lde_cfg1 = 0;
   uint16_t lde_cfg2 = 0;
   uint32_t agc_tune1_val;
-  const uint32_t agc_tune2_val = 0x2502A907UL;  /* Always use this */
+  const uint32_t agc_tune2_val = 0X2502A907UL;  /* Always use this */
   const uint16_t agc_tune3_val = 0x0035;    /* Always use this */
-  uint32_t drx_tune0b_val;
+  uint16_t drx_tune0b_val;
   uint16_t drx_tune1a_val;
-  uint32_t drx_tune1b_val;
+  uint16_t drx_tune1b_val;
   uint32_t drx_tune2_val;
-  uint32_t drx_tune4h_val;
+  uint16_t drx_tune4h_val;
   uint32_t rf_rxctrl_val;
   uint32_t rf_txctrl_val;
   uint8_t tc_pgdelay_val;
@@ -815,6 +815,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
 
   if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
     lde_repc >>= 3; /* see page 170. */
+    lde_repc &= 0x1FFF;
   }
 
   /* === Configure PAC size */
@@ -878,7 +879,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
       case DW_DATA_RATE_110_KBPS:
          /* Default value, there are not operational effect.
             The SFD length is always 64 at 110 kbps */
-        user_sfd_lenght = 0; 
+        user_sfd_lenght = 64; 
       break;
       case DW_DATA_RATE_850_KBPS:
         user_sfd_lenght = 16;

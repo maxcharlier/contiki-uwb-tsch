@@ -30,7 +30,7 @@ static void recv_callback(struct unicast_conn *c, const linkaddr_t *from);
 static struct unicast_conn uc;
 static const struct unicast_callbacks uc_cb = { recv_callback };
 
-#define SIZEOF_QUALITY 14
+#define SIZEOF_QUALITY 16
 
 void set_tr_delay(uint16_t tx_delay, uint16_t rx_delay);
 /** 
@@ -111,8 +111,9 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("Node addr %02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
-  printf("     1 Ranging request:            1 DEST\n");
-  printf("     2 Ranging and quality request 2 DEST\n");
+  printf("     1 Ranging request:            1 TWR SOURCE DEST\n");
+  printf("     2 Ranging and quality request 2 TWR SOURCE DEST\n");
+  printf("     TWR 0 for SS TWR, 1 for DS TWR\n");
   printf("     3 Set TX and RX antenna delay 3 DEST TX_DELAY RX_DELAY\n");
   printf("     4 Get TX and RX antenna delay 4 DEST\n");
   printf("     6 Set TX power                5 DEST TX_POWER\n");
@@ -165,6 +166,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
 
       PRINTF("Received line: %s\n", (char *)data);
       if(mode == 0x01 || mode == 0x02){ /* ranging request */
+        uint8_t twr = strtol(str, &str, 16);
         uint16_t source = strtol(str, &str, 16);
         uint16_t dest = strtol(str, &str, 16);
         if(source > 0 && dest > 0){
@@ -178,8 +180,10 @@ PROCESS_THREAD(frame_master_process, ev, data)
             linkaddr_t addr;
             addr.u8[0]= dest & 0xFF;
             addr.u8[1]= (dest >> 8) & 0xFF;
-
-            dw1000_driver_sdstwr_request(); 
+            if(twr) // twr == 1
+              dw1000_driver_sdstwr_request(); 
+            else // twr == 0
+              dw1000_driver_sstwr_request(); 
             packetbuf_copyfrom("", 0);
             unicast_send(&uc, &addr);
             PRINTF("Propagation time between %.4X %.4X: ", source, dest);
@@ -194,6 +198,9 @@ PROCESS_THREAD(frame_master_process, ev, data)
             if(mode == 0x02){
               /* get quality */
               print_receive_quality(dw1000_driver_get_packet_quality());
+              printf(" 0x%04X 0x%04X\n",
+                (DW1000_PRF == DW_PRF_16_MHZ) ? 16 : 64, 
+                DW1000_DATA_RATE);
             }
             else{
               printf("\n");
@@ -205,15 +212,17 @@ PROCESS_THREAD(frame_master_process, ev, data)
             linkaddr_t addr;
             addr.u8[0]= source & 0xFF;
             addr.u8[1]= (source >> 8) & 0xFF;
-            char report[5]; // 1 for mode, 2 for source, 2 for dest
+            char report[6]; // 1 for mode, 2 for source, 2 for dest
             /* store the mode */
             report[0] = mode;
             /* source */
-            memcpy(&report[1], &source, 2);
+            memcpy(&report[1], &twr, 2);
+            /* source */
+            memcpy(&report[2], &source, 2);
             /* dest */
-            memcpy(&report[3], &dest, 2);
+            memcpy(&report[4], &dest, 2);
 
-            packetbuf_copyfrom(report, 5);
+            packetbuf_copyfrom(report, 6);
 
             /* request an ACK */
             packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
@@ -401,10 +410,12 @@ PROCESS_THREAD(receive_process, ev, data)
     PROCESS_WAIT_EVENT();
     if(ev == PROCESS_EVENT_POLL){
       if(mode == 0x01 || mode == 0x02){
-        if(payload_len == 5){
+        if(payload_len == 6){
+          uint8_t twr;
           uint16_t source, dest;
-          source = payload[1] | (payload[2] << 8);
-          dest = payload[3] | (payload[4] << 8);
+          twr = payload[1];
+          source = payload[2] | (payload[3] << 8);
+          dest = payload[4] | (payload[5] << 8);
           /* The node must be the "source".*/
           if((source & 0xFF) == linkaddr_node_addr.u8[0] && 
           (source >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
@@ -420,8 +431,10 @@ PROCESS_THREAD(receive_process, ev, data)
             linkaddr_t dest_addr;
             dest_addr.u8[0]= dest & 0xFF;
             dest_addr.u8[1]= (dest >> 8) & 0xFF;
-
-            dw1000_driver_sdstwr_request(); 
+            if(twr) // twr == 1
+              dw1000_driver_sdstwr_request(); 
+            else // twr == 0
+              dw1000_driver_sstwr_request(); 
             packetbuf_copyfrom("", 0);
             unicast_send(&uc, &dest_addr);
 
@@ -493,6 +506,9 @@ PROCESS_THREAD(receive_process, ev, data)
             dw1000_frame_quality quality ;
             memcpy(&quality, &payload[13], SIZEOF_QUALITY);
             print_receive_quality(quality);
+            printf(" 0x%04X 0x%04X\n",
+              (DW1000_PRF == DW_PRF_16_MHZ) ? 16 : 64, 
+              DW1000_DATA_RATE);
           }
           else{
             printf("\n");

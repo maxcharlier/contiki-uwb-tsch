@@ -140,6 +140,7 @@
 #endif
 
 #define DEBUG_LED 1
+#define DEGUB_RANGING_SS_TWR_FAST_TRANSMIT 0
 
 // #define DOUBLE_BUFFERING
 
@@ -213,11 +214,11 @@ static volatile uint16_t last_packet_timestamp;
 
 /* start private function */
 inline void dw1000_schedule_reply(void);
-void dw1000_schedule_reply2(void);
+inline void dw1000_schedule_receive(uint16_t data_len);
 void dw1000_compute_prop_time_sdstwr(void);
 void dw1000_compute_prop_time_sstwr(uint16_t t_reply_offset);
 inline void  dw1000_update_frame_quality(void);
-uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send);
+uint8_t ranging_send_ack_sheduled(uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
 /* end private function */
 
@@ -496,7 +497,8 @@ dw1000_driver_transmit(unsigned short payload_len)
   } else{
     /* Initialize a no delayed transmission and wait for an ranging response 
       Re-enable the RX state after the transmission. */
-    dw_init_tx(1, 0); 
+    /* if we hare in SS TWR we re enable the transceiver manually */
+    dw_init_tx(dw1000_driver_sdstwr, 0); 
   }
 
 #if DEBUG
@@ -572,8 +574,13 @@ dw1000_driver_transmit(unsigned short payload_len)
     }
   } /* end WAIT ACK */
 
-  /* we wait for a ranging response */
-  if(dw1000_driver_sstwr && tx_return == RADIO_TX_OK){ /* start SS TWR */
+  /* start SS TWR */
+  if(dw1000_driver_sstwr && tx_return == RADIO_TX_OK){
+    /* re enable the receiver */
+    dw1000_schedule_receive(payload_len);
+    // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+
+
     tx_return = RADIO_TX_ERR;
     uint8_t count = 0;
     sys_status_lo = 0x0; /* clear the value */
@@ -606,8 +613,9 @@ dw1000_driver_transmit(unsigned short payload_len)
 
       uint16_t t_reply_offset;
       dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 2, (uint8_t*) &t_reply_offset);
-
-      printf("t_reply_offset %u\n", t_reply_offset);
+#if DEGUB_RANGING_SS_TWR_FAST_TRANSMIT
+      printf("dw1000 transmit t_reply_offset %u\n", t_reply_offset);
+#endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
       /* compute the propagation time with the clock offset correction */
       dw1000_compute_prop_time_sstwr(t_reply_offset);
 
@@ -1661,6 +1669,12 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
       return 0;
     }
     if((sys_status & DW_TXPHS_MASK) != 0){
+#if DEGUB_RANGING_SS_TWR_FAST_TRANSMIT
+      /* we want to check if the time to compute and write the t_reply_offset 
+        is bigger than the time to send the mac frame */
+     rtimer_clock_t t0 = RTIMER_NOW(); /* start of the write */
+#endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
+
       /* compute the difference between the expected reply time and 
         the real reply time to correct further the propagation time 
         in the sender side.*/
@@ -1669,6 +1683,11 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
 
       dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 2,  
                       (uint8_t*) &t_reply_offset);
+
+#if DEGUB_RANGING_SS_TWR_FAST_TRANSMIT
+     rtimer_clock_t t1 = RTIMER_NOW(); /* end of the write */
+#endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
+
       uint8_t sys_status_lo;
       /* wait the end of the transmission */
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
@@ -1676,10 +1695,25 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
                     ((sys_status_lo & DW_TXFRS_MASK)  != 0),
                     theorical_transmission_payload(dw1000_conf.data_rate, 
                       DW1000_RANGING_FINAL_SS_LEN) + DW1000_SPI_DELAY);
+#if DEGUB_RANGING_SS_TWR_FAST_TRANSMIT
+      printf("process_ss_twr time of the write: %d\n", 
+                clock_ticks_to_microsecond(t1-t0));
+      /* we subtract 4 of the total size of the mac payload : 
+          2 for the t_reply_offset
+          and 2 for the CRC */
+      printf("process_ss_twr time to send the frame: %lu\n", 
+                theorical_transmission_payload(dw1000_conf.data_rate, 
+                      DW1000_RANGING_FINAL_SS_LEN-4)); 
+      /* If the response was send correctly we display the t_reply_offset */
       if((sys_status_lo & DW_TXFRS_MASK) != 0){ 
         printf("process_ss_twr: reply time offset send correctly %u\n",
               t_reply_offset);
       }
+#endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
+      // printf("round() %llu\n", dw_get_tx_timestamp() - dw_get_rx_timestamp());
+      // printf("round()2 %llu\n", (dw_get_tx_timestamp() - dw_get_rx_timestamp()) *
+      //   (dw_get_tx_timestamp() - dw_get_rx_timestamp()));
+
       // print_sys_status(sys_status_lo);
     }
     
@@ -1808,7 +1842,13 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   }else{
     dw1000_conf.pac_size = DW_PAC_SIZE_64;
   }
-
+  if(data_rate == DW_DATA_RATE_110_KBPS) {
+    dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;
+  } else if(data_rate == DW_DATA_RATE_850_KBPS) {
+    dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;
+  } else { /* 6800 kbps */
+    dw1000_conf.sfd_type = DW_SFD_STANDARD;
+  }
   dw_conf(&dw1000_conf);
 
 #if DW1000_CONF_AUTOACK
@@ -1906,55 +1946,23 @@ dw1000_schedule_reply(void)
   schedule_time += dw1000_driver_schedule_reply_time; 
 
   dw_set_dx_timestamp(schedule_time);
-}
-/**
- * \brief Based on the reply time and the RX timestamps, this function schedule 
- *        the ranging reply message.
+}/**
+ * \brief Configures the DW1000 to be ready to receive a ranging response. 
+ *        /!\ Private function.
  */
-void 
-dw1000_schedule_reply2(void)
+void
+dw1000_schedule_receive(uint16_t data_len)
 {
-  int32_t rx_tofs = 0L;
-  uint32_t rx_tofsU = 0UL;
-  uint64_t rx_ttcki = 0ULL;
-
-  uint64_t schedule_time = dw_get_rx_timestamp();
+  uint64_t schedule_time = dw_get_tx_timestamp();
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
   schedule_time &= DX_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
-  
-  schedule_time += dw1000_driver_schedule_reply_time;
-
-  /* we want to take into a count the clock offset
-    Clock offset = RX TOFS / RX TTCKI */
-
-  /* brief dummy : The value in RXTTCKI will take just one of two values 
-      depending on the PRF: 0x01F00000 @ 16 MHz PRF, 
-      and 0x01FC0000 @ 64 MHz PRF. */
-  if(dw1000_conf.prf == DW_PRF_16_MHZ){
-    rx_ttcki = 0x01F00000ULL;
-  } else{ /* prf == DW_PRF_64_MHZ */
-    rx_ttcki = 0x01FC0000ULL;
-  }
-
-  /* RX TOFS is a signed 19-bit number, the 19nd bit is the sign */
-  dw_read_subreg(DW_REG_RX_TTCKO, 0x0, 3, (uint8_t *) &rx_tofs);
-  rx_tofs &= DW_RXTOFS_MASK;
-  /* convert a 19 signed bit number to a 32 bits signed number */
-  if((rx_tofs & (0x1UL << 18)) != 0){ /* the 19nd bit is 1 => negative number */
-    /* a signed int is represented by a two complement representation */
-    rx_tofs |= ~DW_RXTOFS_MASK; /* all bit between 31 and 19 are set to 1 */
-    rx_tofsU = -rx_tofs; /* only store the absolute value */
-    schedule_time -= 
-          ((dw1000_driver_schedule_reply_time * rx_tofsU) / rx_ttcki) >> 1;
-  }
-  else{
-    schedule_time += 
-          ((dw1000_driver_schedule_reply_time * rx_tofs) / rx_ttcki) >> 1;
-  }
-
+  /* The 10nd bit have a "value" of 125Mhz */
+  schedule_time += ((uint64_t) (
+        theorical_transmission_payload(dw1000_conf.data_rate, data_len) + 
+    DW1000_REPLY_TIME_COMPUTATION) * 125) << 9;
   dw_set_dx_timestamp(schedule_time);
+  dw_init_delayed_rx();
 }
-
 /**
  * \brief Compute the propagation time based on the reply time, and the RX and 
  *        TX timestamps

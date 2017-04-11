@@ -93,7 +93,9 @@
  * For a configuration using a data-rate of 6.8 mbps and a preamble of 128 
  * symbols, we recommend a reply time of 600 µs. 
  * At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
- * is enough 
+ * is enough.
+ * A value of 0 refer to an automated computation of the reply time.
+ *  In this case, don't forget to set the DW1000_REPLY_TIME_COMPUTATION.
  */
 #ifndef DW1000_RANGING_REPLY_TIME
 #define DW1000_RANGING_REPLY_TIME               0
@@ -105,7 +107,8 @@
 #define IEEE802154_TURN_ARROUND_TIME 10l 
 
 /* Time take by the receiver to make the ranging response and to schedule it */
-/* this is platform dependent */
+/* this is platform dependent but should be the same for all transceivers 
+    communicating with each other for a ranging usage */
 #define DW1000_REPLY_TIME_COMPUTATION 750
 
 #if DW1000_IEEE802154_EXTENDED
@@ -123,6 +126,7 @@
 
 /* the length of the final ranging response in SS TWR */
 #define DW1000_RANGING_FINAL_SS_LEN 13
+
 /* #define DEBUG_RANGING 1 */
 
 #define DEBUG_VERBOSE 0
@@ -216,9 +220,9 @@ static volatile uint16_t last_packet_timestamp;
 inline void dw1000_schedule_reply(void);
 inline void dw1000_schedule_receive(uint16_t data_len);
 void dw1000_compute_prop_time_sdstwr(void);
-void dw1000_compute_prop_time_sstwr(uint16_t t_reply_offset);
+void dw1000_compute_prop_time_sstwr(int16_t t_reply_offset);
 inline void  dw1000_update_frame_quality(void);
-uint8_t ranging_send_ack_sheduled(uint8_t wait_send);
+uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
 /* end private function */
 
@@ -682,7 +686,7 @@ dw1000_driver_transmit(unsigned short payload_len)
         /* compute the difference between the expected reply time and 
           the real reply time to correct further the propagation time 
           in the sender side.*/
-        uint16_t t_reply_corrector_sender = dw_get_tx_timestamp() 
+        int16_t t_reply_corrector_sender = dw_get_tx_timestamp() 
                                   - rx_timestamp0 
                                   - dw1000_driver_schedule_reply_time;
 
@@ -728,7 +732,7 @@ dw1000_driver_transmit(unsigned short payload_len)
             int32_t t_propReceiver;
             dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 4, 
                                                     (uint8_t*) &t_propReceiver);
-            uint16_t t_reply_corrector_receiver;
+            int16_t t_reply_corrector_receiver;
             dw_read_subreg(DW_REG_RX_BUFFER, 0xD, 2, 
                                         (uint8_t*) &t_reply_corrector_receiver);
 
@@ -1532,7 +1536,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
       /* compute the difference between the expected reply time and 
             the real reply time to correct further the propagation time 
             in the sender side.*/
-      uint16_t t_reply_corrector = dw_get_tx_timestamp() - rx_timestamp0 
+      int16_t t_reply_corrector = dw_get_tx_timestamp() - rx_timestamp0 
                                     - dw1000_driver_schedule_reply_time;
       uint8_t sys_status_lo = 0x0;
       /* wait the ranging response */
@@ -1678,7 +1682,7 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
       /* compute the difference between the expected reply time and 
         the real reply time to correct further the propagation time 
         in the sender side.*/
-      uint16_t t_reply_offset = dw_get_tx_timestamp() - dw_get_rx_timestamp() 
+      int16_t t_reply_offset = dw_get_tx_timestamp() - dw_get_rx_timestamp() 
                                 - dw1000_driver_schedule_reply_time;
 
       dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 2,  
@@ -1706,7 +1710,7 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
                       DW1000_RANGING_FINAL_SS_LEN-4)); 
       /* If the response was send correctly we display the t_reply_offset */
       if((sys_status_lo & DW_TXFRS_MASK) != 0){ 
-        printf("process_ss_twr: reply time offset send correctly %u\n",
+        printf("process_ss_twr: reply time offset send correctly %d\n",
               t_reply_offset);
       }
 #endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
@@ -1996,7 +2000,7 @@ dw1000_compute_prop_time_sdstwr(void){
  *        transmitting and the receiver clock.
  */
 void 
-dw1000_compute_prop_time_sstwr(uint16_t t_reply_offset){
+dw1000_compute_prop_time_sstwr(int16_t t_reply_offset){
   int32_t rx_tofs = 0L;
   uint64_t rx_tofsU = 0UL;
   uint8_t  rx_tofs_negative = 0; /* false */

@@ -513,6 +513,7 @@ void dw_set_sfd_timeout(uint16_t value);
 void dw_sfd_init(void);
 void dw_load_lde_code(void);
 void dw_active_lde_on_wakeup(void);
+uint32_t dw_opt_read(uint16_t address);
 
 /* RX / TX */
 void dw_init_rx(void);

@@ -317,7 +317,7 @@ dw1000_driver_init(void)
 
   /* clear all interrupt */
   dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
-
+  
   /* load the program to compute the timestamps */
   dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
 
@@ -729,7 +729,7 @@ dw1000_driver_transmit(unsigned short payload_len)
         if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
           /* check if the message have the good size */
           if(dw_get_rx_extended_len() == DW1000_RANGING_FINAL_SDS_LEN){
-            int32_t t_propReceiver;
+            uint32_t t_propReceiver;
             dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 4, 
                                                     (uint8_t*) &t_propReceiver);
             int16_t t_reply_corrector_receiver;
@@ -747,7 +747,7 @@ dw1000_driver_transmit(unsigned short payload_len)
             
             dw1000_driver_last_prop_time = t_round_I - t_reply_R;
             // printf("dw1000_driver_last_prop_time %ld\n", dw1000_driver_last_prop_time);
-            dw1000_driver_last_prop_time = dw1000_driver_last_prop_time;
+            // dw1000_driver_last_prop_time = dw1000_driver_last_prop_time;
             // printf("dw1000_driver_last_prop_time %ld\n", dw1000_driver_last_prop_time);
 
             // printf("t prop %4X\n", (unsigned int) t_propReceiver);
@@ -756,7 +756,7 @@ dw1000_driver_transmit(unsigned short payload_len)
                                           - t_reply_corrector_sender;
             // printf("dw1000_driver_last_prop_time %ld\n", dw1000_driver_last_prop_time);
             // printf("prop %u\n",(unsigned int)  dw1000_driver_last_prop_time);
-            dw1000_driver_last_prop_time = dw1000_driver_last_prop_time / 4;
+            dw1000_driver_last_prop_time >>= 2; /* divided by 4 */
             // printf("dw1000_driver_last_prop_time %ld\n", dw1000_driver_last_prop_time);
             // printf("prop %u\n", (unsigned int) dw1000_driver_last_prop_time);
 
@@ -1592,8 +1592,6 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
       }
     }
 
-    dw_idle();
-
 #if DEBUG_RANGING
     printf("time of an interrupt: %d\n", clock_ticks_to_microsecond(t1-t0));
 
@@ -1669,7 +1667,7 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
             dw1000_conf.preamble_length + dw1000_driver_reply_time);
     if((sys_status & DW_HPDWARN_MASK) != 0){
       dw_idle(); /* abort the transmission */
-      printf("process_ss_twr HPDWARN\n");
+      PRINTF("process_ss_twr HPDWARN\n");
       return 0;
     }
     if((sys_status & DW_TXPHS_MASK) != 0){
@@ -1714,11 +1712,6 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
               t_reply_offset);
       }
 #endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
-      // printf("round() %llu\n", dw_get_tx_timestamp() - dw_get_rx_timestamp());
-      // printf("round()2 %llu\n", (dw_get_tx_timestamp() - dw_get_rx_timestamp()) *
-      //   (dw_get_tx_timestamp() - dw_get_rx_timestamp()));
-
-      // print_sys_status(sys_status_lo);
     }
     
     dw1000_update_frame_quality();

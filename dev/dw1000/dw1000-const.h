@@ -609,9 +609,14 @@
 
 /* DW_REG_AON_WCFG      0x2C */
 /* DW_SUBREG_AON_WCFG   0x2C:00 */
-#define DW_ONW_LLDE      11               /* \brief dummy */
+#define DW_ONW_LLDE      11             /* \brief dummy */
 #define DW_ONW_LLDE_MASK (0x1UL << 11)  /* \brief dummy */
-
+/* DW_REG_AON_WCFG 0x2C */
+/* DW_SUBREG_AON_WCFG  0x2C:02 */
+#define DW_DCA_READ      3              /* \brief dummy */
+#define DW_DCA_READ_MASK (0x1UL << 3)   /* \brief dummy */
+#define DW_DCA_ENAB      7              /* \brief dummy */
+#define DW_DCA_ENAB_MASK (0x1UL << 7)   /* \brief dummy */
 
 /* DW_REG_OTP_IF 0x2D */
 /* DW_SUBREG_OTP_WDAT  0x2D:00 */
@@ -724,5 +729,6 @@
 #define DW_BLNKEN_MASK       (0x01UL << 8)  /* \brief dummy */
 #define DW_BLNKNOW           16             /* \brief dummy */
 #define DW_BLNKNOW_MASK      (0xFUL << 16)  /* \brief dummy */
+
 
 #endif /* DW1000_CONST_H */

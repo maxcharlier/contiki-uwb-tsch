@@ -465,7 +465,6 @@ dw_sfd_init(void){
   sys_ctrl |= (DW_RXENAB_MASK);
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
 }
-
 /**
  * \brief Force the load of the LDE code from the ROM memory to the RAM memory 
  *    to be able to compute correctly the timestamps. 
@@ -490,7 +489,6 @@ dw_load_lde_code(void){
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 1, &lde3[0]);
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0 + 1, 1, &lde3[1]);
 }
-
 /**
  * \brief Enable the automatic load of the LDE code on Wake UP (after a SLEEP).
  */
@@ -501,6 +499,36 @@ dw_active_lde_on_wakeup(void){
   dw_read_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
   value |= (0x1 << DW_ONW_LLDE) & DW_ONW_LLDE_MASK;
   dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
+}
+/**
+ * \brief Reading a value from OTP memory. 
+ *      
+ * \param[in] address   The address in the OPT memory. 
+ * \return      The value contain in the address in the OPT memory. 
+ */
+uint32_t dw_opt_read(uint16_t address){
+  /* we follow the "An example of register accesses required to read from OTP" 
+   process */
+  uint8_t opt_ctrl_val; 
+  uint32_t result;
+  /* set the address to read */
+  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_ADDR, DW_SUBLEN_OTP_ADDR, 
+                  (uint8_t*) &address);
+
+  opt_ctrl_val = 0X03;
+  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 0x01, 
+                  &opt_ctrl_val);
+  opt_ctrl_val = 0X01;
+  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 0x01, 
+                  &opt_ctrl_val);
+  /* read the value */
+  dw_read_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_RDAT, DW_SUBLEN_OTP_RDAT, 
+                  (uint8_t*) &result);
+
+  opt_ctrl_val = 0X00;
+  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 0x01, 
+                  &opt_ctrl_val);
+  return result;
 }
 /**
  * \brief Apply a soft reset
@@ -951,7 +979,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
 
   /* enable the Clock PLL lock detect tune 
       Required when using the Crystal Trim Setting 
-      Enable reliability of the Clock PLL Loc bit in the SYS STATUS*/
+      Enable reliability of the Clock PLL Lock bit in the SYS STATUS*/
   ec_crtl_val |= (0x01 << DW_PLLLDT) & DW_PLLLDT_MASK;
 
   /* Commit configuration to device */

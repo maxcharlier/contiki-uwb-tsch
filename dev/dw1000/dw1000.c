@@ -461,9 +461,7 @@ dw_sfd_init(void){
   dw_read_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
   sys_ctrl |= DW_TXSTRT_MASK | DW_TRXOFF_MASK;
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
-  sys_ctrl &= ~(DW_TXSTRT_MASK);
-  sys_ctrl |= (DW_RXENAB_MASK);
-  dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
+  /* bits are automatically clear by the transceiver */ 
 }
 /**
  * \brief Force the load of the LDE code from the ROM memory to the RAM memory 
@@ -593,7 +591,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint16_t drx_tune1b_val;
   uint32_t drx_tune2_val;
   uint16_t drx_tune4h_val;
-  uint32_t rf_rxctrl_val;
+  uint32_t rf_rxctrlh_val;
   uint32_t rf_txctrl_val;
   uint8_t tc_pgdelay_val;
   uint32_t fs_pllcfg_val;
@@ -635,42 +633,42 @@ dw_conf(dw1000_base_conf_t *dw_conf)
 
   switch(dw_conf->channel) {
   case DW_CHANNEL_1:
-    rf_rxctrl_val = 0xD8;
+    rf_rxctrlh_val = 0xD8;
     rf_txctrl_val = 0x00005C40UL;
     tc_pgdelay_val = 0xC9;
     fs_pllcfg_val = 0x09000407UL;
     fs_plltune_val = 0x1E;
     break;
   case DW_CHANNEL_2:
-    rf_rxctrl_val = 0xD8;
+    rf_rxctrlh_val = 0xD8;
     rf_txctrl_val = 0x00045CA0UL;
     tc_pgdelay_val = 0xC2;
     fs_pllcfg_val = 0x08400508UL;
     fs_plltune_val = 0x26;
     break;
   case DW_CHANNEL_3:
-    rf_rxctrl_val = 0xD8;
+    rf_rxctrlh_val = 0xD8;
     rf_txctrl_val = 0x00086CC0UL;
     tc_pgdelay_val = 0xC5;
     fs_pllcfg_val = 0x08401009UL;
     fs_plltune_val = 0x56;
     break;
   case DW_CHANNEL_4:
-    rf_rxctrl_val = 0xBC;
+    rf_rxctrlh_val = 0xBC;
     rf_txctrl_val = 0x00045C80UL;
     tc_pgdelay_val = 0x95;
     fs_pllcfg_val = 0x08400508UL;
     fs_plltune_val = 0x26;
     break;
   case DW_CHANNEL_5:
-    rf_rxctrl_val = 0xD8;
+    rf_rxctrlh_val = 0xD8;
     rf_txctrl_val = 0x001E3FE0UL;
     tc_pgdelay_val = 0xC0;
     fs_pllcfg_val = 0x0800041DUL;
     fs_plltune_val = 0xBE;
     break;
   case DW_CHANNEL_7:
-    rf_rxctrl_val = 0xBC;
+    rf_rxctrlh_val = 0xBC;
     rf_txctrl_val = 0x001E7DE0UL;
     tc_pgdelay_val = 0x93;
     fs_pllcfg_val = 0x0800041DUL;
@@ -1005,7 +1003,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
-                  (uint8_t *) &rf_rxctrl_val);
+                  (uint8_t *) &rf_rxctrlh_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
                   (uint8_t *) &rf_txctrl_val);
   dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY,
@@ -1199,7 +1197,7 @@ dw_conf_print()
   uint32_t drx_tune1b_val = 0;
   uint32_t drx_tune2_val = 0;
   uint32_t drx_tune4h_val = 0;
-  uint32_t rf_rxctrl_val = 0;
+  uint32_t rf_rxctrlh_val = 0;
   uint32_t rf_txctrl_val = 0;
   uint32_t tc_pgdelay_val = 0;
   uint32_t fs_pllcfg_val = 0;
@@ -1231,7 +1229,7 @@ dw_conf_print()
                                     DW_SUBLEN_DRX_TUNE2);
   drx_tune4h_val = dw_read_subreg_32(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h,
                                     DW_SUBLEN_DRX_TUNE4h);
-  rf_rxctrl_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH,
+  rf_rxctrlh_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH,
                                     DW_SUBLEN_RF_RXCTRLH);
   rf_txctrl_val = dw_read_subreg_32(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL,
                                     DW_SUBLEN_RF_TXCTRL);
@@ -1272,7 +1270,7 @@ dw_conf_print()
   printf("drx_tune1b : %08" PRIx32 "\r\n", drx_tune1b_val);
   printf("drx_tune2  : %08" PRIx32 "\r\n", drx_tune2_val);
   printf("drx_tune4h : %08" PRIx32 "\r\n", drx_tune4h_val);
-  printf("rf_rxctrl  : %08" PRIx32 "\r\n", rf_rxctrl_val);
+  printf("rf_rxctrlh : %08" PRIx32 "\r\n", rf_rxctrlh_val);
   printf("rf_txctrl  : %08" PRIx32 "\r\n", rf_txctrl_val);
   printf("tc_pgdelay : %08" PRIx32 "\r\n", tc_pgdelay_val);
   printf("fs_pllcfg  : %08" PRIx32 "\r\n", fs_pllcfg_val);

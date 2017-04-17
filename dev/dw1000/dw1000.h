@@ -536,6 +536,10 @@ void dw_set_extendedUniqueID(uint64_t euid);
 void print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength);
 void dw_soft_reset(void);
 
+/* ADC */
+float   dw_get_temperature(dw_adc_src_t temp_source);
+float   dw_get_voltage(dw_adc_src_t voltage_source);
+
 /* Diagnostics */
 float dw_get_noise_level(void);
 float dw_get_fp_ampl(void);

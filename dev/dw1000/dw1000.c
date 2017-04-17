@@ -598,8 +598,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t fs_plltune_val;
   uint32_t tx_power_val;
   uint8_t fs_xtal_val;
-  uint8_t ec_crtl_val;
-  dw_read_reg(DW_REG_EC_CTRL, 1, &ec_crtl_val);
+  uint32_t ec_crtl_val = dw_read_reg_32(DW_REG_EC_CTRL, DW_LEN_EC_CTRL);
   uint8_t user_sfd_lenght = 0;
 
   /* === Configure PRF */
@@ -1012,7 +1011,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
-  dw_write_reg(DW_REG_EC_CTRL, 1, (uint8_t *) &ec_crtl_val);
+  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
                   (uint8_t *) &fs_xtal_val);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
@@ -1209,6 +1208,8 @@ dw_conf_print()
   uint32_t lde_repc = 0;
   uint32_t tx_power_val = 0;
   uint8_t  user_sfd_lenght = 0;
+  float temperature_val = 0;
+  float voltage_val = 0;
 
   sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
@@ -1252,36 +1253,43 @@ dw_conf_print()
   dw_read_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
                   (uint8_t *) &user_sfd_lenght);
 
+  temperature_val = dw_get_temperature(DW_ADC_SRC_LATEST);
+  voltage_val = dw_get_voltage(DW_ADC_SRC_LATEST);
+
   printf("============================\r\n");
   printf("DW1000 Current Configuration\r\n");
   printf("============================\r\n");
-  printf("Device id   : %08" PRIx32 "\r\n", dw_get_device_id());
-  printf("sys_status  : %016" PRIx64 "\r\n", (unsigned long long) 
+  printf("Device id   : 0x%08" PRIx32 "\r\n", dw_get_device_id());
+  printf("sys_status  : 0x%016" PRIx64 "\r\n", (unsigned long long) 
                         dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
   printf("============================\r\n");
-  printf("sys_cfg    : %08" PRIx32 "\r\n", sys_cfg_val);
-  printf("tx_fctrl   : %08" PRIx32 "\r\n", tx_fctrl_val);
-  printf("chan_ctrl  : %08" PRIx32 "\r\n", chan_ctrl_val);
-  printf("agc_tune1  : %08" PRIx32 "\r\n", agc_tune1_val);
-  printf("agc_tune2  : %08" PRIx32 "\r\n", agc_tune2_val);
-  printf("agc_tune3  : %08" PRIx32 "\r\n", agc_tune3_val);
-  printf("drx_tune0b : %08" PRIx32 "\r\n", drx_tune0b_val);
-  printf("drx_tune1a : %08" PRIx32 "\r\n", drx_tune1a_val);
-  printf("drx_tune1b : %08" PRIx32 "\r\n", drx_tune1b_val);
-  printf("drx_tune2  : %08" PRIx32 "\r\n", drx_tune2_val);
-  printf("drx_tune4h : %08" PRIx32 "\r\n", drx_tune4h_val);
-  printf("rf_rxctrlh : %08" PRIx32 "\r\n", rf_rxctrlh_val);
-  printf("rf_txctrl  : %08" PRIx32 "\r\n", rf_txctrl_val);
-  printf("tc_pgdelay : %08" PRIx32 "\r\n", tc_pgdelay_val);
-  printf("fs_pllcfg  : %08" PRIx32 "\r\n", fs_pllcfg_val);
-  printf("fs_plltune : %08" PRIx32 "\r\n", fs_plltune_val);
-  printf("ec_crtl    : %08" PRIx32 "\r\n", ec_crtl_val);
-  printf("fs_xtal    : %08" PRIx32 "\r\n", fs_xtal_val);
-  printf("lde_cfg1   : %08" PRIx32 "\r\n", lde_cfg1);
-  printf("lde_cfg2   : %08" PRIx32 "\r\n", lde_cfg2);
-  printf("lde_repc   : %08" PRIx32 "\r\n", lde_repc);
-  printf("tx_power   : %08" PRIx32 "\r\n", tx_power_val);
-  printf("user_sfd_lenght   : %08X\r\n", user_sfd_lenght);
+  printf("sys_cfg    : 0x%08" PRIx32 "\r\n", sys_cfg_val);
+  printf("tx_fctrl   : 0x%08" PRIx32 "\r\n", tx_fctrl_val);
+  printf("chan_ctrl  : 0x%08" PRIx32 "\r\n", chan_ctrl_val);
+  printf("agc_tune1  : 0x%08" PRIx32 "\r\n", agc_tune1_val);
+  printf("agc_tune2  : 0x%08" PRIx32 "\r\n", agc_tune2_val);
+  printf("agc_tune3  : 0x%08" PRIx32 "\r\n", agc_tune3_val);
+  printf("drx_tune0b : 0x%08" PRIx32 "\r\n", drx_tune0b_val);
+  printf("drx_tune1a : 0x%08" PRIx32 "\r\n", drx_tune1a_val);
+  printf("drx_tune1b : 0x%08" PRIx32 "\r\n", drx_tune1b_val);
+  printf("drx_tune2  : 0x%08" PRIx32 "\r\n", drx_tune2_val);
+  printf("drx_tune4h : 0x%08" PRIx32 "\r\n", drx_tune4h_val);
+  printf("rf_rxctrlh : 0x%08" PRIx32 "\r\n", rf_rxctrlh_val);
+  printf("rf_txctrl  : 0x%08" PRIx32 "\r\n", rf_txctrl_val);
+  printf("tc_pgdelay : 0x%08" PRIx32 "\r\n", tc_pgdelay_val);
+  printf("fs_pllcfg  : 0x%08" PRIx32 "\r\n", fs_pllcfg_val);
+  printf("fs_plltune : 0x%08" PRIx32 "\r\n", fs_plltune_val);
+  printf("ec_crtl    : 0x%08" PRIx32 "\r\n", ec_crtl_val);
+  printf("fs_xtal    : 0x%08" PRIx32 "\r\n", fs_xtal_val);
+  printf("lde_cfg1   : 0x%08" PRIx32 "\r\n", lde_cfg1);
+  printf("lde_cfg2   : 0x%08" PRIx32 "\r\n", lde_cfg2);
+  printf("lde_repc   : 0x%08" PRIx32 "\r\n", lde_repc);
+  printf("tx_power   : 0x%08" PRIx32 "\r\n", tx_power_val);
+  printf("user_sfd_lenght   : 0x%08X\r\n", user_sfd_lenght);
+  printf("Temperature       : 0x%08" PRIx32 " (float)\n", *(long unsigned int*)
+                                    &temperature_val);
+  printf("Voltage           : 0x%08" PRIx32 " (float)\n",*(long unsigned int*)
+                                      &voltage_val);
 }
 /*===========================================================================*/
 /* Utility                                                                   */
@@ -1392,7 +1400,7 @@ dw_set_short_addr(uint16_t short_addr)
   dw_write_reg(DW_REG_PANADR, 2, (uint8_t *)&short_addr);
 }
 /**
- * \brief Returns the current system clock of the dw1000.
+ * \brief Returns the current system clock of the DW1000.
  * \return Current system clock time.
  */
 uint64_t
@@ -1427,8 +1435,117 @@ dw_disable_adc()
   pmsc_val &= ~DW_ADCCE_MASK;
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
                   (uint8_t *)&pmsc_val);
-}
+}/**
+ * \brief Private function. Forces the ADC to update sensor samples.
+ *
+ * See DW1000-User_Manual-V2.10.pdf page 56 - "Measuring IC
+ * temperature and voltage" for details on how sampling is performed.
+ */
+void dw_adc_sample()
+{
+  /*  Make sure ADC clock is enabled */
+  dw_enable_adc();
 
+  /* These writes should be single writes and in sequence */
+  uint8_t val;
+  val = 0x80; /* Enable TLD Bias */
+  dw_write_subreg(0x28, 0x11, 1, &val);
+  val = 0x0A; /* Enable TLD Bias and ADC Bias */
+  dw_write_subreg(0x28, 0x12, 1, &val);
+  val = 0x0F; /* Enable Outputs (only after Biases are up and running) */
+  dw_write_subreg(0x28, 0x12, 1, &val);
+
+  /* Take sample. */
+  uint8_t tc_sarc_val = 0;
+  // dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_SARC, 1, &tc_sarc_val);
+  tc_sarc_val = DW_SAR_CTRL_MASK;
+  dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_SARC, 1, &tc_sarc_val);
+
+  /* The enable should set for a minimum of 2.5 μs to 
+    allow the SAR time to complete its reading. */
+  dw1000_us_delay(3);
+
+  /* Disable sampling */
+  tc_sarc_val = 0;
+  dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_SARC, 1, &tc_sarc_val);
+
+  return;
+}
+/**
+ * \brief Gets a temperature reading from the DW1000.
+ *
+ * \param[in] temp_source     If given as DW_ADC_SRC_LATEST a new senors
+ *                          sample will be taken and reported.
+ *                          If given as DW_ADC_SRC_WAKEUP the reading from
+ *                          the last wakeup will be used.
+ *
+ * \return Temperature measurement from ADC.
+ */
+float dw_get_temperature( dw_adc_src_t temp_source )
+{
+  /* Get calibration data from OTP. Tmeas @ 23 degrees resides in addr 0x9. */
+  uint32_t otp_temp = dw_read_otp_32(0x009) & 0xFF;
+  uint32_t read_temp = 0;
+
+  /* Load to CPU sample */
+  switch (temp_source)
+  {
+    case DW_ADC_SRC_LATEST:
+      dw_adc_sample();
+      read_temp   = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARL, 
+                              DW_SUBLEN_TC_SARL);
+      read_temp  &= DW_SAR_LTEMP_MASK;
+      read_temp >>= DW_SAR_LTEMP;
+      break;
+
+    case DW_ADC_SRC_WAKEUP:
+      read_temp   = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARW, 
+                              DW_SUBLEN_TC_SARW);
+      read_temp  &= DW_SAR_WTEMP_MASK;
+      read_temp >>= DW_SAR_WTEMP;
+      break;
+  }
+
+  return ((float)read_temp - (float)otp_temp)*1.14f + 23.f;
+}
+/**
+ * \brief Gets a voltage reading from the DW1000.
+ *
+ * \param[in] voltage_source  If given as DW_ADC_SRC_LATEST a new senors
+ *                          sample will be taken and reported.
+ *                          If given as DW_ADC_SRC_WAKEUP the reading from
+ *                          the last wakeup will be used.
+ *
+ * NOTE: The effective range of measurement is 2.25 V to 3.76 V.
+ *
+ * \return Voltage measurement from ADC.
+ */
+float dw_get_voltage( dw_adc_src_t voltage_source )
+{
+  /* Get calibration data from OTP. Vmeas @ 3.3V residies in addr 0x8. */
+  uint32_t otp_voltage = dw_read_otp_32(0x008) & 0xFF;
+  uint32_t read_voltage = 0;
+
+  switch (voltage_source)
+  {
+    case DW_ADC_SRC_LATEST:
+      dw_adc_sample();
+      read_voltage   = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARL, 
+                                            DW_SUBLEN_TC_SARL);
+      read_voltage  &= DW_SAR_LVBAT_MASK;
+      read_voltage >>= DW_SAR_LVBAT;
+      break;
+
+    case DW_ADC_SRC_WAKEUP:
+      read_voltage   = dw_read_subreg_32(DW_REG_TX_CAL, DW_SUBREG_TC_SARW, 
+                                                        DW_SUBLEN_TC_SARW);
+      read_voltage  &= DW_SAR_WVBAT_MASK;
+      read_voltage >>= DW_SAR_WVBAT;
+      break;
+  }
+
+  return ((float)read_voltage - (float)otp_voltage)/173.f + 3.3f;
+}
 /*===========================================================================*/
 /* Communication quality assessment                                          */
 /*===========================================================================*/
@@ -2472,12 +2589,9 @@ uint32_t
 dw_read_otp_32(uint16_t otp_addr)
 {
   static const uint8_t cmd[] = {
-    /* Enable manual read */
-    DW_OTPRDEN_MASK || DW_OTPREAD_MASK,
-    /* Do the actual read */
-    DW_OTPREAD_MASK,
-    /* Reset otp_ctrl */
-    0x00
+    DW_OTPRDEN_MASK | DW_OTPREAD_MASK, /* Enable manual read */
+    DW_OTPREAD_MASK, /* Do the actual read */
+    0x00 /* Reset otp_ctrl */
   };
 
   uint32_t read_data = 0;

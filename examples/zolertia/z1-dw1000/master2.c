@@ -123,29 +123,29 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("     B display number of reset\n");
 
   /* set the antenna delay, we set these values with the antenna set to off */
-  dw1000_driver_off();
-  switch(linkaddr_node_addr.u8[0]){
-    case 0x6:
-      dw_set_antenna_delay(32739);
-      break;
+  // dw1000_driver_off();
+  // switch(linkaddr_node_addr.u8[0]){
+  //   case 0x6:
+  //     dw_set_antenna_delay(32739);
+  //     break;
 
-    case 0x07:
-      dw_set_antenna_delay(32835);
-      break;
+  //   case 0x07:
+  //     dw_set_antenna_delay(32835);
+  //     break;
 
-    case 0x08:
-      dw_set_antenna_delay(32691);
-      break;
+  //   case 0x08:
+  //     dw_set_antenna_delay(32691);
+  //     break;
 
-    case 0x09:
-      dw_set_antenna_delay(32709);
-      break;
+  //   case 0x09:
+  //     dw_set_antenna_delay(32709);
+  //     break;
 
-    case 0x0A:
-      dw_set_antenna_delay(33643);
-      break;
-  }
-  dw1000_driver_on();
+  //   case 0x0A:
+  //     dw_set_antenna_delay(33643);
+  //     break;
+  // }
+  // dw1000_driver_on();
 
   printf("tx delay %d\n", dw_get_tx_antenna_delay());
   printf("rx delay %d\n", dw_get_rx_antenna_delay());

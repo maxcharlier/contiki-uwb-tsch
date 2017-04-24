@@ -188,7 +188,7 @@ dw1000_init()
 void
 dw_config_switching_tx_to_rx_ACK(void)
 {
-  uint32_t ack_resp = 0;
+  uint32_t ack_resp = 0UL;
   /* ACK_TIM of 12 symbols */
   ack_resp |= (0xCUL << DW_ACK_TIM) & DW_ACK_TIM_MASK;
 
@@ -336,7 +336,7 @@ dw_disable_extended_frame(void)
 void
 dw_enable_gpio_led(void)
 {
-  uint32_t data;
+  uint32_t data = 0UL;
   /* set GPIO to LED */
   data = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, 
                             DW_SUBLEN_GPIO_MODE);
@@ -385,7 +385,7 @@ dw_enable_gpio_led(void)
 void
 dw_disable_gpio_led(void)
 {
-  uint32_t data;
+  uint32_t data = 0UL;
   /* set GPIO to LED */
   data = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE, 
                             DW_SUBLEN_GPIO_MODE);
@@ -457,7 +457,7 @@ dw_set_sfd_timeout(uint16_t value){
  */
 void
 dw_sfd_init(void){
-  uint32_t sys_ctrl;
+  uint32_t sys_ctrl = 0UL;
   dw_read_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
   sys_ctrl |= DW_TXSTRT_MASK | DW_TRXOFF_MASK;
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl);
@@ -492,41 +492,11 @@ dw_load_lde_code(void){
  */
 void
 dw_active_lde_on_wakeup(void){
-  uint16_t value;
+  uint16_t value = 0;
   /* active load lde wake up */
   dw_read_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
   value |= (0x1 << DW_ONW_LLDE) & DW_ONW_LLDE_MASK;
   dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
-}
-/**
- * \brief Reading a value from OTP memory. 
- *      
- * \param[in] address   The address in the OPT memory. 
- * \return      The value contain in the address in the OPT memory. 
- */
-uint32_t dw_opt_read(uint16_t address){
-  /* we follow the "An example of register accesses required to read from OTP" 
-   process */
-  uint8_t opt_ctrl_val; 
-  uint32_t result;
-  /* set the address to read */
-  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_ADDR, DW_SUBLEN_OTP_ADDR, 
-                  (uint8_t*) &address);
-
-  opt_ctrl_val = 0X03;
-  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 0x01, 
-                  &opt_ctrl_val);
-  opt_ctrl_val = 0X01;
-  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 0x01, 
-                  &opt_ctrl_val);
-  /* read the value */
-  dw_read_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_RDAT, DW_SUBLEN_OTP_RDAT, 
-                  (uint8_t*) &result);
-
-  opt_ctrl_val = 0X00;
-  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 0x01, 
-                  &opt_ctrl_val);
-  return result;
 }
 /**
  * \brief Apply a soft reset
@@ -539,7 +509,7 @@ void
 dw_soft_reset(void)
 {
   /* Set SYSCLKS to 01 > Force system clock to be the 19.2 MHz XTI clock. */
-  uint32_t ctrlReg;
+  uint32_t ctrlReg = 0UL;
   dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
                  (uint8_t *)&ctrlReg);
   ctrlReg &= ~DW_SYSCLKS_MASK;
@@ -578,26 +548,19 @@ void
 dw_conf(dw1000_base_conf_t *dw_conf)
 {
   uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  uint32_t tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
   uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
+  uint32_t tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
   uint16_t lde_repc = 0;
   uint8_t lde_cfg1 = 0;
   uint16_t lde_cfg2 = 0;
-  uint32_t agc_tune1_val;
+  uint32_t agc_tune1_val = 0UL;
   const uint32_t agc_tune2_val = 0X2502A907UL;  /* Always use this */
   const uint16_t agc_tune3_val = 0x0035;    /* Always use this */
-  uint16_t drx_tune0b_val;
-  uint16_t drx_tune1a_val;
-  uint16_t drx_tune1b_val;
-  uint32_t drx_tune2_val;
-  uint16_t drx_tune4h_val;
-  uint32_t rf_rxctrlh_val;
-  uint32_t rf_txctrl_val;
-  uint8_t tc_pgdelay_val;
-  uint32_t fs_pllcfg_val;
-  uint32_t fs_plltune_val;
-  uint32_t tx_power_val;
-  uint8_t fs_xtal_val;
+  uint16_t drx_tune0b_val = 0;
+  uint16_t drx_tune1a_val = 0;
+  uint16_t drx_tune1b_val = 0;
+  uint32_t drx_tune2_val = 0;
+  uint16_t drx_tune4h_val = 0;
   uint32_t ec_crtl_val = dw_read_reg_32(DW_REG_EC_CTRL, DW_LEN_EC_CTRL);
   uint8_t user_sfd_lenght = 0;
 
@@ -623,112 +586,16 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   }
 
   /* === Configure rx/tx channel */
-  chan_ctrl_val &= ~DW_TXCHAN_MASK;
-  chan_ctrl_val &= ~DW_RXCHAN_MASK;
+  dw_set_channel(dw_conf->channel);
 
-  uint16_t channel = ((uint8_t)dw_conf->channel & 0xF);
-  chan_ctrl_val |= (channel << DW_TXCHAN) & DW_TXCHAN_MASK;
-  chan_ctrl_val |= (channel << DW_RXCHAN) & DW_RXCHAN_MASK;
+  dw_set_default_tx_power(dw_conf->channel, dw_conf->prf);
 
-  switch(dw_conf->channel) {
-  case DW_CHANNEL_1:
-    rf_rxctrlh_val = 0xD8;
-    rf_txctrl_val = 0x00005C40UL;
-    tc_pgdelay_val = 0xC9;
-    fs_pllcfg_val = 0x09000407UL;
-    fs_plltune_val = 0x1E;
-    break;
-  case DW_CHANNEL_2:
-    rf_rxctrlh_val = 0xD8;
-    rf_txctrl_val = 0x00045CA0UL;
-    tc_pgdelay_val = 0xC2;
-    fs_pllcfg_val = 0x08400508UL;
-    fs_plltune_val = 0x26;
-    break;
-  case DW_CHANNEL_3:
-    rf_rxctrlh_val = 0xD8;
-    rf_txctrl_val = 0x00086CC0UL;
-    tc_pgdelay_val = 0xC5;
-    fs_pllcfg_val = 0x08401009UL;
-    fs_plltune_val = 0x56;
-    break;
-  case DW_CHANNEL_4:
-    rf_rxctrlh_val = 0xBC;
-    rf_txctrl_val = 0x00045C80UL;
-    tc_pgdelay_val = 0x95;
-    fs_pllcfg_val = 0x08400508UL;
-    fs_plltune_val = 0x26;
-    break;
-  case DW_CHANNEL_5:
-    rf_rxctrlh_val = 0xD8;
-    rf_txctrl_val = 0x001E3FE0UL;
-    tc_pgdelay_val = 0xC0;
-    fs_pllcfg_val = 0x0800041DUL;
-    fs_plltune_val = 0xBE;
-    break;
-  case DW_CHANNEL_7:
-    rf_rxctrlh_val = 0xBC;
-    rf_txctrl_val = 0x001E7DE0UL;
-    tc_pgdelay_val = 0x93;
-    fs_pllcfg_val = 0x0800041DUL;
-    fs_plltune_val = 0xBE;
-    break;
-  }
   /* Configure LDE for better performance*/
   lde_cfg1 &= ~DW_NTM_MASK;
   lde_cfg1 |= (0xD << DW_NTM) & DW_NTM_MASK; 
   lde_cfg1 &= ~DW_PMULT_MASK;
   lde_cfg1 |= (0x3 << DW_PMULT) & DW_PMULT_MASK;
 
-  /* Configure the TX power based on the channel and the PRF
-      Based on the manual: Table 20: Reference values Register file: 
-      0x1E – Transmit Power Control for Manual Transmit Power
-      Control (Smart Transmit Power Control disabled) */
-  sys_cfg_val |= DW_DIS_STXP_MASK;  /* Disable Smart Transmit Power Control */
-  switch(dw_conf->channel) {
-  case DW_CHANNEL_1:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      tx_power_val = 0x75757575ul;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      tx_power_val = 0x67676767ul;
-    }
-    break;
-  case DW_CHANNEL_2:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      tx_power_val = 0x75757575ul;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      tx_power_val = 0x67676767ul;
-    }
-    break;
-  case DW_CHANNEL_3:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      tx_power_val = 0x6F6F6F6Ful;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      tx_power_val = 0x8B8B8B8Bul;
-    }
-    break;
-  case DW_CHANNEL_4:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      tx_power_val = 0x5F5F5F5Ful;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      tx_power_val = 0x9A9A9A9Aul;
-    }
-    break;
-  case DW_CHANNEL_5:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      tx_power_val = 0x48484848ul;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      tx_power_val = 0x85858585ul;
-    }
-    break;
-  case DW_CHANNEL_7:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      tx_power_val = 0x92929292ul;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      tx_power_val = 0xD1D1D1D1ul;
-    }
-    break;
-  }
   /* === Configure Preamble length */
   tx_fctrl_val &= ~DW_TXPSR_MASK;
   tx_fctrl_val &= ~DW_PE_MASK;
@@ -781,7 +648,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   chan_ctrl_val &= ~DW_TX_PCODE_MASK;
   chan_ctrl_val &= ~DW_RX_PCODE_MASK;
 
-  uint32_t preamble_code = (uint8_t)dw_conf->preamble_code;
+  uint32_t preamble_code = (uint8_t) dw_conf->preamble_code;
   chan_ctrl_val |= (preamble_code << DW_TX_PCODE) & DW_TX_PCODE_MASK;
   chan_ctrl_val |= (preamble_code << DW_RX_PCODE) & DW_RX_PCODE_MASK;
 
@@ -968,11 +835,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* Enable receiver abort on PHR error.*/
   sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
-  /* Configure the Crystal Trim Setting
-      We use the mid range value (0x0F)
-      Bits 7:5 must always be set to binary “011”. */
-  fs_xtal_val = DW_FS_XTAL_RESERVED_MASK | 
-                ((0x0F << DW_XTALT) & DW_XTALT_MASK);
+  /* We use the mid range value (0x0F) */
+  dw_fs_xtalt(0xFU);
 
   /* enable the Clock PLL lock detect tune 
       Required when using the Crystal Trim Setting 
@@ -1001,6 +865,86 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &drx_tune2_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
+  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
+                  (uint8_t *) &lde_cfg1);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
+                  (uint8_t *) &lde_cfg2);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
+                  (uint8_t *) &lde_repc);
+  dw1000.conf = *dw_conf;
+  /* DW_LOG("Configuration complete."); */
+}
+/**
+ * \brief Configure the DW1000 according the gived channel.
+ *    Include the configuration of RF_TXCTRL (Analog TX Control Register),
+ *      RF_TXCTRL (Analog TX Control Register),
+ *      TC_PGDELAY (Transmitter Calibration - Pulse Generator Delay),
+ *      FS_PLLCFG (Frequency synthesizer - PLL configuration),
+ *      FS_PLLTUNE (Frequency synthesizer - PLL Tuning)
+ *
+ * \param[in] channel   The channel.
+ */
+void dw_set_channel(dw1000_channel_t channel){
+  uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
+  uint32_t rf_rxctrlh_val = 0UL;
+  uint32_t rf_txctrl_val = 0UL;
+  uint8_t tc_pgdelay_val = 0;
+  uint32_t fs_pllcfg_val = 0UL;
+  uint32_t fs_plltune_val = 0UL;
+    /* === Configure rx/tx channel */
+  chan_ctrl_val &= ~DW_TXCHAN_MASK;
+  chan_ctrl_val &= ~DW_RXCHAN_MASK;
+
+  uint16_t channelNum = ((uint8_t)channel & 0xF);
+  chan_ctrl_val |= (channelNum << DW_TXCHAN) & DW_TXCHAN_MASK;
+  chan_ctrl_val |= (channelNum << DW_RXCHAN) & DW_RXCHAN_MASK;
+
+  switch(channel) {
+  case DW_CHANNEL_1:
+    rf_rxctrlh_val = 0xD8;
+    rf_txctrl_val = 0x00005C40UL;
+    tc_pgdelay_val = 0xC9;
+    fs_pllcfg_val = 0x09000407UL;
+    fs_plltune_val = 0x1E;
+    break;
+  case DW_CHANNEL_2:
+    rf_rxctrlh_val = 0xD8;
+    rf_txctrl_val = 0x00045CA0UL;
+    tc_pgdelay_val = 0xC2;
+    fs_pllcfg_val = 0x08400508UL;
+    fs_plltune_val = 0x26;
+    break;
+  case DW_CHANNEL_3:
+    rf_rxctrlh_val = 0xD8;
+    rf_txctrl_val = 0x00086CC0UL;
+    tc_pgdelay_val = 0xC5;
+    fs_pllcfg_val = 0x08401009UL;
+    fs_plltune_val = 0x56;
+    break;
+  case DW_CHANNEL_4:
+    rf_rxctrlh_val = 0xBC;
+    rf_txctrl_val = 0x00045C80UL;
+    tc_pgdelay_val = 0x95;
+    fs_pllcfg_val = 0x08400508UL;
+    fs_plltune_val = 0x26;
+    break;
+  case DW_CHANNEL_5:
+    rf_rxctrlh_val = 0xD8;
+    rf_txctrl_val = 0x001E3FE0UL;
+    tc_pgdelay_val = 0xC0;
+    fs_pllcfg_val = 0x0800041DUL;
+    fs_plltune_val = 0xBE;
+    break;
+  case DW_CHANNEL_7:
+    rf_rxctrlh_val = 0xBC;
+    rf_txctrl_val = 0x001E7DE0UL;
+    tc_pgdelay_val = 0x93;
+    fs_pllcfg_val = 0x0800041DUL;
+    fs_plltune_val = 0xBE;
+    break;
+  }
+  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
                   (uint8_t *) &rf_rxctrlh_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
@@ -1011,18 +955,72 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
-  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
-  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
-                  (uint8_t *) &fs_xtal_val);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
-                  (uint8_t *) &lde_cfg1);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
-                  (uint8_t *) &lde_cfg2);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
-                  (uint8_t *) &lde_repc);
+}
+/**
+ * \brief Set the TX power according the Table 20: "Reference values Register 
+ *    file: 0x1E – Transmit Power Control for Manual Transmit Power Control" 
+ *    of the user manual (v2.10).
+ *    We disable the Smart Transmit Power Control.
+ *
+ * \param[in] channel   The channel.
+ * \param[in] prf       The PRF.
+ */
+void dw_set_default_tx_power(dw1000_channel_t channel, dw1000_prf_t prf){
+  uint32_t tx_power_val = 0UL;  
+  uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
+  /* Configure the TX power based on the channel and the PRF
+    Based on the manual: Table 20: Reference values Register file: 
+    0x1E – Transmit Power Control for Manual Transmit Power
+    Control (Smart Transmit Power Control disabled) */
+  sys_cfg_val |= DW_DIS_STXP_MASK;  /* Disable Smart Transmit Power Control */
+
+  switch(channel) {
+  case DW_CHANNEL_1:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x75757575ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x67676767ul;
+    }
+    break;
+  case DW_CHANNEL_2:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x75757575ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x67676767ul;
+    }
+    break;
+  case DW_CHANNEL_3:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x6F6F6F6Ful;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x8B8B8B8Bul;
+    }
+    break;
+  case DW_CHANNEL_4:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x5F5F5F5Ful;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x9A9A9A9Aul;
+    }
+    break;
+  case DW_CHANNEL_5:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x48484848ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x85858585ul;
+    }
+    break;
+  case DW_CHANNEL_7:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x92929292ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0xD1D1D1D1ul;
+    }
+    break;
+  }
+
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
-  dw1000.conf = *dw_conf;
-  /* DW_LOG("Configuration complete."); */
 }
 /**
  * \brief Change the TX Power value.
@@ -1045,6 +1043,7 @@ dw_change_tx_power(uint32_t tx_power_val, uint8_t manual){
   else{
     sys_cfg_val &= ~DW_DIS_STXP_MASK;  /* Enable Smart Transmit Power Control */
   }
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
   dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
   dw_sfd_init();
 }
@@ -1055,7 +1054,7 @@ dw_change_tx_power(uint32_t tx_power_val, uint8_t manual){
  */
 uint32_t
 dw_get_tx_power(void){
-  uint32_t tx_power_val;
+  uint32_t tx_power_val = 0UL;
   dw_read_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
   return tx_power_val;
 }
@@ -1079,7 +1078,7 @@ dw_conf_rx(dw1000_rx_conf_t *rx_conf)
   if(rx_conf->is_delayed) {
     dw_set_dx_timestamp(rx_conf->dx_timestamp);
 
-    uint32_t sys_ctrl_val;
+    uint32_t sys_ctrl_val = 0UL;
     sys_ctrl_val = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
     sys_ctrl_val |= DW_RXDLYE_MASK;
     dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&sys_ctrl_val);
@@ -1126,7 +1125,7 @@ dw_conf_tx(dw1000_tx_conf_t *tx_conf)
 void
 dw_set_tx_frame_length(uint16_t frame_len)
 {
-  uint16_t tx_frame_control_lo;
+  uint16_t tx_frame_control_lo = 0;
   dw_read_subreg(DW_REG_TX_FCTRL, 0x0, 2, (uint8_t*) &tx_frame_control_lo);
 
   /* reseting the length */
@@ -1170,7 +1169,7 @@ dw_enable_delayed_rx(uint64_t dx_timestamp)
 void
 dw_disable_delayed_tx_rx(void)
 {
-  uint32_t ctrl_reg_val;
+  uint32_t ctrl_reg_val = 0UL;
   ctrl_reg_val = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
   ctrl_reg_val &= ~DW_TXDLYS_MASK;   /* sender */
   ctrl_reg_val &= ~DW_RXDLYE_MASK;   /* receiver */
@@ -1185,34 +1184,34 @@ dw_disable_delayed_tx_rx(void)
 void
 dw_conf_print()
 {
-  uint32_t sys_cfg_val = 0;
-  uint32_t tx_fctrl_val = 0;
-  uint32_t chan_ctrl_val = 0;
-  uint32_t agc_tune1_val = 0;
-  uint32_t agc_tune2_val = 0;
-  uint32_t agc_tune3_val = 0;
-  uint32_t drx_tune0b_val = 0;
-  uint32_t drx_tune1a_val = 0;
-  uint32_t drx_tune1b_val = 0;
-  uint32_t drx_tune2_val = 0;
-  uint32_t drx_tune4h_val = 0;
-  uint32_t rf_rxctrlh_val = 0;
-  uint32_t rf_txctrl_val = 0;
-  uint32_t tc_pgdelay_val = 0;
-  uint32_t fs_pllcfg_val = 0;
-  uint32_t fs_plltune_val = 0;
-  uint32_t ec_crtl_val = 0;
-  uint32_t fs_xtal_val = 0;
-  uint32_t lde_cfg1 = 0;
-  uint32_t lde_cfg2 = 0;
-  uint32_t lde_repc = 0;
-  uint32_t tx_power_val = 0;
+  uint32_t sys_cfg_val = 0UL;
+  uint64_t tx_fctrl_val = 0ULL;
+  uint32_t chan_ctrl_val = 0UL;
+  uint32_t agc_tune1_val = 0UL;
+  uint32_t agc_tune2_val = 0UL;
+  uint32_t agc_tune3_val = 0UL;
+  uint32_t drx_tune0b_val = 0UL;
+  uint32_t drx_tune1a_val = 0UL;
+  uint32_t drx_tune1b_val = 0UL;
+  uint32_t drx_tune2_val = 0UL;
+  uint32_t drx_tune4h_val = 0UL;
+  uint32_t rf_rxctrlh_val = 0UL;
+  uint32_t rf_txctrl_val = 0UL;
+  uint32_t tc_pgdelay_val = 0UL;
+  uint32_t fs_pllcfg_val = 0UL;
+  uint32_t fs_plltune_val = 0UL;
+  uint32_t ec_crtl_val = 0UL;
+  uint32_t fs_xtalt_val = 0UL;
+  uint32_t lde_cfg1 = 0UL;
+  uint32_t lde_cfg2 = 0UL;
+  uint32_t lde_repc = 0UL;
+  uint32_t tx_power_val = 0UL;
   uint8_t  user_sfd_lenght = 0;
   float temperature_val = 0;
   float voltage_val = 0;
 
   sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
+  dw_read_reg(DW_REG_TX_FCTRL, DW_LEN_TX_FCTRL, (uint8_t*) &tx_fctrl_val);
   chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
   agc_tune1_val = dw_read_subreg_32(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1,
                                     DW_SUBLEN_AGC_TUNE1);
@@ -1242,7 +1241,7 @@ dw_conf_print()
                                     DW_SUBLEN_FS_PLLTUNE);
   dw_read_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
   dw_read_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
-                  (uint8_t *) &fs_xtal_val);
+                  (uint8_t *) &fs_xtalt_val);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
                   (uint8_t *) &lde_cfg1);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
@@ -1264,7 +1263,7 @@ dw_conf_print()
                         dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
   printf("============================\r\n");
   printf("sys_cfg    : 0x%08" PRIx32 "\r\n", sys_cfg_val);
-  printf("tx_fctrl   : 0x%08" PRIx32 "\r\n", tx_fctrl_val);
+  printf("tx_fctrl   : 0x%016" PRIx64 "\r\n", tx_fctrl_val);
   printf("chan_ctrl  : 0x%08" PRIx32 "\r\n", chan_ctrl_val);
   printf("agc_tune1  : 0x%08" PRIx32 "\r\n", agc_tune1_val);
   printf("agc_tune2  : 0x%08" PRIx32 "\r\n", agc_tune2_val);
@@ -1280,7 +1279,7 @@ dw_conf_print()
   printf("fs_pllcfg  : 0x%08" PRIx32 "\r\n", fs_pllcfg_val);
   printf("fs_plltune : 0x%08" PRIx32 "\r\n", fs_plltune_val);
   printf("ec_crtl    : 0x%08" PRIx32 "\r\n", ec_crtl_val);
-  printf("fs_xtal    : 0x%08" PRIx32 "\r\n", fs_xtal_val);
+  printf("fs_xtalt   : 0x%08" PRIx32 "\r\n", fs_xtalt_val);
   printf("lde_cfg1   : 0x%08" PRIx32 "\r\n", lde_cfg1);
   printf("lde_cfg2   : 0x%08" PRIx32 "\r\n", lde_cfg2);
   printf("lde_repc   : 0x%08" PRIx32 "\r\n", lde_repc);
@@ -1336,7 +1335,7 @@ uint8_t euid_set = 0;
 uint64_t
 dw_get_extendedUniqueID(void)
 {
-  uint64_t eid;
+  uint64_t eid = 0ULL;
   dw_read_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *)&eid);
   return eid;
 }
@@ -1352,7 +1351,7 @@ dw_set_extendedUniqueID(uint64_t euid)
 void
 print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength)
 {
-  uint32_t i = 0;
+  uint32_t i = 0UL;
   PRINTF("%s 0x", string);
   for(i = 0; i < arrayLength; i++) {
     PRINTF("%02" PRIx8, array[i]);
@@ -1366,7 +1365,7 @@ print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength)
 uint16_t
 dw_get_pan_id()
 {
-  uint16_t panIdShortAddress;
+  uint16_t panIdShortAddress = 0;
   dw_read_subreg(DW_REG_PANADR, 0x02, 2, (uint8_t *)&panIdShortAddress);
   return panIdShortAddress;
 }
@@ -1386,7 +1385,7 @@ dw_set_pan_id(uint16_t pan_id)
 uint16_t
 dw_get_short_addr()
 {
-  uint16_t panIdShortAddress;
+  uint16_t panIdShortAddress = 0;
   dw_read_reg(DW_REG_PANADR, 2, (uint8_t *)&panIdShortAddress);
   return panIdShortAddress;
 }
@@ -1589,7 +1588,7 @@ dw_get_fp_ampl()
 void 
 dw_get_receive_quality(dw1000_frame_quality* quality)
 {
-  uint16_t rx_pacc_nosat;
+  uint16_t rx_pacc_nosat = 0;
   /* Read FP_AMPL1 */
   dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_FP_AMPL1, 
                                   DW_SUBLEN_FP_AMPL1, 
@@ -1690,7 +1689,7 @@ void
 print_error_counter(void){
   printf("-----------------------------------\n");
   printf("-----------Error Counter-----------\n");
-  uint16_t value;
+  uint16_t value = 0;
   dw_read_subreg(DW_REG_EVC_CTRL, DW_SUBREG_EVC_PHE, 2, (uint8_t*) &value);
   value &= DW_EVC_PHE_MASK;
   if( value > 0)
@@ -1768,7 +1767,7 @@ int
 dw_get_rx_len(void)
 {
   /* we can read only the two first bytes of the register */
-  uint16_t rx_frame_info_lo;
+  uint16_t rx_frame_info_lo = 0;
   dw_read_subreg(DW_REG_RX_FINFO, 0x0, 2, (uint8_t*) &rx_frame_info_lo);
 
   /* check if we don't have a to long length */
@@ -1784,7 +1783,7 @@ int
 dw_get_rx_extended_len(void)
 {
   /* we can read only the two first bytes of the register */
-  uint16_t rx_frame_info_lo;
+  uint16_t rx_frame_info_lo = 0;
   dw_read_subreg(DW_REG_RX_FINFO, 0x0, 2, (uint8_t*) &rx_frame_info_lo);
 
   /* check if we don't have a to long length */
@@ -1798,8 +1797,8 @@ void
 dw_get_rx_error()
 {
   uint32_t *status_reg;
-  uint64_t status_reg_64;
-  uint32_t isError;
+  uint64_t status_reg_64 = 0ULL;
+  uint32_t isError = 0UL;
 
   const uint32_t error_mask_lo = DW_RXPHE_MASK | DW_RXRFTO_MASK | 
                 DW_RXPTO_MASK | DW_RXSFDTO_MASK | DW_RXRFSL_MASK;
@@ -1841,7 +1840,7 @@ dw_get_rx_timeout()
 void
 dw_enable_rx_timeout()
 {
-  uint32_t cfgReg;
+  uint32_t cfgReg = 0UL;
   cfgReg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   cfgReg |= DW_RXWTOE_MASK;
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&cfgReg);
@@ -1852,7 +1851,7 @@ dw_enable_rx_timeout()
 void
 dw_disable_rx_timeout()
 {
-  uint32_t cfgReg;
+  uint32_t cfgReg = 0UL;
   cfgReg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   cfgReg &= ~DW_RXWTOE_MASK;
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&cfgReg);
@@ -1871,7 +1870,7 @@ dw_disable_rx_timeout()
 inline uint64_t
 dw_get_rx_raw_timestamp(void)
 {
-  uint64_t value = 0x0;
+  uint64_t value = 0ULL;
   dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
                   (uint8_t *) &value);
   return value;
@@ -1883,7 +1882,7 @@ dw_get_rx_raw_timestamp(void)
 uint64_t
 dw_get_rx_timestamp(void)
 {
-  uint64_t value = 0x0;
+  uint64_t value = 0ULL;
   dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_STAMP, DW_SUBLEN_RX_STAMP, 
                   (uint8_t*) &value);
   return value;
@@ -1900,7 +1899,7 @@ dw_get_rx_timestamp(void)
 uint64_t
 dw_get_tx_raw_timestamp(void)
 {
-  uint64_t value = 0x0;
+  uint64_t value = 0ULL;
   dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
                   (uint8_t*) &value);
   return value;
@@ -1912,7 +1911,7 @@ dw_get_tx_raw_timestamp(void)
 uint64_t
 dw_get_tx_timestamp(void)
 {
-  uint64_t value = 0x0;
+  uint64_t value = 0ULL;
   dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_STAMP, DW_SUBLEN_TX_STAMP, 
                   (uint8_t*) &value);
   return value;
@@ -1928,7 +1927,7 @@ dw_get_tx_timestamp(void)
 void
 dw_enable_ranging_frame(void)
 {
-  uint8_t value;
+  uint8_t value = 0;
   /* TR bit is the 15nd bit */
   dw_read_subreg(DW_REG_TX_FCTRL, 0x1, 1, &value); 
   value |= (DW_TR_MASK >> 8);
@@ -1945,7 +1944,7 @@ dw_enable_ranging_frame(void)
 void
 dw_disable_ranging_frame(void)
 {
-  uint8_t value;
+  uint8_t value = 0;
   /* TR bit is the 15nd bit */
   dw_read_subreg(DW_REG_TX_FCTRL, 0x1, 1, &value); 
   value &= ~(DW_TR_MASK >> 8);
@@ -1961,7 +1960,7 @@ dw_disable_ranging_frame(void)
 uint8_t 
 dw_is_ranging_frame(void)
 {
-  uint8_t value = 0x0;
+  uint8_t value = 0;
   /* RNG bit is the 15nd bit */
   dw_read_subreg(DW_REG_RX_FINFO, 0x1, 1, &value);
   return (value & (DW_RNG_MASK >> 8)) > 0;
@@ -1980,6 +1979,8 @@ dw_set_antenna_delay(uint16_t antenna_delay)
 {
   dw_set_tx_antenna_delay((uint16_t) (((uint32_t) (antenna_delay) * 44) / 100));
   dw_set_rx_antenna_delay((uint16_t) (((uint32_t) (antenna_delay) * 56) / 100));
+  // dw_set_tx_antenna_delay(antenna_delay >> 1);
+  // dw_set_rx_antenna_delay(antenna_delay >> 1);
 }
 /**
  * \brief Set the TX antenna delay.
@@ -1999,7 +2000,7 @@ dw_set_tx_antenna_delay(uint16_t tx_delay)
 uint16_t
 dw_get_tx_antenna_delay(void)
 {
-  uint16_t tx_delay;
+  uint16_t tx_delay = 0;
   dw_read_reg(DW_REG_TX_ANTD, DW_LEN_TX_ANTD, (uint8_t *) &tx_delay);
   return tx_delay;
 }
@@ -2022,7 +2023,7 @@ dw_set_rx_antenna_delay(uint16_t rx_delay)
 uint16_t
 dw_get_rx_antenna_delay(void)
 {
-  uint16_t rx_delay;
+  uint16_t rx_delay = 0;
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_RXANTD, DW_SUBLEN_LDE_RXANTD, 
                   (uint8_t *) &rx_delay);
   return rx_delay;
@@ -2138,8 +2139,8 @@ dw_clear_pending_interrupt(uint64_t mask)
 uint64_t
 dw_generate_extendedUniqueID()
 {
-  uint64_t eid = 0x0ULL;
-  int i;
+  uint64_t eid = 0ULL;
+  uint i;
   for(i = 0; i < 4; i++) {
     eid |= ((uint64_t)rand()) << (i * 16);
   }
@@ -2207,7 +2208,7 @@ dw_init_tx(uint8_t wait_4_resp, uint8_t delayed)
   dw1000.state = DW_STATE_TRANSMITTING;
   /* Start transmission */
   /* Only read and write the first byte of the register */
-  uint8_t sys_ctrl_lo;
+  uint8_t sys_ctrl_lo = 0;
   dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
   sys_ctrl_lo |= DW_TXSTRT_MASK;
 
@@ -2233,7 +2234,7 @@ void
 dw_suppress_auto_FCS_tx(void)
 {
   /* Start transmission */
-  uint32_t ctrl_reg_val;
+  uint32_t ctrl_reg_val = 0UL;
   ctrl_reg_val = dw_read_reg_32(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL);
   ctrl_reg_val |= DW_SFCST_MASK;
   dw_write_reg(DW_REG_SYS_CTRL, DW_LEN_SYS_CTRL, (uint8_t *)&ctrl_reg_val);
@@ -2386,7 +2387,7 @@ dw_is_receive_timeout(uint64_t status)
 void
 dw1000_test()
 {
-  uint32_t canTalk = 0;
+  uint32_t canTalk = 0UL;
 
   canTalk = (uint32_t)(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, 
                                                     DW_LEN_DEV_ID));
@@ -2407,9 +2408,9 @@ dw1000_test()
 void
 dw1000_test_RW_longbits()
 {
-  int size = 1024;
+  uint16_t size = 1024;
   uint8_t data_write[size], data_read[size], data_save[size];
-  int i;
+  uint i;
   for(i = 0; i < size; i++) {
     data_write[i] = (uint8_t)rand();
     data_read[i] = 0;
@@ -2421,7 +2422,7 @@ dw1000_test_RW_longbits()
   dw_read_reg(DW_REG_TX_BUFFER, size, data_read);
   dw_write_reg(DW_REG_TX_BUFFER, size, data_save);
 
-  int error = 0;
+  uint16_t error = 0;
   for(i = 0; i < size; i++) {
     if(data_write[i] != data_read[i]) {
       error++;
@@ -2443,8 +2444,10 @@ dw1000_test_RW_longbits()
 void
 dw1000_test_tx_del_on()
 {
-  uint32_t reg, subReg, lenReg;
-  uint32_t data;
+  uint32_t reg = 0UL;
+  uint32_t subReg = 0UL;
+  uint32_t lenReg = 0UL;
+  uint32_t data = 0UL;
 
   /* GPIO_CTRL > GPIO_DIR GPD3 set to 0 */
   reg = DW_REG_GPIO_CTRL;
@@ -2498,7 +2501,7 @@ dw_read_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *pData)
 uint32_t
 dw_read_reg_32(uint32_t reg_addr, uint16_t reg_len)
 {
-  uint32_t result = 0;
+  uint32_t result = 0UL;
 
   /* avoid memory corruption */
   assert(reg_len <= 4);
@@ -2518,7 +2521,7 @@ dw_read_reg_32(uint32_t reg_addr, uint16_t reg_len)
 uint64_t
 dw_read_reg_64(uint32_t reg_addr, uint16_t reg_len)
 {
-  uint64_t result = 0;
+  uint64_t result = 0ULL;
 
   /* avoid memory corruption */
   assert(reg_len <= 8);
@@ -2594,7 +2597,7 @@ dw_read_otp_32(uint16_t otp_addr)
     0x00 /* Reset otp_ctrl */
   };
 
-  uint32_t read_data = 0;
+  uint32_t read_data = 0UL;
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_ADDR, DW_SUBLEN_OTP_ADDR, 
                   (uint8_t *)&otp_addr);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[0]);
@@ -2618,7 +2621,7 @@ void
 dw_enable_double_buffering(void)
 {
   /* enable double-buffered with DIS_DRXB to 0. */
-  uint8_t cfgReg;
+  uint8_t cfgReg = 0;
   dw_read_subreg(DW_REG_SYS_CFG, 0x1, 1, &cfgReg);
   cfgReg &= ~(DW_DIS_DRXB_MASK >> 8); /* 12th bit */
   dw_write_subreg(DW_REG_SYS_CFG, 0x1, 1, &cfgReg);
@@ -2634,7 +2637,7 @@ dw_enable_double_buffering(void)
 int
 dw_good_rx_buffer_pointer(void)
 {
-  uint8_t statusReg;
+  uint8_t statusReg = 0;
   dw_read_subreg(DW_REG_SYS_STATUS, 0x3, 1, &statusReg);
   /* HSRBP is the 30th bit */
   /* ICRBP is the 31th bit */
@@ -2650,7 +2653,7 @@ dw_good_rx_buffer_pointer(void)
 int
 dw_is_overrun(void)
 {
-  uint8_t statusReg;
+  uint8_t statusReg = 0;
   /* DW_RXOVRR is the 20nd bit > in the 3nd byte */
   dw_read_subreg(DW_REG_SYS_STATUS, 0x2, 1, &statusReg);
   return statusReg & (DW_RXOVRR_MASK >> 16);
@@ -2681,7 +2684,7 @@ void
 dw_change_rx_buffer(void)
 {
   /* Host Side Receive Buffer Pointer Toggle to 1. */
-  uint8_t ctrlReg;
+  uint8_t ctrlReg = 0;
   dw_read_subreg(DW_REG_SYS_CTRL, 0x3, 1, &ctrlReg);
   ctrlReg |= DW_HRBPT_MASK >> 24; /* 24th bit > first bit of the 4th byte */
   dw_write_subreg(DW_REG_SYS_CTRL, 0x3, 1, &ctrlReg);
@@ -2696,7 +2699,7 @@ dw_trxoff_db_mode(void)
 {
   /* Mask Double buffered status bits; FCE, FCG, DFR, LDE_DONE
       to prevent glitch when cleared */
-  uint8_t maskReg;
+  uint8_t maskReg = 0;
   /* read/write only one byte */
   dw_read_subreg(DW_REG_SYS_MASK, 0x1, 1, &maskReg);
   maskReg |= (DW_MRXFCE_MASK          /* 15th bit */
@@ -2776,4 +2779,57 @@ dw_db_mode_clear_pending_interrupt(void)
                | DW_MRXDFR_MASK
                | DW_MLDEDONE_MASK);
   dw_write_reg(DW_REG_SYS_MASK, DW_LEN_SYS_MASK, (uint8_t *)&maskReg);
+}
+/**
+ * \brief Configure the DW1000 to be in continuous waves transmit mode.
+ *    We follow the procedure gived in the section 8.1 "IC Calibration – 
+ *     Crystal Oscillator Trim" of the user manual (v2.10) to achieve this.
+ *  \note /!\ The transmitter should be reset before call this function to know
+ *          all register value.
+ */
+void dw_cw_mode(dw1000_channel_t channel){
+  uint32_t rx_conf_val = 0x0009A000UL;
+  dw_write_reg(DW_REG_RF_CONF, DW_LEN_RF_CONF, (uint8_t*) &rx_conf_val);
+  uint32_t psmc_ctrl1_val = 0x00000000UL;
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL1, DW_SUBLEN_PMSC_CTRL1, 
+                    (uint8_t*) &psmc_ctrl1_val);
+  dw_set_channel(channel);
+  /* PRF 16 MHz is the default configuration */
+  dw_set_default_tx_power(channel, DW_PRF_16_MHZ);
+  uint32_t psmc_ctrl0_val = 0x22UL;
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+                    (uint8_t*) &psmc_ctrl0_val);
+  /* the procedure say to write 4 bytes but 
+      the register have a size of 2 bytes */
+  uint32_t psmc_txfseq_val = 0x0UL;
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_TXFSEQ, DW_SUBLEN_PMSC_TXFSEQ, 
+                    (uint8_t*) &psmc_txfseq_val);  
+  rx_conf_val = 0x0009A000UL;
+  dw_write_reg(DW_REG_RF_CONF, DW_LEN_RF_CONF, (uint8_t*) &rx_conf_val);
+  uint8_t tc_pgtest_val = 0x13;
+  dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGTEST, DW_SUBLEN_TC_PGTEST,
+            &tc_pgtest_val);
+
+  uint8_t fs_xtalt_val = 0x6F;
+  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
+                  &fs_xtalt_val);
+}
+/**
+ * \brief This is used adjust the crystal frequency
+ *
+ * \param[in]   value - crystal trim value (in range 0x0 to 0x1F) 31 steps 
+ *              (~1.5ppm per step).
+ *              Based on the "void dwt_xtaltrim(uint8 value)" function in the 
+ *              DecaRanging app.
+ */
+void 
+dw_fs_xtalt(uint8_t value)
+{
+  uint8_t fs_xtalt_val = 0;
+  /* Configure the Crystal Trim Setting
+    Bits 7:5 must always be set to binary “011”. */
+  fs_xtalt_val = DW_FS_XTAL_RESERVED_MASK | 
+                (value & DW_XTALT_MASK);
+  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
+                  (uint8_t *) &fs_xtalt_val);
 }

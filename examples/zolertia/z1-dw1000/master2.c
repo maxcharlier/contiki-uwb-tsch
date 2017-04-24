@@ -123,32 +123,61 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("     B display number of reset\n");
 
   /* set the antenna delay, we set these values with the antenna set to off */
-  // dw1000_driver_off();
-  // switch(linkaddr_node_addr.u8[0]){
-  //   case 0x6:
-  //     dw_set_antenna_delay(32739);
-  //     break;
+  dw1000_driver_off();
+  // [ 33000.63765758,  33005.07765758,  32936.89224318,  32969.00358338, 
+  //    32988.41654838]
+  if(DW1000_DATA_RATE != DW_DATA_RATE_110_KBPS){
+    switch(linkaddr_node_addr.u8[0]){
+      case 0x6:
+        dw_set_antenna_delay(33001);
+        break;
 
-  //   case 0x07:
-  //     dw_set_antenna_delay(32835);
-  //     break;
+      case 0x07:
+        dw_set_antenna_delay(33005);
+        break;
 
-  //   case 0x08:
-  //     dw_set_antenna_delay(32691);
-  //     break;
+      case 0x08:
+        dw_set_antenna_delay(32937);
+        break;
 
-  //   case 0x09:
-  //     dw_set_antenna_delay(32709);
-  //     break;
+      case 0x09:
+        dw_set_antenna_delay(32969);
+        break;
 
-  //   case 0x0A:
-  //     dw_set_antenna_delay(33643);
-  //     break;
-  // }
-  // dw1000_driver_on();
+      case 0x0A:
+        dw_set_antenna_delay(32988);
+        break;
+    }  /* end switch */
+  } /* end if DW1000_DATA_RATE != DW_DATA_RATE_110_KBPS */
+  else{ /* data rare == 110 kbps */
+     // [ 32926.07110298,  32924.99710298,  32914.86710298,  32930.89710298,
+     //         33030.49710298]
+    switch(linkaddr_node_addr.u8[0]){
+      case 0x6:
+        dw_set_antenna_delay(32926);
+        break;
 
-  printf("tx delay %d\n", dw_get_tx_antenna_delay());
-  printf("rx delay %d\n", dw_get_rx_antenna_delay());
+      case 0x07:
+        dw_set_antenna_delay(32925);
+        break;
+
+      case 0x08:
+        dw_set_antenna_delay(32915);
+        break;
+
+      case 0x09:
+        dw_set_antenna_delay(32931);
+        break;
+
+      case 0x0A:
+        dw_set_antenna_delay(33030);
+        break;
+    } /* end switch */
+  } /* end data rare == 110 kbps */
+  dw1000_driver_on();
+
+  printf("tx delay %u\n", dw_get_tx_antenna_delay());
+  printf("rx delay %u\n", dw_get_rx_antenna_delay());
 
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 
@@ -394,6 +423,11 @@ PROCESS_THREAD(frame_master_process, ev, data)
       else if(mode == 0x0B){ 
         printf("Nb reinitialisation of the receiver %u\n",
                   (unsigned int) receive_debug);
+      }
+      else if(mode == 0x0C){
+        printf("Re init RX\n"); 
+        dw1000_driver_off();
+        dw1000_driver_on();
       }
     }
   }

@@ -182,10 +182,13 @@
 #define DW_SUBLEN_RXPACC_NOSAT 2          /* \brief dummy */
 
 #define DW_REG_RF_CONF       0x28       /* \brief dummy */
+#define DW_LEN_RF_CONF       4          /* \brief dummy */
 #define DW_SUBREG_RF_RXCTRLH 0x0B       /* \brief dummy */
 #define DW_SUBLEN_RF_RXCTRLH 1          /* \brief dummy */
 #define DW_SUBREG_RF_TXCTRL  0x0C       /* \brief dummy */
 #define DW_SUBLEN_RF_TXCTRL  4          /* \brief dummy */
+#define DW_SUBREG_LDOTUNE    0x30       /* \brief dummy */
+#define DW_SUBLEN_LDOTUNE    5          /* \brief dummy */
 
 #define DW_REG_TX_CAL        0x2A       /* \brief dummy */
 #define DW_SUBREG_TC_SARC    0x00       /* \brief dummy */
@@ -196,6 +199,8 @@
 #define DW_SUBLEN_TC_SARW    2          /* \brief dummy */
 #define DW_SUBREG_TC_PGDELAY 0x0B       /* \brief dummy */
 #define DW_SUBLEN_TC_PGDELAY 1          /* \brief dummy */
+#define DW_SUBREG_TC_PGTEST  0x0C       /* \brief dummy */
+#define DW_SUBLEN_TC_PGTEST  1          /* \brief dummy */
 
 #define DW_REG_FS_CTRL       0x2B       /* \brief dummy */
 #define DW_SUBREG_FS_PLLCFG  0x07       /* \brief dummy */
@@ -272,9 +277,13 @@
 #define DW_SUBREG_EVC_TPW    0x1A        /* \brief dummy */
 #define DW_SUBLEN_EVC_TPW    2           /* \brief dummy */
 
-#define DW_REG_PMSC          0x36        /* \brief dummy */
-#define DW_SUBREG_PMSC_CTRL0 0x00        /* \brief dummy */
-#define DW_SUBLEN_PMSC_CTRL0 0x04        /* \brief dummy */
+#define DW_REG_PMSC           0x36        /* \brief dummy */
+#define DW_SUBREG_PMSC_CTRL0  0x00        /* \brief dummy */
+#define DW_SUBLEN_PMSC_CTRL0  0x04        /* \brief dummy */
+#define DW_SUBREG_PMSC_CTRL1  0x04        /* \brief dummy */
+#define DW_SUBLEN_PMSC_CTRL1  0x04        /* \brief dummy */
+#define DW_SUBREG_PMSC_TXFSEQ 0x26        /* \brief dummy */
+#define DW_SUBLEN_PMSC_TXFSEQ 0x02        /* \brief dummy */
 
 #define DW_SUBREG_PMSC_LEDC  0x28        /* \brief dummy */
 #define DW_SUBLEN_PMSC_LEDC  0x04        /* \brief dummy */

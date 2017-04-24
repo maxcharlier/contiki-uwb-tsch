@@ -604,8 +604,8 @@ unsigned long
 theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, 
                               uint8_t prf, uint32_t data_lenght)
 {
-  uint16_t t_shr, t_prf, t_mac;
-  uint32_t s_mac; /* to have a correct precision */
+  uint16_t t_shr = 0, t_prf = 0, t_mac = 0;
+  uint32_t s_mac = 0UL; /* to have a correct precision */
 
   /** Duration of the synchronization header and the PRF
    * SHR is the length of the SFD and the length of the preamble 
@@ -647,7 +647,7 @@ theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate,
 unsigned long
 theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght)
 {
-  uint32_t s_mac; /* to have a correct precision */
+  uint32_t s_mac = 0UL; /* to have a correct precision */
 
   /* duration of a data symbol  (*100 000) */
   if(data_rate == DW_DATA_RATE_110_KBPS) {

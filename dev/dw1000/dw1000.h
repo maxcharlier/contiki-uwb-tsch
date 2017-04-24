@@ -501,6 +501,8 @@ void dw1000_init(void);
 
 /* Configuration */
 void dw_conf(dw1000_base_conf_t *dw_conf);
+void dw_set_channel(dw1000_channel_t channel);
+void dw_set_default_tx_power(dw1000_channel_t channel, dw1000_prf_t prf);
 void dw_change_tx_power(uint32_t tx_power_val, uint8_t manual);
 uint32_t dw_get_tx_power(void);
 void dw_conf_rx(dw1000_rx_conf_t *rx_conf);
@@ -513,7 +515,7 @@ void dw_set_sfd_timeout(uint16_t value);
 void dw_sfd_init(void);
 void dw_load_lde_code(void);
 void dw_active_lde_on_wakeup(void);
-uint32_t dw_opt_read(uint16_t address);
+void dw_fs_xtalt(uint8_t value);
 
 /* RX / TX */
 void dw_init_rx(void);
@@ -629,6 +631,7 @@ void dw_suppress_auto_FCS_tx(void);
 void dw1000_test_tx_del_on(void);
 void dw1000_test_RW_longbits(void);
 void dw1000_test(void);
+void dw_cw_mode(dw1000_channel_t channel);
 
 /*===========================================================================*/
 /*========================== Device communication ===========================*/

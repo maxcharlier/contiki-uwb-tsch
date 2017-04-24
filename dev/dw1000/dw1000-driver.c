@@ -89,11 +89,16 @@
 #define DW1000_PRF               DW_PRF_64_MHZ
 #endif /* DW1000_PRF */
 
+
+#define DW1000_ENABLE_RANGING_BIAS_CORRECTION 1
+#if DW1000_ENABLE_RANGING_BIAS_CORRECTION
+  #include "dw1000-ranging-bias.h"
+#endif /* DW1000_ENABLE_RANGING_BIAS_CORRECTION */
 /** Set the ranging reply time (in µs).
  * For a configuration using a data-rate of 6.8 mbps and a preamble of 128 
- * symbols, we recommend a reply time of 600 µs. 
- * At 110 kbps and with a preamble of 1024 symbols, a replay time of 2300 µs
- * is enough.
+ * symbols, we recommend a reply time of 925 µs. 
+ * At 110 kbps and with a preamble of 2048 symbols, a replay time of 4215 µs
+ * is required.
  * A value of 0 refer to an automated computation of the reply time.
  *  In this case, don't forget to set the DW1000_REPLY_TIME_COMPUTATION.
  */
@@ -165,22 +170,21 @@ static uint8_t volatile dw1000_driver_sstwr = 0;
 /* define if we are in the Symmetric double-sided two-way ranging protocol */
 static uint8_t volatile dw1000_driver_sdstwr = 0;
 
-/* Define the reply time (in micro second). 
- */
-static uint32_t dw1000_driver_reply_time;
+/* Define the reply time (in micro second). */
+static uint32_t dw1000_driver_reply_time = 0UL;
 
 /* Define the real reply time
  * Note this value match with the clock of the DW1000 (125 MHz ~ 0.008µs) 
  */
-static uint32_t dw1000_driver_schedule_reply_time;
+static uint32_t dw1000_driver_schedule_reply_time = 0UL;
 
-static int32_t dw1000_driver_last_prop_time;
+static int32_t dw1000_driver_last_prop_time = 0L;
 
 /* store the current DW1000 configuration */
 static dw1000_base_conf_t dw1000_conf;
 static dw1000_frame_quality last_packet_quality;
 
-static uint8_t volatile pending;
+static uint8_t volatile pending = 0;
 
 /**
  * \brief Define a loop to wait until the success of "cond" or the expiration 
@@ -210,11 +214,11 @@ static uint8_t volatile pending;
     } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), timeout)); \
   } while(0)
 
-volatile uint8_t dw1000_driver_sfd_counter;
-volatile uint16_t dw1000_driver_sfd_start_time;
-volatile uint16_t dw1000_driver_sfd_end_time;
+volatile uint8_t dw1000_driver_sfd_counter = 0;
+volatile uint16_t dw1000_driver_sfd_start_time = 0;
+volatile uint16_t dw1000_driver_sfd_end_time = 0;
 
-static volatile uint16_t last_packet_timestamp;
+static volatile uint16_t last_packet_timestamp = 0;
 
 /* start private function */
 inline void dw1000_schedule_reply(void);
@@ -290,10 +294,12 @@ const struct radio_driver dw1000_driver =
   dw1000_driver_set_object
 };
 
-static uint8_t receive_on;
+static uint8_t receive_on = 0;
 
 /*---------------------------------------------------------------------------*/
-static uint8_t locked, lock_on, lock_off;
+static uint8_t locked = 0;
+static uint8_t lock_on = 0;
+static uint8_t lock_off = 0;
 
 
 /*---------------------------------------------------------------------------*/
@@ -354,7 +360,7 @@ dw1000_driver_init(void)
 #else
   dw_disable_gpio_led();
 #endif
-  
+
   enable_error_counter(); /* /!\ Increase the power consumption. */
 
   dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
@@ -1345,7 +1351,7 @@ return 1;
 /*---------------------------------------------------------------------------*/
 /* We receive a data frame (not a ranging frame) or we have an error */
 PROCESS_THREAD(dw1000_driver_process, ev, data){
-  int len;
+  int len = 0;
   PROCESS_BEGIN();
 
   PRINTF("dw1000_process: started\r\n");
@@ -1684,7 +1690,7 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
      rtimer_clock_t t1 = RTIMER_NOW(); /* end of the write */
 #endif /* DEGUB_RANGING_SS_TWR_FAST_TRANSMIT */
 
-      uint8_t sys_status_lo;
+      uint8_t sys_status_lo = 0;
       /* wait the end of the transmission */
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
                     &sys_status_lo); watchdog_periodic();,
@@ -2074,7 +2080,12 @@ uint64_t
 dw1000_driver_get_propagation_time(void){
   uint64_t propagation = dw1000_driver_last_prop_time;
   dw1000_driver_last_prop_time = 0;
+#if DW1000_ENABLE_RANGING_BIAS_CORRECTION
+  return propagation - dw1000_getrangebias(dw1000_conf.channel, propagation, 
+                                  dw1000_conf.prf);
+#else 
   return propagation;
+#endif /* DW1000_ENABLE_RANGING_BIAS_CORRECTION */
 }
 
 /**
@@ -2101,7 +2112,7 @@ dw1000_driver_get_packet_quality(void){
  */
 uint8_t ranging_send_ack_sheduled(uint8_t wait_for_resp, uint8_t wait_send){
   uint32_t sys_status = 0x0; /* clear the value */
-  uint8_t ack_num;
+  uint8_t ack_num = 0;
 
   /* clear the sys status */
   dw1000_driver_clear_pending_interrupt();

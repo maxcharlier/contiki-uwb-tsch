@@ -561,7 +561,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint16_t drx_tune1b_val = 0;
   uint32_t drx_tune2_val = 0;
   uint16_t drx_tune4h_val = 0;
-  uint32_t ec_crtl_val = dw_read_reg_32(DW_REG_EC_CTRL, DW_LEN_EC_CTRL);
+  uint32_t ec_ctrl_val = dw_read_reg_32(DW_REG_EC_CTRL, DW_LEN_EC_CTRL);
   uint8_t user_sfd_lenght = 0;
 
   /* === Configure PRF */
@@ -841,7 +841,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* enable the Clock PLL lock detect tune 
       Required when using the Crystal Trim Setting 
       Enable reliability of the Clock PLL Lock bit in the SYS STATUS*/
-  ec_crtl_val |= (0x01 << DW_PLLLDT) & DW_PLLLDT_MASK;
+  ec_ctrl_val |= (0x01 << DW_PLLLDT) & DW_PLLLDT_MASK;
 
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
@@ -865,7 +865,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &drx_tune2_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
-  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
+  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_ctrl_val);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
                   (uint8_t *) &lde_cfg1);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
@@ -1200,7 +1200,7 @@ dw_conf_print()
   uint32_t tc_pgdelay_val = 0UL;
   uint32_t fs_pllcfg_val = 0UL;
   uint32_t fs_plltune_val = 0UL;
-  uint32_t ec_crtl_val = 0UL;
+  uint32_t ec_ctrl_val = 0UL;
   uint32_t fs_xtalt_val = 0UL;
   uint32_t lde_cfg1 = 0UL;
   uint32_t lde_cfg2 = 0UL;
@@ -1239,7 +1239,7 @@ dw_conf_print()
                                     DW_SUBLEN_FS_PLLCFG);
   fs_plltune_val = dw_read_subreg_32(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE,
                                     DW_SUBLEN_FS_PLLTUNE);
-  dw_read_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_crtl_val);
+  dw_read_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_ctrl_val);
   dw_read_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_XTALT, DW_SUBLEN_FS_XTALT,
                   (uint8_t *) &fs_xtalt_val);
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
@@ -1278,7 +1278,7 @@ dw_conf_print()
   printf("tc_pgdelay : 0x%08" PRIx32 "\r\n", tc_pgdelay_val);
   printf("fs_pllcfg  : 0x%08" PRIx32 "\r\n", fs_pllcfg_val);
   printf("fs_plltune : 0x%08" PRIx32 "\r\n", fs_plltune_val);
-  printf("ec_crtl    : 0x%08" PRIx32 "\r\n", ec_crtl_val);
+  printf("ec_ctrl    : 0x%08" PRIx32 "\r\n", ec_ctrl_val);
   printf("fs_xtalt   : 0x%08" PRIx32 "\r\n", fs_xtalt_val);
   printf("lde_cfg1   : 0x%08" PRIx32 "\r\n", lde_cfg1);
   printf("lde_cfg2   : 0x%08" PRIx32 "\r\n", lde_cfg2);
@@ -1645,7 +1645,7 @@ dw_get_receive_quality(dw1000_frame_quality* quality)
 void 
 print_receive_quality(dw1000_frame_quality quality)
 {
-  printf("0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d", 
+  printf(" 0x%04X 0x%04X 0x%04X 0x%04X 0x%04X 0x%02X 0x%04X %d", 
       quality.fp_ampl1, quality.fp_ampl2, quality.fp_ampl3, 
       quality.rx_pacc, quality.cir_pwr, quality.n_correction, 
       quality.std_noise, (int) quality.clock_offset);

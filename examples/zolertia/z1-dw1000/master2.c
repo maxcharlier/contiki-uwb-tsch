@@ -221,8 +221,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
             while(dw1000_driver_is_ranging_request()){
               PROCESS_PAUSE();
             }
-            printf("0x%08X ", 
-              (unsigned int) dw1000_driver_get_propagation_time());
+            printf("0x%08" PRIx32 "", 
+              (unsigned long int) dw1000_driver_get_propagation_time());
 
             if(mode == 0x02){
               /* get quality */
@@ -481,7 +481,7 @@ PROCESS_THREAD(receive_process, ev, data)
             /* prepare and  send the ranging report to the master */
 
             /* 1 for mode, 2 for source, 2 for dest, 8 for report */
-            uint frame_size = 13;
+            uint frame_size = 9;
             if(mode == 0x02)
               frame_size += SIZEOF_QUALITY;
             char report[frame_size]; 
@@ -496,7 +496,7 @@ PROCESS_THREAD(receive_process, ev, data)
             report[4] = (dest >> 8) & 0xFF;
 
             uint64_t propagation = dw1000_driver_get_propagation_time();
-            memcpy(&report[5], &propagation, 8);
+            memcpy(&report[5], &propagation, 4);
 
             // printf("propagation 0x%08X ", 
             //   (unsigned int) propagation);
@@ -504,7 +504,7 @@ PROCESS_THREAD(receive_process, ev, data)
             if(mode == 0x02){
               /* get quality */
               dw1000_frame_quality quality = dw1000_driver_get_packet_quality();
-              memcpy(&report[13], &quality, SIZEOF_QUALITY);
+              memcpy(&report[9], &quality, SIZEOF_QUALITY);
             }
 
             packetbuf_copyfrom(report, sizeof(report));
@@ -519,11 +519,11 @@ PROCESS_THREAD(receive_process, ev, data)
             unicast_send(&uc, &dest_addr2);
             }
         }
-        else if(payload_len >= 13){
+        else if(payload_len >= 9){
           PRINTF("Master receive a ranging response form %04X\n", master_addr);
           /* source, dest and report */
 
-          uint64_t propagation_time = 0;
+          int32_t propagation_time = 0;
           #if DEBUG
             /* only available for the master*/
             uint16_t source, dest;
@@ -532,13 +532,13 @@ PROCESS_THREAD(receive_process, ev, data)
             printf("Propagation time between %.4X %.4X: ", source, dest); 
           #endif /* DEBUG */
 
-          memcpy(&propagation_time, &payload[5], 8);
+          memcpy(&propagation_time, &payload[5], 4);
 
-          printf("0x%08X ", (unsigned int) propagation_time);
+          printf("0x%08" PRIx32 "", (unsigned long int) propagation_time);
           if(mode == 0x02){
             /* get quality */
             dw1000_frame_quality quality ;
-            memcpy(&quality, &payload[13], SIZEOF_QUALITY);
+            memcpy(&quality, &payload[9], SIZEOF_QUALITY);
             print_receive_quality(quality);
             printf(" 0x%04X 0x%04X\n",
               (DW1000_PRF == DW_PRF_16_MHZ) ? 16 : 64, 

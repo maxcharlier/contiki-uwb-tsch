@@ -640,7 +640,7 @@ const uint8_t range25cm64PRFwb[2][NUM_64M_OFFSETWB] =
  * \return The correction needed in DecaWave time unit.
  *          The final ranging value can be compute has follow: range - output
  */
-int16_t
+int32_t
 dw1000_getrangebias(uint8_t channel, uint16_t range, uint8_t prf)
 {
   /* first get the lookup index that corresponds to given range for 
@@ -706,7 +706,7 @@ dw1000_getrangebias(uint8_t channel, uint16_t range, uint8_t prf)
   } /* end else */
 
   /* offset result in centimetres */
-  offset = (int16_t) ((double) CENTIMETER_TO_DWTIME * cmoffseti);
+  offset = (int32_t) ((double) CENTIMETER_TO_DWTIME * cmoffseti);
 
   return (offset);
 }

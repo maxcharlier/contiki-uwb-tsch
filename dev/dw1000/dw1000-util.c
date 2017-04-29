@@ -365,6 +365,231 @@ print_frame(uint16_t frame_len, uint8_t *frame)
     printf("!!! Message malformed received !!!\r\n");
     printf("Len message: %d\r\n", frame_len);
   }
+}/**
+ * \brief Print value of register SYS_STATE.
+ *
+ * \param sys_statue    The value of SYS_STATE register.
+ */
+void
+print_sys_state(uint64_t sys_state)
+{
+  printf("--  SYS_STATE  --\r\n");
+  printf("sys_state : 0x%016" PRIx64 "\r\n", 
+                              (unsigned long long) sys_state);
+  uint32_t pmsc_state = sys_state & DW_PMSC_STATE_MASK;
+  printf("Current PMSC State Machine value 0x%02X\n", 
+                        (unsigned int) (pmsc_state >> DW_PMSC_STATE));
+  if(pmsc_state == DW_PMSC_STATE_INIT){
+    printf("   ");
+    printf("0x00");
+    printf("   ");
+    printf("DW1000 is in INIT.\r\n");
+  }
+  else if(pmsc_state == DW_PMSC_STATE_IDLE){
+    printf("   ");
+    printf("0x01");
+    printf("   ");
+    printf("DW1000 is in IDLE.\r\n");
+  }
+  else if(pmsc_state == DW_PMSC_STATE_TX_WAIT){
+    printf("   ");
+    printf("0x02");
+    printf("   ");
+    printf("DW1000 is waiting to tart transmitting.\r\n");
+  }
+  else if(pmsc_state == DW_PMSC_STATE_RX_WAIT){
+    printf("   ");
+    printf("0x03");
+    printf("   ");
+    printf("DW1000 is waiting to enter receive mode.\r\n");
+  }
+  else if(pmsc_state == DW_PMSC_STATE_TX){
+    printf("   ");
+    printf("0x04");
+    printf("   ");
+    printf("DW1000 is transmitting.\r\n");
+  }
+  else if(pmsc_state == DW_PMSC_STATE_RX){
+    printf("   ");
+    printf("0x05");
+    printf("   ");
+    printf("DW1000 is in receive mode.\r\n");
+  }
+  else{
+    printf("---");
+    printf("0x%02X", (unsigned int) (pmsc_state >> DW_PMSC_STATE));
+    printf("   ");
+    printf("DW1000 is in unknown mode.\r\n");
+  }
+  uint32_t tx_state = sys_state & DW_TX_STATE_MASK;
+  printf("Current TX State Machine value 0x%02X\r\n", 
+                                      (unsigned int) (tx_state >> DW_TX_STATE));
+  if(tx_state == DW_TX_STATE_IDLE){
+    printf("   ");
+    printf("0x00");
+    printf("   ");
+    printf("Transmitter is in idle.\r\n");
+  }
+  else if(tx_state == DW_TX_STATE_PREAMBLE){
+    printf("   ");
+    printf("0x01");
+    printf("   ");
+    printf("Transmitting preamble.\r\n");
+  }
+  else if(tx_state == DW_TX_STATE_SFD){
+    printf("   ");
+    printf("0x02");
+    printf("   ");
+    printf("Transmitting SFD.\r\n");
+  }
+  else if(tx_state == DW_TX_STATE_PHR){
+    printf("   ");
+    printf("0x03");
+    printf("   ");
+    printf("Transmitting PHR.\r\n");
+  }
+  else if(tx_state == DW_TX_STATE_SDE){
+    printf("   ");
+    printf("0x04");
+    printf("   ");
+    printf("Transmitting PHR parity SECDED bits.\r\n");
+  }
+  else if(tx_state == DW_TX_STATE_DATA){
+    printf("   ");
+    printf("0x05");
+    printf("   ");
+    printf("Transmitting data.\r\n");
+  }
+  else if(tx_state == DW_TX_STATE_RSP_DATA){
+    printf("   ");
+    printf("0x06");
+    printf("   ");
+    printf("Transmitting Reed Solomon parity block.\r\n");
+  }
+  else{
+    printf("----");
+    printf("0x%02X", (unsigned int) (tx_state >> DW_TX_STATE));
+    printf("   ");
+    printf("Transmitter is in unknown mode.\r\n");
+  }
+  uint32_t rx_state = sys_state & DW_RX_STATE_MASK;
+  printf("Current RX State Machine value 0x%02X\r\n", 
+                                      (unsigned int) (rx_state >> DW_RX_STATE));
+  if(rx_state == DW_RX_STATE_IDLE){
+    printf("   ");
+    printf("0x00");
+    printf("   ");
+    printf("Receiver is in idle.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_START_ANALOG){
+    printf("   ");
+    printf("0x01");
+    printf("   ");
+    printf("Start analog receiver blocks.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_RX_READY){
+    printf("   ");
+    printf("0x04");
+    printf("   ");
+    printf("Receiver ready.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_PREAMBLE_FIND){
+    printf("   ");
+    printf("0x05");
+    printf("   ");
+    printf("Receiver is waiting to detect preamble.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_PREAMBLE_TO){
+    printf("   ");
+    printf("0x06");
+    printf("   ");
+    printf("Preamble timeout.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_SFD_FOUND){
+    printf("   ");
+    printf("0x07");
+    printf("   ");
+    printf("SFD found.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_CONFIGURE_PRH_RX){
+    printf("   ");
+    printf("0x08");
+    printf("   ");
+    printf("Configure for PHR reception.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_PHR_RX_START){
+    printf("   ");
+    printf("0x09");
+    printf("   ");
+    printf("PHR reception started.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_DATA_RATE_READY){
+    printf("   ");
+    printf("0x0A");
+    printf("   ");
+    printf("Ready for data reception.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_DATA_RX_SEQ){
+    printf("   ");
+    printf("0x0C");
+    printf("   ");
+    printf("Data reception.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_CONFIG_DATA){
+    printf("   ");
+    printf("0x0D");
+    printf("   ");
+    printf("Configure for data.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_PHR_NOT_OK){
+    printf("   ");
+    printf("0x0E");
+    printf("   ");
+    printf("PHR error.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_LAST_SYMBOL){
+    printf("   ");
+    printf("0x0F");
+    printf("   ");
+    printf("Received last symbol.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_WAIT_RSQ_DONE){
+    printf("   ");
+    printf("0x10");
+    printf("   ");
+    printf("Wait for Reed Solomon decoder to finish.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_RSD_OK){
+    printf("   ");
+    printf("0x11");
+    printf("   ");
+    printf("Reed Solomon correct.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_RSD_NOT_OK){
+    printf("   ");
+    printf("0x12");
+    printf("   ");
+    printf("Reed Solomon error.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_RECONFIG_110){
+    printf("   ");
+    printf("0x13");
+    printf("   ");
+    printf("Reconfigure for 110 kbps data.\r\n");
+  }
+  else if(rx_state == DW_RX_STATE_WAIT_110_PHR){
+    printf("   ");
+    printf("0x14");
+    printf("   ");
+    printf("Wait for 110 kbps PHR.\r\n");
+  }
+  else{
+    printf("----");
+    printf("0x%02X", (unsigned int) (rx_state >> DW_RX_STATE));
+    printf("   ");
+    printf("Receiver is in unknown mode.\r\n");
+  }
+  printf("--  SYS_STATE  -- END.\r\n");
 }
 /**
  * \brief Print value of register SYS_STATUS.

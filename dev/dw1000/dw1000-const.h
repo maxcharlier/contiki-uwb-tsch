@@ -107,26 +107,6 @@
 #define DW_REG_RX_TTCKO     0x14        /* \brief dummy */
 #define DW_LEN_RX_TTCKO     5           /* \brief dummy */
 
-#define DW_REG_ACK_RESP     0x1A        /* \brief dummy */
-#define DW_LEN_ACK_RESP     4           /* \brief dummy */
-
-#define DW_REG_TX_POWER     0x1E        /* \brief dummy */
-#define DW_LEN_TX_POWER     4           /* \brief dummy */
-
-#define DW_REG_CHAN_CTRL    0x1F        /* \brief dummy */
-#define DW_LEN_CHAN_CTRL    4           /* \brief dummy */
-
-#define DW_REG_AGC_CTRL     0x23        /* \brief dummy */
-#define DW_LEN_AGC_CTRL     32          /* \brief dummy */
-#define DW_SUBREG_AGC_CTRL1 0x02        /* \brief dummy */
-#define DW_SUBLEN_AGC_CTRL1 2           /* \brief dummy */
-#define DW_SUBREG_AGC_TUNE1 0x04        /* \brief dummy */
-#define DW_SUBLEN_AGC_TUNE1 2           /* \brief dummy */
-#define DW_SUBREG_AGC_TUNE2 0x0C        /* \brief dummy */
-#define DW_SUBLEN_AGC_TUNE2 4           /* \brief dummy */
-#define DW_SUBREG_AGC_TUNE3 0x12        /* \brief dummy */
-#define DW_SUBLEN_AGC_TUNE3 2           /* \brief dummy */
-
 #define DW_REG_RX_TIME      0x15        /* \brief dummy */
 #define DW_LEN_RX_TIME      14          /* \brief dummy */
 #define DW_SUBREG_RX_STAMP  0x00        /* \brief dummy */
@@ -148,10 +128,34 @@
 #define DW_REG_TX_ANTD      0x18        /* \brief dummy */
 #define DW_LEN_TX_ANTD      2           /* \brief dummy */
 
+
+#define DW_REG_SYS_STATE    0x19        /* \brief dummy */
+#define DW_LEN_SYS_STATE    5           /* \brief dummy */
+
+#define DW_REG_ACK_RESP      0x1A        /* \brief dummy */
+#define DW_LEN_ACK_RESP      4           /* \brief dummy */
+
+#define DW_REG_TX_POWER     0x1E        /* \brief dummy */
+#define DW_LEN_TX_POWER     4           /* \brief dummy */
+
+#define DW_REG_CHAN_CTRL    0x1F        /* \brief dummy */
+#define DW_LEN_CHAN_CTRL    4           /* \brief dummy */
+
 #define DW_REG_USR_SFD       0x21        /* \brief dummy */
 #define DW_LEN_USR_SFD       41           /* \brief dummy */
 #define DW_SUBREG_SFD_LENGTH 0x00        /* \brief dummy */
 #define DW_SUBLEN_SFD_LENGTH 1           /* \brief dummy */
+
+#define DW_REG_AGC_CTRL     0x23        /* \brief dummy */
+#define DW_LEN_AGC_CTRL     32          /* \brief dummy */
+#define DW_SUBREG_AGC_CTRL1 0x02        /* \brief dummy */
+#define DW_SUBLEN_AGC_CTRL1 2           /* \brief dummy */
+#define DW_SUBREG_AGC_TUNE1 0x04        /* \brief dummy */
+#define DW_SUBLEN_AGC_TUNE1 2           /* \brief dummy */
+#define DW_SUBREG_AGC_TUNE2 0x0C        /* \brief dummy */
+#define DW_SUBLEN_AGC_TUNE2 4           /* \brief dummy */
+#define DW_SUBREG_AGC_TUNE3 0x12        /* \brief dummy */
+#define DW_SUBLEN_AGC_TUNE3 2           /* \brief dummy */
 
 #define DW_REG_EC_CTRL      0x24        /* \brief dummy */
 #define DW_LEN_EC_CTRL      4           /* \brief dummy */
@@ -508,8 +512,53 @@
 #define DW_RXTTCKI_MASK    (0xFFFFFFFFULL << 0) /* \brief dummy */
 
 /* DW_REG_RX_TTCKO 0x14 */
-#define DW_RXTOFS         0                 /* \brief dummy */
+#define DW_RXTOFS         0                   /* \brief dummy */
 #define DW_RXTOFS_MASK    (0x7FFFFULL << 0)   /* \brief dummy */
+
+
+/* DW_REG_SYS_STATE 0x19 */
+/* DW_SUBREG_TX_STATE   0x00 */
+#define DW_TX_STATE              4 
+#define DW_TX_STATE_MASK         (0x0FULL << 4)  
+#define DW_TX_STATE_IDLE         (0x00ULL << 4)    /* \brief dummy */
+#define DW_TX_STATE_PREAMBLE     (0x01ULL << 4)    /* \brief dummy */
+#define DW_TX_STATE_SFD          (0x02ULL << 4)    /* \brief dummy */
+#define DW_TX_STATE_PHR          (0x03ULL << 4)    /* \brief dummy */
+#define DW_TX_STATE_SDE          (0x04ULL << 4)    /* \brief dummy */
+#define DW_TX_STATE_DATA         (0x05ULL << 4)    /* \brief dummy */
+#define DW_TX_STATE_RSP_DATA     (0x06ULL << 4)    /* \brief dummy */
+/* DW_SUBREG_RX_STATE   0x01 */
+#define DW_RX_STATE                  8
+#define DW_RX_STATE_MASK             (0xFFULL << 8)
+#define DW_RX_STATE_IDLE             (0x00ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_START_ANALOG     (0x01ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_RX_READY         (0x04ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_PREAMBLE_FIND    (0x05ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_PREAMBLE_TO      (0x06ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_SFD_FOUND        (0x07ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_CONFIGURE_PRH_RX (0x08ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_PHR_RX_START     (0x09ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_DATA_RATE_READY  (0x0AULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_DATA_RX_SEQ      (0x0CULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_CONFIG_DATA      (0x0DULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_PHR_NOT_OK       (0x0EULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_LAST_SYMBOL      (0x0FULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_WAIT_RSQ_DONE    (0x10ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_RSD_OK           (0x11ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_RSD_NOT_OK       (0x12ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_RECONFIG_110     (0x13ULL << 8)    /* \brief dummy */
+#define DW_RX_STATE_WAIT_110_PHR     (0x14ULL << 8)    /* \brief dummy */
+/* DW_SUBREG_PMSC_STATE 0x02 */
+#define DW_PMSC_STATE              16 
+#define DW_PMSC_STATE_MASK         (0xFFULL << 16) 
+#define DW_PMSC_STATE_INIT         (0x00ULL << 16)    /* \brief DW1000 is in INIT */
+#define DW_PMSC_STATE_IDLE         (0x01ULL << 16)    /* \brief DW1000 is in IDLE */
+#define DW_PMSC_STATE_TX_WAIT      (0x02ULL << 16)    /* \brief DW1000 is waiting to 
+                                                          start transmitting */
+#define DW_PMSC_STATE_RX_WAIT      (0x03ULL << 16)    /* \brief DW1000 is waiting to 
+                                                          enter receive mode */
+#define DW_PMSC_STATE_TX           (0x04ULL << 16)    /* \brief DW1000 is transmitting */
+#define DW_PMSC_STATE_RX           (0x05ULL << 16)    /* \brief DW1000 is in receive mode */
 
 /* DW_REG_CHAN_CTRL 0x1F */
 #define DW_TXCHAN        0              /* \brief dummy */

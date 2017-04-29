@@ -948,7 +948,8 @@ void dw_set_channel(dw1000_channel_t channel){
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
                   (uint8_t *) &rf_rxctrlh_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
-                  (uint8_t *) &rf_txctrl_val);
+                    (uint8_t *) &rf_txctrl_val);
+
   dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY,
                   (uint8_t *) &tc_pgdelay_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
@@ -1261,6 +1262,8 @@ dw_conf_print()
   printf("Device id   : 0x%08" PRIx32 "\r\n", dw_get_device_id());
   printf("sys_status  : 0x%016" PRIx64 "\r\n", (unsigned long long) 
                         dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+  printf("sys_state   : 0x%016" PRIx64 "\r\n", (unsigned long long) 
+                        dw_read_reg_64(DW_REG_SYS_STATE, DW_LEN_SYS_STATE));
   printf("============================\r\n");
   printf("sys_cfg    : 0x%08" PRIx32 "\r\n", sys_cfg_val);
   printf("tx_fctrl   : 0x%016" PRIx64 "\r\n", tx_fctrl_val);

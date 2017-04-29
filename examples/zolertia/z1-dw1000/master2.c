@@ -416,6 +416,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
         dw_conf_print();
         print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
         print_error_counter();
+        print_sys_state(dw_read_reg_64(DW_REG_SYS_STATE, DW_LEN_SYS_STATE));
       }
       else if(mode == 0x0A){ 
         reset_error_counter();

@@ -2168,6 +2168,32 @@ dw_idle(void)
   dw1000.state = DW_STATE_IDLE;
 }
 /**
+ * \brief Configure the receiver for the RX SNIF mode or disable 
+ *                   the RX SNIF mode.
+ *
+ * input parameters:
+ * \param[in]      enable - a true (1) value enable the RX SNIF mode;
+ *                        - a false (0) value disable the RX SNIF mode;
+ *                            i.e. The receiver is always on in RX Mode.
+ * \param[in]      rx_on  - SNIFF mode ON period in PACs;
+ *                          The DW1000 add automatically 1 on rx_on value.
+ * \param[in]      rx_off - SNIFF mode OFF period in us; 
+ *                            more precisely, in 1.0256 microsecond intervals.
+ */
+void 
+dw_set_snif_mode(uint8_t enable, uint8_t rx_on, uint8_t rx_off)
+{
+  uint32_t rx_sniff_val = 0UL;
+  if(enable){ /* enable SNIF MODE */ 
+    rx_sniff_val |= (rx_on << DW_SNIFF_ONT) & DW_SNIFF_ONT_MASK;
+    rx_sniff_val |= (rx_off << DW_SNIFF_OFFT) & DW_SNIFF_OFFT_MASK;
+    dw_write_reg(DW_REG_RX_SNIFF, DW_LEN_RX_SNIFF, (uint8_t *) &rx_sniff_val);
+  }
+  else{ /* Standard RX Mode: always On */
+    dw_write_reg(DW_REG_RX_SNIFF, DW_LEN_RX_SNIFF, (uint8_t *) &rx_sniff_val);
+  }
+}
+/**
  * \brief Initiates a new reception on the DW1000. Assumes that it has been
  * configured already.
  */
@@ -2196,6 +2222,12 @@ dw_init_delayed_rx(void)
   uint8_t sys_ctrl_val = (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
   sys_ctrl_val |= (1 << (DW_RXDLYE - 8) & (DW_RXDLYE_MASK >> 8));
   dw_write_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
+  uint32_t sys_status = 0UL;
+  dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
+  if((sys_status & DW_HPDWARN_MASK) != 0){
+    dw_idle();
+    dw_init_rx();
+  }
 }
 /**
  * \brief Starts a new transmission. Data must either already be uploaded to

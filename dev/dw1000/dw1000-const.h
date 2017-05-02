@@ -135,6 +135,9 @@
 #define DW_REG_ACK_RESP      0x1A        /* \brief dummy */
 #define DW_LEN_ACK_RESP      4           /* \brief dummy */
 
+#define DW_REG_RX_SNIFF      0x1D        /* \brief dummy */
+#define DW_LEN_RX_SNIFF      4           /* \brief dummy */
+
 #define DW_REG_TX_POWER     0x1E        /* \brief dummy */
 #define DW_LEN_TX_POWER     4           /* \brief dummy */
 
@@ -515,7 +518,6 @@
 #define DW_RXTOFS         0                   /* \brief dummy */
 #define DW_RXTOFS_MASK    (0x7FFFFULL << 0)   /* \brief dummy */
 
-
 /* DW_REG_SYS_STATE 0x19 */
 /* DW_SUBREG_TX_STATE   0x00 */
 #define DW_TX_STATE              4 
@@ -559,6 +561,13 @@
                                                           enter receive mode */
 #define DW_PMSC_STATE_TX           (0x04ULL << 16)    /* \brief DW1000 is transmitting */
 #define DW_PMSC_STATE_RX           (0x05ULL << 16)    /* \brief DW1000 is in receive mode */
+
+
+/* DW_REG_RX_SNIFF 0x1D */
+#define DW_SNIFF_ONT        0             /* \brief dummy */
+#define DW_SNIFF_ONT_MASK   (0xFUL << 0)  /* \brief dummy */  
+#define DW_SNIFF_OFFT       8             /* \brief dummy */
+#define DW_SNIFF_OFFT_MASK  (0xFFUL << 8)  /* \brief dummy */  
 
 /* DW_REG_CHAN_CTRL 0x1F */
 #define DW_TXCHAN        0              /* \brief dummy */

@@ -241,17 +241,17 @@ PROCESS_THREAD(frame_master_process, ev, data)
             linkaddr_t addr;
             addr.u8[0]= source & 0xFF;
             addr.u8[1]= (source >> 8) & 0xFF;
-            char report[6]; // 1 for mode, 2 for source, 2 for dest
+            char request[6]; // 1 for mode, 2 for source, 2 for dest
             /* store the mode */
-            report[0] = mode;
+            request[0] = mode;
+            /* ranging type */
+            request[1] = twr;
             /* source */
-            memcpy(&report[1], &twr, 2);
-            /* source */
-            memcpy(&report[2], &source, 2);
+            memcpy(&request[2], &source, 2);
             /* dest */
-            memcpy(&report[4], &dest, 2);
+            memcpy(&request[4], &dest, 2);
 
-            packetbuf_copyfrom(report, 6);
+            packetbuf_copyfrom(request, 6);
 
             /* request an ACK */
             packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
@@ -496,7 +496,7 @@ PROCESS_THREAD(receive_process, ev, data)
             report[3] = dest & 0xFF;
             report[4] = (dest >> 8) & 0xFF;
 
-            uint64_t propagation = dw1000_driver_get_propagation_time();
+            int32_t propagation = dw1000_driver_get_propagation_time();
             memcpy(&report[5], &propagation, 4);
 
             // printf("propagation 0x%08X ", 

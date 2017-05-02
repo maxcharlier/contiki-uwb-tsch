@@ -1067,6 +1067,12 @@ dw1000_off(void)
   receive_on = 0;
 
   ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
+  /* we need to disable interrupt before the call of dw_idle() 
+      because an ISR can append... */
+
+  dw1000_driver_disable_interrupt();  
+  dw1000_driver_clear_pending_interrupt();
+
 #ifdef DOUBLE_BUFFERING
   dw_trxoff_db_mode();
 #else

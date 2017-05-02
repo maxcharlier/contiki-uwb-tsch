@@ -518,6 +518,7 @@ void dw_active_lde_on_wakeup(void);
 void dw_fs_xtalt(uint8_t value);
 
 /* RX / TX */
+void dw_set_snif_mode(uint8_t enable, uint8_t rx_on, uint8_t rx_off);
 void dw_init_rx(void);
 void dw_init_delayed_rx(void);
 

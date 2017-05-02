@@ -21,6 +21,7 @@ Connection between the DW1000 and the Zolertia Z1.
 | GND           | JPI1B pin 24, DGND      | GND                 |
 | **Power**     | Port on the Zolertia Z1 |                     |
 | 5V            | JPI1B pin 23 USB+5V     |                     |
+
 For power supply, we use a "5V to 3.3V For DC-DC Step-Down Power Supply Buck Module AMS1117 LDO 800MA", do not use the 3.3V port on the Zolertia Z1 it do not support the electric demand of the DW1000.
 
 

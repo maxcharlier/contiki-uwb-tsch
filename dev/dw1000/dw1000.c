@@ -260,8 +260,8 @@ void
 dw_turn_frame_filtering_on(void)
 {
   uint32_t frameFilteringData = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  /* PRINTF("Reading frameFilteringData:  %llx\r\n",  
-              (unsigned long long)  frameFilteringData); */
+  PRINTF("Reading frameFilteringData:  0x%08X\r\n",  
+              (unsigned long long)  frameFilteringData);
 
   frameFilteringData &= 0xFFFFFE00;   /* Clear Filtering bit */
   frameFilteringData |= DW_FFEN_MASK; /* Frame Filtering Enable. */
@@ -275,7 +275,7 @@ dw_turn_frame_filtering_on(void)
                                           frame reception. */
   frameFilteringData |= DW_FFAM_MASK; /* Frame Filtering Allow MAC command frame
                                           reception. */
-  /* PRINTF("Modified frameFilteringData: %08x\r\n", frameFilteringData); */
+  PRINTF("Modified frameFilteringData: 0x%08X\r\n", frameFilteringData);
 
   /* send new filtering configuration */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&frameFilteringData);

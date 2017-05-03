@@ -90,7 +90,7 @@
 #endif /* DW1000_PRF */
 
 
-#define DW1000_ENABLE_RANGING_BIAS_CORRECTION 1
+#define DW1000_ENABLE_RANGING_BIAS_CORRECTION 0
 #if DW1000_ENABLE_RANGING_BIAS_CORRECTION
   #include "dw1000-ranging-bias.h"
 #endif /* DW1000_ENABLE_RANGING_BIAS_CORRECTION */
@@ -142,7 +142,6 @@
 #define DEBUG 0
 #endif
 #if DEBUG
-#include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
 #define PRINTF(...) do {} while(0)
@@ -151,6 +150,12 @@
 #define DEBUG_LED 1
 #define DEGUB_RANGING_SS_TWR_FAST_TRANSMIT 0
 
+// #define DEBUG_RANGING_STATE
+#ifdef DEBUG_RANGING_STATE
+#define RANGING_STATE(...) printf(__VA_ARGS__)
+#else
+#define RANGING_STATE(...) do {} while(0)
+#endif
 // #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
@@ -657,13 +662,13 @@ dw1000_driver_transmit(unsigned short payload_len)
                       dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
                       dw1000_driver_reply_time);
+    dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, &sys_status_lo);
 
     PRINTF("Number of loop waiting the ranging response %d\n", count);
 
     /* we have receive the ranging response, now we compute the t_trop 
       and we send a ranging response*/
     if(sys_status_lo & (DW_RXFCG_MASK >> 8)) {
-
       dw1000_off(); /* receiver off */
 
       uint32_t t_round_I = dw_get_rx_timestamp() - dw_get_tx_timestamp();
@@ -671,10 +676,13 @@ dw1000_driver_transmit(unsigned short payload_len)
       uint64_t rx_timestamp0 = dw_get_rx_timestamp();
 
       /* wait for the ranging response, with the t_prop on the receiver*/
-      uint8_t response_send = ranging_send_ack(0, 1, 1);
+      uint8_t response_send = ranging_send_ack(0, 0, 1);
+      dw1000_off();
+      dw_init_rx();
 
+      RANGING_STATE("Initiator: receive the first ranging response\n");
       /* clear the sys status */
-      dw1000_driver_clear_pending_interrupt();
+      // dw1000_driver_clear_pending_interrupt();
 
 #ifdef DOUBLE_BUFFERING
       if(dw_good_rx_buffer_pointer()) {
@@ -697,7 +705,7 @@ dw1000_driver_transmit(unsigned short payload_len)
         PRINTF("t_reply_I %ld\n", 
                                             t_reply_I);
         
-        PRINTF("send ok\n");
+        RANGING_STATE("Initiator have send the second ranging message.\n");
 
         /* wait the last ranging response */
         count = 0;
@@ -729,6 +737,7 @@ dw1000_driver_transmit(unsigned short payload_len)
         /* we received the ranging response of the receiver and we made the 
             correction on the t_prop */
         if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
+          RANGING_STATE("Initiator have receive the ranging report.\n");
           /* check if the message have the good size */
           if(dw_get_rx_extended_len() == DW1000_RANGING_FINAL_SDS_LEN){
             uint32_t t_reply_R;
@@ -1519,7 +1528,8 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
               theorical_transmission_approx(dw1000_conf.preamble_length, 
               dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
               DW1000_SPI_DELAY + dw1000_driver_reply_time);
-
+    dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
+    
     dw1000_driver_clear_pending_interrupt();
 
     /* re-enable the receiver after the automatic transmigration of the ACK */
@@ -1541,8 +1551,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
               dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
               DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
               (dw1000_driver_reply_time << 1));
-      dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
-            &sys_status_lo);
+      dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, &sys_status_lo);
 
       /* we receive the ranging response */
       if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
@@ -1581,6 +1590,10 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
               dw1000_conf.data_rate, dw1000_conf.prf, 
               DW1000_RANGING_FINAL_SDS_LEN) << 1 )+ 
               DW1000_SPI_DELAY);
+        if(!(sys_status_lo & DW_TXFRS_MASK)){
+          /* if the transmission is a fail, we turn the transmitter off */
+          dw1000_off();
+        }
       }
     }
 

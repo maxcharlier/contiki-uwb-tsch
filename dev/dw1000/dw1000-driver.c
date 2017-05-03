@@ -156,7 +156,7 @@
 #else
 #define RANGING_STATE(...) do {} while(0)
 #endif
-// #define DOUBLE_BUFFERING
+#define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
    the driver initialization */
@@ -1486,26 +1486,36 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     dw_change_rx_buffer();
 #endif /* ! DOUBLE_BUFFERING */
     
-    uint32_t sys_status = 0UL;
+    uint8_t sys_status_lo = 0x0;
     /* wait the end of the transmission */
-    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, 
-              (uint8_t*) &sys_status); watchdog_periodic();,
-              (sys_status & DW_TXFRS_MASK),
-              theorical_transmission_approx(dw1000_conf.preamble_length, 
-              dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
-              DW1000_SPI_DELAY + dw1000_driver_reply_time);
-    dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
+    dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, &sys_status_lo);    
+    /* At 6.8 Mb/s we don't have the time to compute the theorical_transmission
+      time, in place we got directly that the message was send correctly. 
+      This is because we read the received message and the 
+        SPI rate is too slow */
+    if(!(sys_status_lo & DW_TXFRS_MASK)){
+      BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, 
+                &sys_status_lo); watchdog_periodic();,
+                (sys_status_lo & DW_TXFRS_MASK),
+                theorical_transmission_approx(dw1000_conf.preamble_length, 
+                dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
+                DW1000_SPI_DELAY);
+    }
     
     /* re-enable the receiver after the automatic transmission of the ACK */
     dw_init_rx();
+
+    dw1000_driver_clear_pending_interrupt();
+
     RANGING_STATE("Receiver: Ranging request received\n");
 
     /* ranging response send OK */
-    if((sys_status & DW_TXFRS_MASK) != 0) {
-      /* compute the real reply time in the sender side.*/
+    if(sys_status_lo & DW_TXFRS_MASK) {
+      /* compute the real reply time in the receiver side.*/
       uint32_t t_reply_R = dw_get_tx_timestamp() - rx_timestamp0;
+
       RANGING_STATE("Receiver: Ranging response send\n");
-      uint8_t sys_status_lo = 0x0;
+
       /* wait the ranging response */
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
             &sys_status_lo); watchdog_periodic();,
@@ -1521,6 +1531,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
       /* we receive the second ranging response */
       if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
         RANGING_STATE("Receiver: send the ranging report.\n");
+        /* go to idle before the transmission of the ranging report */
         dw_idle();
 
         uint32_t t_round_R = dw_get_rx_timestamp() - dw_get_tx_timestamp();
@@ -1530,7 +1541,8 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
         /* Copy the response frame to the DW1000 */
         /* header CRTL, seq num, PAN ID */
         initiator_frame[0] &= ~(1U << 5); /* disable the ACK request */
-        dw_write_reg(DW_REG_TX_BUFFER, 0x5, (uint8_t*) &initiator_frame[0]);
+        dw_write_subreg(DW_REG_TX_BUFFER, 0x0, 5, 
+                              (uint8_t*) &initiator_frame[0]);
         /* src */
         dw_write_subreg(DW_REG_TX_BUFFER, 0x5, 2,  
                               (uint8_t*) &initiator_frame[7]);
@@ -1814,17 +1826,18 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   }else{
     dw1000_conf.pac_size = DW_PAC_SIZE_64;
   }
-
+  if(preamble >= 512){
+  /* avoid RX state bug: use the sniff mode with a 50/50 approach*/
+  dw_set_snif_mode(1, 3, dw1000_conf.pac_size*3);
+  }
   if(data_rate == DW_DATA_RATE_110_KBPS) {
     dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;  
-    /* avoid RX state bug */
-    dw1000_conf.pac_size = DW_PAC_SIZE_8;
-    dw_set_snif_mode(1, 3, 24);
   } else if(data_rate == DW_DATA_RATE_850_KBPS) {
     dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;
   } else { /* 6800 kbps */
     dw1000_conf.sfd_type = DW_SFD_STANDARD;
   }
+
   dw_conf(&dw1000_conf);
 
 #if DW1000_CONF_AUTOACK

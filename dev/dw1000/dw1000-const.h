@@ -328,6 +328,8 @@
 #define DW_RXAUTR_MASK   (0x1UL << 29)  /* \brief dummy */
 #define DW_AUTOACK       30             /* \brief dummy */
 #define DW_AUTOACK_MASK  (0x1UL << 30)  /* \brief dummy */
+#define DW_AACKPEND      31             /* \brief dummy */
+#define DW_AACKPEND_MASK (0x1UL << 31)  /* \brief dummy */
 
 /* DW_REG_TX_FCTRL 0x08 */
 /* DW_SUBREG_TX_FCTRL_LOW 0x00 */

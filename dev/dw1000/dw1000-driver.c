@@ -150,7 +150,7 @@
 #define DEBUG_LED 1
 #define DEGUB_RANGING_SS_TWR_FAST_TRANSMIT 0
 
-#define DEBUG_RANGING_STATE
+// #define DEBUG_RANGING_STATE
 #ifdef DEBUG_RANGING_STATE
 #define RANGING_STATE(...) printf(__VA_ARGS__)
 #else
@@ -411,10 +411,6 @@ dw1000_driver_prepare(const void *payload,
     if(dw1000_driver_sdstwr){
       ((uint8_t *)payload)[0] |= (1U << 5);
     }
-#if !DW1000_IEEE802154_EXTENDED
-    /* In standard mode we use the RNG bit in the PHR. */
-    dw_enable_ranging_frame();
-#endif
     payload_len = convert_payload_len(payload_len);
     data_len = payload_len;
   }
@@ -435,14 +431,12 @@ dw1000_driver_prepare(const void *payload,
     dw_write_reg(DW_REG_TX_BUFFER, payload_len, (uint8_t *)payload);
   } 
 
-#if DW1000_IEEE802154_EXTENDED
   /* Just replace the 10nd bytes by a value of "0x0" */
   if(dw1000_driver_sstwr){
     uint8_t ranging_value = 0x0;
     /* 10nd bytes */
     dw_write_subreg(DW_REG_TX_BUFFER, 0x9, 1, &ranging_value);
   }
-#endif
   if(dw1000_driver_sdstwr){
     uint8_t ranging_value = 0x01;
     /* 10nd bytes */
@@ -518,7 +512,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* Initialize a no delayed transmission and wait for an ranging response 
       Re-enable the RX state after the transmission. */
     /* if we hare in SS TWR we re enable the transceiver manually */
-    dw_init_tx(dw1000_driver_sdstwr, 0); 
+    dw_init_tx(dw1000_driver_sdstwr, 0);
   }
 
 #if DEBUG
@@ -558,12 +552,6 @@ dw1000_driver_transmit(unsigned short payload_len)
     tx_return = RADIO_TX_OK;
   }else{
     dw_idle(); /* error: abort the transmission */
-  }
-  if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
-#if !DW1000_IEEE802154_EXTENDED
-    /* In standard mode, we disable the RNG bit in the PHR for the next frame.*/
-    dw_disable_ranging_frame();
-#endif
   }
 
   /* start WAIT ACK */
@@ -666,8 +654,8 @@ dw1000_driver_transmit(unsigned short payload_len)
     PRINTF("Number of loop waiting the ranging response %d\n", count);
 
     RANGING_STATE("Initiator: first message send\n");
-    /* we have receive the ranging response, now we compute the t_trop 
-      and we send a ranging response*/
+    /* we have receive the ranging response, now we compute the t_round
+      and we send a ranging response */
     if(sys_status_lo & (DW_RXFCG_MASK >> 8)) {
       dw1000_off(); /* receiver off */
 
@@ -677,12 +665,8 @@ dw1000_driver_transmit(unsigned short payload_len)
 
       /* wait for the ranging response, with the t_prop on the receiver*/
       uint8_t response_send = ranging_send_ack(0, 1, 1);
-      // dw1000_off();
-      // dw_init_rx();
 
       RANGING_STATE("Initiator: receive the first ranging response\n");
-      /* clear the sys status */
-      // dw1000_driver_clear_pending_interrupt();
 
 #ifdef DOUBLE_BUFFERING
       if(dw_good_rx_buffer_pointer()) {
@@ -1301,23 +1285,12 @@ dw1000_driver_interrupt(void)
 #endif     /* DOUBLE_BUFFERING */
     if((status & DW_RXDFR_MASK) > 0){ /* frame ready */
  
- #if DW1000_IEEE802154_EXTENDED
-      uint8_t ranging_value; /* use to check if the frame is a ranging frame */
-      /* read the 10nd bytes */
-      dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 1, &ranging_value);
       dw1000_driver_in_ranging = (dw_get_rx_extended_len() == 12);
-#else
-      dw1000_driver_in_ranging = dw_is_ranging_frame();
-#endif
       if(dw1000_driver_in_ranging){
-
-        /* We made a new packet for the response
-           And we program the response */
-        uint8_t ranging_mode = 0x0; /* use yo get the ranging mode */
+        uint8_t ranging_mode = 0x0; /* use to get the ranging mode */
         /* read the 10nd bytes */
-        if(dw_get_rx_extended_len() == 12){
-          dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 1, &ranging_mode);
-        }
+        dw_read_subreg(DW_REG_RX_BUFFER, 0x9, 1, &ranging_mode);
+
         if (ranging_mode == 0x0){/* SS TWR */
           process_poll(&dw1000_driver_process_ss_twr);
         }
@@ -1498,13 +1471,6 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     /* use further to compute the real reply time */
     uint64_t rx_timestamp0 = dw_get_rx_timestamp();
 
-#if !DW1000_IEEE802154_EXTENDED
-    if(dw_is_ranging_frame()){
-      /* In standard mode, we disable the RNG bit in the PHR for the response.*/
-      dw_disable_ranging_frame();
-    }
-#endif
-
     /* The ranging response is send automatically by the transceiver */
 
     /* we save the frame of the initiator to make the response later */
@@ -1519,27 +1485,26 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     }
     dw_change_rx_buffer();
 #endif /* ! DOUBLE_BUFFERING */
-    RANGING_STATE("Receiver: Ranging request received\n");
+    
     uint32_t sys_status = 0UL;
     /* wait the end of the transmission */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, 
               (uint8_t*) &sys_status); watchdog_periodic();,
-              ((sys_status & (DW_TXFRS_MASK | DW_HPDWARN_MASK))  != 0),
+              (sys_status & DW_TXFRS_MASK),
               theorical_transmission_approx(dw1000_conf.preamble_length, 
               dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
               DW1000_SPI_DELAY + dw1000_driver_reply_time);
     dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
     
-    dw1000_driver_clear_pending_interrupt();
-
     /* re-enable the receiver after the automatic transmission of the ACK */
     dw_init_rx();
+    RANGING_STATE("Receiver: Ranging request received\n");
 
     /* ranging response send OK */
     if((sys_status & DW_TXFRS_MASK) != 0) {
       /* compute the real reply time in the sender side.*/
       uint32_t t_reply_R = dw_get_tx_timestamp() - rx_timestamp0;
-      RANGING_STATE("receiver: Ranging response send\n");
+      RANGING_STATE("Receiver: Ranging response send\n");
       uint8_t sys_status_lo = 0x0;
       /* wait the ranging response */
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
@@ -1638,13 +1603,6 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
 
     /* we can not send the response if we are in RX mode */
     dw_idle();
-
-#if !DW1000_IEEE802154_EXTENDED
-    if(dw_is_ranging_frame()){
-      /* In standard mode, we disable the RNG bit in the PHR for the response.*/
-      dw_disable_ranging_frame();
-    }
-#endif
 
     /* clear the sys status */
     dw1000_driver_clear_pending_interrupt();
@@ -1932,15 +1890,9 @@ void
 dw1000_driver_set_reply_time(uint32_t reply_time)
 {
   if(reply_time == 0){
-#if DW1000_IEEE802154_EXTENDED
     reply_time = theorical_transmission_approx(dw1000_conf.preamble_length,
                       dw1000_conf.data_rate, dw1000_conf.prf, 12) + 
     DW1000_REPLY_TIME_COMPUTATION;
-#else
-    reply_time = theorical_transmission_approx(dw1000_conf.preamble_length,
-                      dw1000_conf.data_rate, dw1000_conf.prf, 11)
-    + DW1000_REPLY_TIME_COMPUTATION;
-#endif /* DW1000_IEEE802154_EXTENDED */
   }
 
   dw1000_driver_reply_time = reply_time;
@@ -2183,18 +2135,9 @@ ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send){
  *        /!\ Private function.
  * */
 uint16_t convert_payload_len(uint16_t payload_len){
-  if(dw1000_driver_sstwr){
-#if DW1000_IEEE802154_EXTENDED
-    /* In extended mode, there are not a RNG bit in the PHR.
-      We use a dedicated frame of 10 bytes and we use the last byte 
+  if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
+    /* We use a dedicated frame of 10 bytes and we use the last byte 
       to indicates a ranging request.  */
-    payload_len = 10;
-#else
-    /* In standard mode we use the RNG bit in the PHR. */
-    payload_len = 9;
-#endif
-  }
-  if(dw1000_driver_sdstwr){
     payload_len = 10;
   }
   return payload_len;

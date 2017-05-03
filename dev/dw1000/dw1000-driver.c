@@ -90,7 +90,7 @@
 #endif /* DW1000_PRF */
 
 
-#define DW1000_ENABLE_RANGING_BIAS_CORRECTION 0
+#define DW1000_ENABLE_RANGING_BIAS_CORRECTION 1
 #if DW1000_ENABLE_RANGING_BIAS_CORRECTION
   #include "dw1000-ranging-bias.h"
 #endif /* DW1000_ENABLE_RANGING_BIAS_CORRECTION */
@@ -150,7 +150,7 @@
 #define DEBUG_LED 1
 #define DEGUB_RANGING_SS_TWR_FAST_TRANSMIT 0
 
-// #define DEBUG_RANGING_STATE
+#define DEBUG_RANGING_STATE
 #ifdef DEBUG_RANGING_STATE
 #define RANGING_STATE(...) printf(__VA_ARGS__)
 #else
@@ -602,7 +602,6 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw1000_schedule_receive(payload_len);
     // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
-
     tx_return = RADIO_TX_ERR;
     uint8_t count = 0;
     sys_status_lo = 0x0; /* clear the value */
@@ -650,22 +649,23 @@ dw1000_driver_transmit(unsigned short payload_len)
   if(dw1000_driver_sdstwr && tx_return == RADIO_TX_OK){
     tx_return = RADIO_TX_ERR;
     uint8_t count = 0;
+
     sys_status_lo = 0x0; /* clear the value */
 
     /* we wait for the first ranging response */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
                     &sys_status_lo); watchdog_periodic(); count++,
-                    (((sys_status_lo & (DW_RXDFR_MASK >> 8)) != 0) &&
                     ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
-                    (DW_RXFCE_MASK >> 8))) != 0)), 
+                    (DW_RXFCE_MASK >> 8))) != 0), 
                     theorical_transmission_approx(dw1000_conf.preamble_length,
                       dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                       DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
-                      dw1000_driver_reply_time);
+                      (dw1000_driver_reply_time << 1));
     dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, &sys_status_lo);
-
+    
     PRINTF("Number of loop waiting the ranging response %d\n", count);
 
+    RANGING_STATE("Initiator: first message send\n");
     /* we have receive the ranging response, now we compute the t_trop 
       and we send a ranging response*/
     if(sys_status_lo & (DW_RXFCG_MASK >> 8)) {
@@ -676,9 +676,9 @@ dw1000_driver_transmit(unsigned short payload_len)
       uint64_t rx_timestamp0 = dw_get_rx_timestamp();
 
       /* wait for the ranging response, with the t_prop on the receiver*/
-      uint8_t response_send = ranging_send_ack(0, 0, 1);
-      dw1000_off();
-      dw_init_rx();
+      uint8_t response_send = ranging_send_ack(0, 1, 1);
+      // dw1000_off();
+      // dw_init_rx();
 
       RANGING_STATE("Initiator: receive the first ranging response\n");
       /* clear the sys status */
@@ -1511,7 +1511,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     uint8_t initiator_frame[9];
     dw_read_subreg(DW_REG_RX_BUFFER, 0x0, 9, initiator_frame);
 
-    // dw1000_update_frame_quality();
+    dw1000_update_frame_quality();
 
 #ifdef DOUBLE_BUFFERING
     if(dw_good_rx_buffer_pointer()){
@@ -1519,7 +1519,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     }
     dw_change_rx_buffer();
 #endif /* ! DOUBLE_BUFFERING */
-
+    RANGING_STATE("Receiver: Ranging request received\n");
     uint32_t sys_status = 0UL;
     /* wait the end of the transmission */
     BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, 
@@ -1532,14 +1532,14 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
     
     dw1000_driver_clear_pending_interrupt();
 
-    /* re-enable the receiver after the automatic transmigration of the ACK */
+    /* re-enable the receiver after the automatic transmission of the ACK */
     dw_init_rx();
 
     /* ranging response send OK */
     if((sys_status & DW_TXFRS_MASK) != 0) {
       /* compute the real reply time in the sender side.*/
       uint32_t t_reply_R = dw_get_tx_timestamp() - rx_timestamp0;
-
+      RANGING_STATE("receiver: Ranging response send\n");
       uint8_t sys_status_lo = 0x0;
       /* wait the ranging response */
       BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
@@ -1553,9 +1553,9 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
               (dw1000_driver_reply_time << 1));
       dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, &sys_status_lo);
 
-      /* we receive the ranging response */
+      /* we receive the second ranging response */
       if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
-        // printf("interrupt send final\n");
+        RANGING_STATE("Receiver: send the ranging report.\n");
         dw_idle();
 
         uint32_t t_round_R = dw_get_rx_timestamp() - dw_get_tx_timestamp();
@@ -1594,7 +1594,20 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
           /* if the transmission is a fail, we turn the transmitter off */
           dw1000_off();
         }
+        else{
+          RANGING_STATE("Receiver: ranging report sended correctly.\n");
+        }
+      }/* end receive the second ranging response */
+      else{
+        /* if the reception have fail, we turn the receiver off */
+        dw1000_off();
+        RANGING_STATE("Receiver: the second ranging response not received.\n");
       }
+    } /* end ranging response send OK */
+    else{
+      /* if the transmission is a fail, we turn the transmitter off */
+      dw1000_off();
+      RANGING_STATE("Receiver: the first ranging response have fail.\n");
     }
 
 #if DEBUG_RANGING

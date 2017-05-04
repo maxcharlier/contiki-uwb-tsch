@@ -561,7 +561,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint16_t drx_tune1b_val = 0;
   uint32_t drx_tune2_val = 0;
   uint16_t drx_tune4h_val = 0;
-  uint32_t ec_ctrl_val = dw_read_reg_32(DW_REG_EC_CTRL, DW_LEN_EC_CTRL);
   uint8_t user_sfd_lenght = 0;
 
   /* === Configure PRF */
@@ -809,11 +808,18 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     break;
   }
   /* == Configure SFD timeout */
+  /* preamble length + 1 + SFD length - PAC size */
   if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
-    dw_set_sfd_timeout(dw_conf->preamble_length + 64 + 1);
+    dw_set_sfd_timeout(dw_conf->preamble_length
+                       + 1
+                       + 64 /* SFD length */
+                       - dw_conf->pac_size);
   }
   else{
-    dw_set_sfd_timeout(dw_conf->preamble_length + 8 + 1);
+    dw_set_sfd_timeout(dw_conf->preamble_length
+                         + 1
+                         + 16 /* SFD length */
+                         - dw_conf->pac_size);
   }
   /* === Configure Data rate */
   sys_cfg_val &= ~DW_RXM110K_MASK;
@@ -835,13 +841,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* Enable receiver abort on PHR error.*/
   sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
-  /* We use the mid range value (0x0F) */
-  dw_fs_xtalt(0xFU);
 
-  /* enable the Clock PLL lock detect tune 
-      Required when using the Crystal Trim Setting 
-      Enable reliability of the Clock PLL Lock bit in the SYS STATUS*/
-  ec_ctrl_val |= (0x01 << DW_PLLLDT) & DW_PLLLDT_MASK;
 
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
@@ -865,13 +865,16 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &drx_tune2_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
-  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_ctrl_val);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
                   (uint8_t *) &lde_cfg1);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
                   (uint8_t *) &lde_cfg2);
   dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
+
+  /* We use the mid range value (0x0F) */
+  dw_fs_xtalt(0xFU);
+
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
 }
@@ -2850,7 +2853,7 @@ void dw_cw_mode(dw1000_channel_t channel){
                   &fs_xtalt_val);
 }
 /**
- * \brief This is used adjust the crystal frequency
+ * \brief This is used adjust the crystal frequency.
  *
  * \param[in]   value - crystal trim value (in range 0x0 to 0x1F) 31 steps 
  *              (~1.5ppm per step).
@@ -2860,6 +2863,14 @@ void dw_cw_mode(dw1000_channel_t channel){
 void 
 dw_fs_xtalt(uint8_t value)
 {
+  uint32_t ec_ctrl_val = dw_read_reg_32(DW_REG_EC_CTRL, DW_LEN_EC_CTRL);
+  /* enable the Clock PLL lock detect tune 
+      Required when using the Crystal Trim Setting 
+      Enable reliability of the Clock PLL Lock bit in the SYS STATUS*/
+  ec_ctrl_val |= (0x01 << DW_PLLLDT) & DW_PLLLDT_MASK;
+
+  dw_write_reg(DW_REG_EC_CTRL, DW_LEN_EC_CTRL, (uint8_t *) &ec_ctrl_val);
+
   uint8_t fs_xtalt_val = 0;
   /* Configure the Crystal Trim Setting
     Bits 7:5 must always be set to binary “011”. */

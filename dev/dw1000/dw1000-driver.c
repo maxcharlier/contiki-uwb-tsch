@@ -230,6 +230,7 @@ inline void dw1000_schedule_reply(void);
 inline void dw1000_schedule_receive(uint16_t data_len);
 void dw1000_compute_prop_time_sstwr(int16_t t_reply_offset);
 inline void  dw1000_update_frame_quality(void);
+void ranging_prepare_ack(void);
 uint8_t 
 ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
@@ -325,7 +326,7 @@ dw1000_driver_init(void)
 
   /* Simple reset of device. */
   dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
-
+  
   /* clear all interrupt */
   dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
 
@@ -343,11 +344,12 @@ dw1000_driver_init(void)
 
   dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
                         DW1000_PRF);
-  printf("channel %d, data rate %d, preamble %d, prf %d\n", 
+
+  printf("Channel %d, Data rate %d kb/s, Preamble %d, PRM %d MHz\n", 
                 (unsigned int) DW1000_CHANNEL, 
                 (unsigned int) DW1000_DATA_RATE, 
                 (unsigned int) DW1000_PREAMBLE, 
-                (unsigned int) DW1000_PRF);
+                (DW1000_PRF == 1) ? 16U : 64U);
 
   dw_disable_rx_timeout();
 
@@ -489,7 +491,7 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   /* abort reception and disable interrupt to be able to send a frame */
   if(rx_state) {
-    dw1000_off();
+    dw_idle();
     receive_on = 1;
   }
 
@@ -636,6 +638,10 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* we wait for the ranging response in symmetric mode */
   if(dw1000_driver_sdstwr && tx_return == RADIO_TX_OK){
     tx_return = RADIO_TX_ERR;
+
+    ranging_prepare_ack(); /* already place and configure the ACK 
+                        for the next ranging response */
+
     uint8_t count = 0;
 
     sys_status_lo = 0x0; /* clear the value */
@@ -657,7 +663,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* we have receive the ranging response, now we compute the t_round
       and we send a ranging response */
     if(sys_status_lo & (DW_RXFCG_MASK >> 8)) {
-      dw1000_off(); /* receiver off */
+      dw_idle(); /* receiver off */
 
       uint32_t t_round_I = dw_get_rx_timestamp() - dw_get_tx_timestamp();
       /* use further to compute the real reply time */
@@ -1501,9 +1507,9 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
                 dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                 DW1000_SPI_DELAY);
     }
-    
-    /* re-enable the receiver after the automatic transmission of the ACK */
-    dw_init_rx();
+
+    /* The receiver is re-enabled automatically after 
+          the automatic transmission of the ACK */
 
     dw1000_driver_clear_pending_interrupt();
 
@@ -1569,7 +1575,7 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
               DW1000_SPI_DELAY);
         if(!(sys_status_lo & DW_TXFRS_MASK)){
           /* if the transmission is a fail, we turn the transmitter off */
-          dw1000_off();
+          dw_idle();
         }
         else{
           RANGING_STATE("Receiver: ranging report sended correctly.\n");
@@ -1577,13 +1583,13 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
       }/* end receive the second ranging response */
       else{
         /* if the reception have fail, we turn the receiver off */
-        dw1000_off();
+        dw_idle();
         RANGING_STATE("Receiver: the second ranging response not received.\n");
       }
     } /* end ranging response send OK */
     else{
       /* if the transmission is a fail, we turn the transmitter off */
-      dw1000_off();
+      dw_idle();
       RANGING_STATE("Receiver: the first ranging response have fail.\n");
     }
 
@@ -1826,10 +1832,12 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   }else{
     dw1000_conf.pac_size = DW_PAC_SIZE_64;
   }
-  if(preamble >= 512){
+
+  if(preamble_length >= 512){
   /* avoid RX state bug: use the sniff mode with a 50/50 approach*/
   dw_set_snif_mode(1, 3, dw1000_conf.pac_size*3);
   }
+
   if(data_rate == DW_DATA_RATE_110_KBPS) {
     dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;  
   } else if(data_rate == DW_DATA_RATE_850_KBPS) {
@@ -1845,6 +1853,7 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   dw_config_switching_tx_to_rx_ACK();
   dw_sfd_init();
 #endif
+
 }
 
 /*===========================================================================*/
@@ -2081,7 +2090,31 @@ dw1000_driver_get_packet_quality(void){
 }
 
 /**
- * \brief Send an ACK has ranging response.
+ * \brief Construct an ACK an place it in the TX buffer.
+ *        Also set the TX length.
+ *        Use like a ranging response in SDS-TWR.
+ */
+void ranging_prepare_ack(void){
+  /* prepare an ACK */
+  uint8_t ack_message[3];
+
+  /* We don't read the previews received message to get the seq num, 
+    because we prepare this message before receive the first ACK num
+    (We can may be use the seq num actually in the TX buffer but the seq num 
+      don't have an utility here)
+    */ 
+#define ACK_SEQ_NUM    1
+  make_ack(ACK_SEQ_NUM, 3, &ack_message[0]);
+
+  /* Copy the ACK to the DW1000 TX buffer*/
+  dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &ack_message[0]);
+  
+  /* set the length of the ACK */
+  dw_set_tx_frame_length(DW_ACK_LEN);
+}
+/**
+ * \brief Send an ACK has ranging response, this ACK should be place in the TX 
+ *        before call this function (also the TX length)
  *        This send was scheduled base on the reply time.
  * \param[in] scheduled if true schedule a delayed send.
  *                      if not, send directly the ack.
@@ -2095,26 +2128,12 @@ dw1000_driver_get_packet_quality(void){
 uint8_t 
 ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send){
   uint32_t sys_status = 0x0; /* clear the value */
-  uint8_t ack_num = 0;
 
   /* clear the sys status */
   dw1000_driver_clear_pending_interrupt();
 
   if(sheduled)
     dw1000_schedule_reply();
-
-  /* read the lasted received message to prepare 
-      response frame */
-  dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
-  /* prepare an ACK */
-
-  uint8_t response[3];
-  make_ack(ack_num, 3, &response[0]);
-
-  dw_set_tx_frame_length(DW_ACK_LEN);
-
-  /* Copy data to DW1000 */
-  dw_write_reg(DW_REG_TX_BUFFER, 3, (uint8_t*) &response[0]);
 
   /* wait for resp and delayed */
   dw_init_tx(wait_for_resp, sheduled);

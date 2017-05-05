@@ -502,6 +502,9 @@ void dw1000_init(void);
 /* Configuration */
 void dw_conf(dw1000_base_conf_t *dw_conf);
 void dw_set_channel(dw1000_channel_t channel);
+void dw_lde_repc_config(dw1000_preamble_code_t preamble_code, 
+                    dw1000_data_rate_t data_rate);
+void dw_configure_lde(dw1000_prf_t prf);
 void dw_set_default_tx_power(dw1000_channel_t channel, dw1000_prf_t prf);
 void dw_change_tx_power(uint32_t tx_power_val, uint8_t manual);
 uint32_t dw_get_tx_power(void);

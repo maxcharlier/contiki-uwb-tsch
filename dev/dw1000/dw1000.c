@@ -550,9 +550,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
   uint32_t tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
-  uint16_t lde_repc = 0;
-  uint8_t lde_cfg1 = 0;
-  uint16_t lde_cfg2 = 0;
   uint32_t agc_tune1_val = 0UL;
   const uint32_t agc_tune2_val = 0X2502A907UL;  /* Always use this */
   const uint16_t agc_tune3_val = 0x0035;    /* Always use this */
@@ -572,7 +569,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     drx_tune1a_val = 0x0087;
     tx_fctrl_val |= (0x01UL << DW_TXPRF) & DW_TXPRF_MASK;
     chan_ctrl_val |= (0x01UL << DW_RXPRF) & DW_RXPRF_MASK;
-    lde_cfg2 = 0x1607;
     break;
 
   case DW_PRF_64_MHZ:
@@ -580,7 +576,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
     drx_tune1a_val = 0x008D;
     tx_fctrl_val |= (0x02UL << DW_TXPRF) & DW_TXPRF_MASK;
     chan_ctrl_val |= (0x02UL << DW_RXPRF) & DW_RXPRF_MASK;
-    lde_cfg2 = 0x0607;
     break;
   }
 
@@ -588,12 +583,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_set_channel(dw_conf->channel);
 
   dw_set_default_tx_power(dw_conf->channel, dw_conf->prf);
-
-  /* Configure LDE for better performance*/
-  lde_cfg1 &= ~DW_NTM_MASK;
-  lde_cfg1 |= (0xD << DW_NTM) & DW_NTM_MASK; 
-  lde_cfg1 &= ~DW_PMULT_MASK;
-  lde_cfg1 |= (0x3 << DW_PMULT) & DW_PMULT_MASK;
 
   /* === Configure Preamble length */
   tx_fctrl_val &= ~DW_TXPSR_MASK;
@@ -652,62 +641,8 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   chan_ctrl_val |= (preamble_code << DW_RX_PCODE) & DW_RX_PCODE_MASK;
 
   /* === Configure LDE Replica Coefficient */
-  switch(dw_conf->preamble_code) {
-  case DW_PREAMBLE_CODE_1:
-    lde_repc = ((uint16_t)DW_LDE_REPC_1);
-    break;
-  case DW_PREAMBLE_CODE_2:
-    lde_repc = ((uint16_t)DW_LDE_REPC_2);
-    break;
-  case DW_PREAMBLE_CODE_3:
-    lde_repc = ((uint16_t)DW_LDE_REPC_3);
-    break;
-  case DW_PREAMBLE_CODE_4:
-    lde_repc = ((uint16_t)DW_LDE_REPC_4);
-    break;
-  case DW_PREAMBLE_CODE_5:
-    lde_repc = ((uint16_t)DW_LDE_REPC_5);
-    break;
-  /* DW_PREAMBLE_CODE_6 same as 5 */
-  /* case DW_PREAMBLE_CODE_6: */
-  /*   lde_repc = ((uint16_t) DW_LDE_REPC_6); */
-  /*   break; */
-  case DW_PREAMBLE_CODE_7:
-    lde_repc = ((uint16_t)DW_LDE_REPC_7);
-    break;
-  case DW_PREAMBLE_CODE_8:
-    lde_repc = ((uint16_t)DW_LDE_REPC_8);
-    break;
-  case DW_PREAMBLE_CODE_9:
-    lde_repc = ((uint16_t)DW_LDE_REPC_9);
-    break;
-  case DW_PREAMBLE_CODE_10:
-    lde_repc = ((uint16_t)DW_LDE_REPC_10);
-    break;
-  case DW_PREAMBLE_CODE_11:
-    lde_repc = ((uint16_t)DW_LDE_REPC_11);
-    break;
-  case DW_PREAMBLE_CODE_12:
-    lde_repc = ((uint16_t)DW_LDE_REPC_12);
-    break;
-  case DW_PREAMBLE_CODE_17:
-    lde_repc = ((uint16_t)DW_LDE_REPC_17);
-    break;
-  case DW_PREAMBLE_CODE_18:
-    lde_repc = ((uint16_t)DW_LDE_REPC_18);
-    break;
-  case DW_PREAMBLE_CODE_19:
-    lde_repc = ((uint16_t)DW_LDE_REPC_19);
-    break;
-  case DW_PREAMBLE_CODE_20:
-    lde_repc = ((uint16_t)DW_LDE_REPC_20);
-    break;
-  }
-
-  if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
-    lde_repc >>= 3; /* see page 170. */
-    lde_repc &= 0x1FFF;
-  }
+  dw_lde_repc_config(dw_conf->preamble_code, dw_conf->data_rate);
+  dw_configure_lde(dw_conf->preamble_code);
 
   /* === Configure PAC size */
   switch(dw_conf->pac_size) {
@@ -845,10 +780,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
 
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
-  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
+
   dw_write_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
                   (uint8_t *) &user_sfd_lenght);
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1,
                   (uint8_t *) &agc_tune1_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2,
@@ -865,13 +799,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &drx_tune2_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
-                  (uint8_t *) &lde_cfg1);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
-                  (uint8_t *) &lde_cfg2);
-  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
-                  (uint8_t *) &lde_repc);
 
+  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
+  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
   /* We use the mid range value (0x0F) */
   dw_fs_xtalt(0xFU);
 
@@ -947,18 +877,124 @@ void dw_set_channel(dw1000_channel_t channel){
     fs_plltune_val = 0xBE;
     break;
   }
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
                   (uint8_t *) &rf_rxctrlh_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
                     (uint8_t *) &rf_txctrl_val);
-
   dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY,
                   (uint8_t *) &tc_pgdelay_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
+  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
+
+}
+/**
+ * \Brief Configure the LDE Replica Coefficient.
+ */
+void
+dw_lde_repc_config(dw1000_preamble_code_t preamble_code, 
+                    dw1000_data_rate_t data_rate)
+{
+  uint16_t lde_repc = 0;
+  /* The following value has gives in the user-manual v2.10, table:
+  "Table 49: Sub-Register 0x2E:2804 – LDE_REPC configurations for 
+      (850 kbps & 6.8 Mbps)"*/
+  switch(preamble_code) {
+    case DW_PREAMBLE_CODE_1:
+      lde_repc = ((uint16_t)DW_LDE_REPC_1);
+      break;
+    case DW_PREAMBLE_CODE_2:
+      lde_repc = ((uint16_t)DW_LDE_REPC_2);
+      break;
+    case DW_PREAMBLE_CODE_3:
+      lde_repc = ((uint16_t)DW_LDE_REPC_3);
+      break;
+    case DW_PREAMBLE_CODE_4:
+      lde_repc = ((uint16_t)DW_LDE_REPC_4);
+      break;
+    case DW_PREAMBLE_CODE_5:
+      lde_repc = ((uint16_t)DW_LDE_REPC_5);
+      break;
+    /* DW_PREAMBLE_CODE_6 same as 5 */
+    /* case DW_PREAMBLE_CODE_6: */
+    /*   lde_repc = ((uint16_t) DW_LDE_REPC_6); */
+    /*   break; */
+    case DW_PREAMBLE_CODE_7:
+      lde_repc = ((uint16_t)DW_LDE_REPC_7);
+      break;
+    case DW_PREAMBLE_CODE_8:
+      lde_repc = ((uint16_t)DW_LDE_REPC_8);
+      break;
+    case DW_PREAMBLE_CODE_9:
+      lde_repc = ((uint16_t)DW_LDE_REPC_9);
+      break;
+    case DW_PREAMBLE_CODE_10:
+      lde_repc = ((uint16_t)DW_LDE_REPC_10);
+      break;
+    case DW_PREAMBLE_CODE_11:
+      lde_repc = ((uint16_t)DW_LDE_REPC_11);
+      break;
+    case DW_PREAMBLE_CODE_12:
+      lde_repc = ((uint16_t)DW_LDE_REPC_12);
+      break;
+    case DW_PREAMBLE_CODE_17:
+      lde_repc = ((uint16_t)DW_LDE_REPC_17);
+      break;
+    case DW_PREAMBLE_CODE_18:
+      lde_repc = ((uint16_t)DW_LDE_REPC_18);
+      break;
+    case DW_PREAMBLE_CODE_19:
+      lde_repc = ((uint16_t)DW_LDE_REPC_19);
+      break;
+    case DW_PREAMBLE_CODE_20:
+      lde_repc = ((uint16_t)DW_LDE_REPC_20);
+      break;
+  }
+  /* From the user manual v2.10, p170:
+  NB: When operating at 110 kbps the unsigned values in Table 49 have to be 
+  divided by 8, (right shifted 3, shifting zeroes into the high order bits), 
+  before programming into Sub-Register 0x2E:2804 – LDE_REPC. */
+  if(data_rate == DW_DATA_RATE_110_KBPS) {
+    lde_repc >>= 3; /* see page 170. */
+    lde_repc &= 0x1FFF;
+  }
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
+                  (uint8_t *) &lde_repc);
+}
+/**
+ * \brief Configure the LDE algorithm parameter for better performance and 
+ *      compatibility with the DW1000 configuration.
+ */
+void
+dw_configure_lde(dw1000_prf_t prf)
+{  
+  uint32_t lde_cfg1 = 0UL;
+  uint32_t lde_cfg2 = 0UL;
+
+  /* Configure LDE for better performance
+    Following the user manual v2.10 section "2.5.5.4 NTM" */
+  lde_cfg1 &= ~DW_NTM_MASK;
+  lde_cfg1 |= (0xD << DW_NTM) & DW_NTM_MASK; 
+  lde_cfg1 &= ~DW_PMULT_MASK;
+  lde_cfg1 |= (0x3 << DW_PMULT) & DW_PMULT_MASK;
+
+  /* the following value has gives in the user manual v2.10 table
+  "Table 48: Sub-Register 0x2E:1806– LDE_CFG2 values" */
+  switch(prf) {
+    case DW_PRF_16_MHZ:
+      lde_cfg2 = 0x1607;
+      break;
+
+    case DW_PRF_64_MHZ:
+      lde_cfg2 = 0x0607;
+      break;
+  }
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG1, DW_SUBLEN_LDE_CFG1,
+                  (uint8_t *) &lde_cfg1);
+  dw_write_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_CFG2, DW_SUBLEN_LDE_CFG2,
+                  (uint8_t *) &lde_cfg2);
 }
 /**
  * \brief Set the TX power according the Table 20: "Reference values Register 

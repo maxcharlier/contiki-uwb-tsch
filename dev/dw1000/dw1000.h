@@ -229,31 +229,31 @@ typedef enum {
  *			Table 48 have to be divided by 8,
  */
 typedef enum {
-  /* DW_LDE_REPC_0  = 0x5998UL, */
-  DW_LDE_REPC_1 = 0x5998UL,
-  DW_LDE_REPC_2 = 0x5998UL,
-  DW_LDE_REPC_3 = 0x51EAUL,
-  DW_LDE_REPC_4 = 0x428EUL,
-  DW_LDE_REPC_5 = 0x451EUL,
-  DW_LDE_REPC_6 = 0x2E14UL,
-  DW_LDE_REPC_7 = 0x8000UL,
-  DW_LDE_REPC_8 = 0x51EAUL,
-  DW_LDE_REPC_9 = 0x28F4UL,
-  DW_LDE_REPC_10 = 0x3332UL,
-  DW_LDE_REPC_11 = 0x3AE0UL,
-  DW_LDE_REPC_12 = 0x3D70UL,
-  /* DW_LDE_REPC_13 = 0x3AE0UL, */
-  /* DW_LDE_REPC_14 = 0x35C2UL, */
-  /* DW_LDE_REPC_15 = 0x2B84UL, */
-  /* DW_LDE_REPC_16 = 0x35C2UL, */
-  DW_LDE_REPC_17 = 0x3332UL,
-  DW_LDE_REPC_18 = 0x35C2UL,
-  DW_LDE_REPC_19 = 0x35C2UL,
-  DW_LDE_REPC_20 = 0x47AEUL,
-  /* DW_LDE_REPC_21 = 0x47AEUL, */
-  /* DW_LDE_REPC_22 = 0x3850UL, */
-  /* DW_LDE_REPC_23 = 0x30A2UL, */
-  /* DW_LDE_REPC_24 = 0x3850UL */
+  /* DW_LDE_REPC_0  = 0x5998U, */
+  DW_LDE_REPC_1 = 0x5999U,
+  DW_LDE_REPC_2 = 0x5999U,
+  DW_LDE_REPC_3 = 0x51EAU,
+  DW_LDE_REPC_4 = 0x428EU,
+  DW_LDE_REPC_5 = 0x451EU,
+  DW_LDE_REPC_6 = 0x2E14U,
+  DW_LDE_REPC_7 = 0x8000U,
+  DW_LDE_REPC_8 = 0x51EAU,
+  DW_LDE_REPC_9 = 0x28F5U,
+  DW_LDE_REPC_10 = 0x3332U,
+  DW_LDE_REPC_11 = 0x3AE0U,
+  DW_LDE_REPC_12 = 0x3D70U,
+  /* DW_LDE_REPC_13 = 0x3AE0U, */
+  /* DW_LDE_REPC_14 = 0x35C2U, */
+  /* DW_LDE_REPC_15 = 0x2B84U, */
+  /* DW_LDE_REPC_16 = 0x35C2U, */
+  DW_LDE_REPC_17 = 0x3333U,
+  DW_LDE_REPC_18 = 0x35C2U,
+  DW_LDE_REPC_19 = 0x35C2U,
+  DW_LDE_REPC_20 = 0x47AEU,
+  /* DW_LDE_REPC_21 = 0x47AEU, */
+  /* DW_LDE_REPC_22 = 0x3850U, */
+  /* DW_LDE_REPC_23 = 0x30A2U, */
+  /* DW_LDE_REPC_24 = 0x3850U */
 } dw1000_LDE_replica_coeff_t;
 
 /**
@@ -579,6 +579,7 @@ inline uint64_t dw_get_rx_raw_timestamp(void);
 uint64_t dw_get_tx_timestamp(void);
 uint64_t dw_get_tx_raw_timestamp(void);
 void     dw_set_antenna_delay(uint16_t antenna_delay);
+void     dw_set_default_antenna_delay(dw1000_prf_t prf);
 void     dw_set_tx_antenna_delay(uint16_t tx_delay);
 uint16_t dw_get_tx_antenna_delay(void);
 void     dw_set_rx_antenna_delay(uint16_t rx_delay);

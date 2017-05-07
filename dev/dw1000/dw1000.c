@@ -585,18 +585,23 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_set_default_tx_power(dw_conf->channel, dw_conf->prf);
 
   /* === Configure Preamble length */
-  tx_fctrl_val &= ~DW_TXPSR_MASK;
-  tx_fctrl_val &= ~DW_PE_MASK;
   if(dw_conf->preamble_length == DW_PREAMBLE_LENGTH_64) {
     drx_tune1b_val = 0x0010;
-    drx_tune4h_val = 0x0010;
   } else if(dw_conf->preamble_length <= DW_PREAMBLE_LENGTH_1024) {
     drx_tune1b_val = 0x0020;
-    drx_tune4h_val = 0x0028;
   } else if(dw_conf->preamble_length > DW_PREAMBLE_LENGTH_1024) {
     drx_tune1b_val = 0x0064;
+  }
+
+  if(dw_conf->preamble_length == DW_PREAMBLE_LENGTH_64) {
+    drx_tune4h_val = 0x0010;
+  } else {
     drx_tune4h_val = 0x0028;
   }
+  
+  /* Preamble length selection */
+  tx_fctrl_val &= ~DW_TXPSR_MASK;
+  tx_fctrl_val &= ~DW_PE_MASK;
   switch(dw_conf->preamble_length) {
   case DW_PREAMBLE_LENGTH_64:
     tx_fctrl_val |= (0x01UL << DW_TXPSR) & DW_TXPSR_MASK;
@@ -757,29 +762,37 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                          - dw_conf->pac_size);
   }
   /* === Configure Data rate */
-  sys_cfg_val &= ~DW_RXM110K_MASK;
   tx_fctrl_val &= ~DW_TXBR_MASK;
   switch(dw_conf->data_rate) {
   case DW_DATA_RATE_110_KBPS:
+    /* Enable Receiver Mode 110 kbps data rate */
     sys_cfg_val |= (1UL << DW_RXM110K) & DW_RXM110K_MASK;
+    /* 110 kbps bite rate */
     tx_fctrl_val |= (0x00UL << DW_TXBR) & DW_TXBR_MASK;
     break;
   case DW_DATA_RATE_850_KBPS:
-    sys_cfg_val &= ~((1UL << DW_RXM110K) & DW_RXM110K_MASK);
+    /* Disable Receiver Mode 110 kbps data rate */
+    sys_cfg_val &= ~DW_RXM110K_MASK; 
+    /* 850 kbps bite rate */
     tx_fctrl_val |= (0x01UL << DW_TXBR) & DW_TXBR_MASK;
     break;
   case DW_DATA_RATE_6800_KBPS:
-    sys_cfg_val &= ~((1UL << DW_RXM110K) & DW_RXM110K_MASK);
+    /* Disable Receiver Mode 110 kbps data rate */
+    sys_cfg_val &= ~DW_RXM110K_MASK; 
+    /* 6800 kbps bite rate */
     tx_fctrl_val |= (0x02UL << DW_TXBR) & DW_TXBR_MASK;
     break;
   }
   /* Enable receiver abort on PHR error.*/
   sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
-
+  /* We use the mid range value (0x0F) */
+  dw_fs_xtalt(0xFU);
 
   /* Commit configuration to device */
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
+  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
+  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
 
   dw_write_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
                   (uint8_t *) &user_sfd_lenght);
@@ -795,16 +808,10 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &drx_tune1a_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b,
                   (uint8_t *) &drx_tune1b_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2,
-                  (uint8_t *) &drx_tune2_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
-
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
-  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
-  /* We use the mid range value (0x0F) */
-  dw_fs_xtalt(0xFU);
-
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2,
+                  (uint8_t *) &drx_tune2_val);
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
 }
@@ -877,18 +884,18 @@ void dw_set_channel(dw1000_channel_t channel){
     fs_plltune_val = 0xBE;
     break;
   }
+
+  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
+  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
+                  (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
                   (uint8_t *) &rf_rxctrlh_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_TXCTRL, DW_SUBLEN_RF_TXCTRL,
                     (uint8_t *) &rf_txctrl_val);
   dw_write_subreg(DW_REG_TX_CAL, DW_SUBREG_TC_PGDELAY, DW_SUBLEN_TC_PGDELAY,
                   (uint8_t *) &tc_pgdelay_val);
-  dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
-                  (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
-
 }
 /**
  * \Brief Configure the LDE Replica Coefficient.
@@ -2023,6 +2030,24 @@ dw_set_antenna_delay(uint16_t antenna_delay)
   dw_set_rx_antenna_delay((uint16_t) (((uint32_t) (antenna_delay) * 56) / 100));
   // dw_set_tx_antenna_delay(antenna_delay >> 1);
   // dw_set_rx_antenna_delay(antenna_delay >> 1);
+}
+/**
+ * \brief Set a default value for the antenna delay.
+ *  These values come from the DecaRanging source code.
+ *  File DecaRangingARMbased/Source_UNDER_LICENSE_ONLY/
+ *        DecaRangingEVB1000_MP_rev3p05/src/application/instance_calib.c
+ *  "(uint16) ((DWT_PRF_64M_RFDLY/ 2.0) * 1e-9 / DWT_TIME_UNITS)"
+ */
+void
+dw_set_default_antenna_delay(dw1000_prf_t prf){
+  uint16_t antenna_delay = 0U;
+  if(prf == DW_PRF_16_MHZ){
+    antenna_delay = 32837;
+  }
+  else{ /* 64 MHz PRF */
+    antenna_delay = 32872;
+  }
+  dw_set_antenna_delay(antenna_delay);
 }
 /**
  * \brief Set the TX antenna delay.

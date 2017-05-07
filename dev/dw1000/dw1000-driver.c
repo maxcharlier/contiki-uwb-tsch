@@ -779,7 +779,7 @@ dw1000_driver_transmit(unsigned short payload_len)
 
 
   if(dw1000_driver_wait_ACK || dw1000_driver_sstwr || dw1000_driver_sdstwr) {
-    dw1000_off();  /* bug fix of waiting an ACK which
+    dw_idle();  /* bug fix of waiting an ACK which
                    avoid the next transmission */
   }
 
@@ -977,7 +977,6 @@ void
 dw1000_on(void)
 {
 
-  dw1000_driver_enable_interrupt();
 #ifdef DOUBLE_BUFFERING
   if(!dw_good_rx_buffer_pointer()) { /* check HSRBP == ICRBP */
     /* Host Side Receive Buffer Pointer Toggle to 1. */
@@ -986,6 +985,9 @@ dw1000_on(void)
 #endif /* DOUBLE_BUFFERING */
 
   dw_init_rx();
+
+  dw1000_driver_enable_interrupt();
+
   /* The receiver has a delay of 16μs after issuing the enable receiver command,
    *  after which it will start receiving preamble symbols. */
   dw1000_us_delay(16);

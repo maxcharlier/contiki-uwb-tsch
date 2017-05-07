@@ -1836,8 +1836,12 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   }
 
   if(preamble_length >= 512){
-  /* avoid RX state bug: use the sniff mode with a 50/50 approach*/
-  dw_set_snif_mode(1, 3, dw1000_conf.pac_size*3);
+    /* avoid RX state bug: use the sniff mode with a 50/50 approach*/
+    dw_set_snif_mode(1, 3, dw1000_conf.pac_size*3);
+  }
+  if(preamble_length == 256){
+    /* bug fix: improve ranging reliability at 6.8 Mbps */
+    dw1000_conf.pac_size = DW_PAC_SIZE_8;
   }
 
   if(data_rate == DW_DATA_RATE_110_KBPS) {

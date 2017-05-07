@@ -124,27 +124,31 @@ PROCESS_THREAD(frame_master_process, ev, data)
 
   /* set the antenna delay, we set these values with the antenna set to off */
   dw1000_driver_off();
-  // [ 32956.82610298,  32972.82610298,  32948.52410298,  32983.90010298,
-  //       32899.78310298]
+  // round 1
+// [ 32955.18360298,  32979.74060298,  32946.60960298,  32982.25760298,
+//         32906.42560298]
+  // round 2
+  // [ 32921.60834902  32906.65234902  32916.39834902  32943.32034902, 32933.80234902]
+
   switch(linkaddr_node_addr.u8[0]){
     case 0x6:
-      dw_set_antenna_delay(32957);
+      dw_set_antenna_delay(32922);
       break;
 
     case 0x07:
-      dw_set_antenna_delay(32973);
+      dw_set_antenna_delay(32907);
       break;
 
     case 0x08:
-      dw_set_antenna_delay(32949);
+      dw_set_antenna_delay(32916);
       break;
 
     case 0x09:
-      dw_set_antenna_delay(32984);
+      dw_set_antenna_delay(32943);
       break;
 
     case 0x0A:
-      dw_set_antenna_delay(32900);
+      dw_set_antenna_delay(32934);
       break;
   }
   dw1000_driver_on();
@@ -304,7 +308,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
             report[0] = mode;
             packetbuf_copyfrom(report, 1);
             /* request an ACK */
-            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
             unicast_send(&uc, &addr);
             PRINTF("Delay value request sended.\n");
           }

@@ -46,9 +46,9 @@
   #define PACKETBUF_CONF_SIZE       266
 #endif
 
-#define DW1000_CHANNEL              1
-#define DW1000_DATA_RATE            DW_DATA_RATE_110_KBPS
-#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_2048
+#define DW1000_CHANNEL              5
+#define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
+#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
 #define DW1000_PRF                  DW_PRF_64_MHZ
 
 #if NETSTACK_CONF_WITH_IPV6

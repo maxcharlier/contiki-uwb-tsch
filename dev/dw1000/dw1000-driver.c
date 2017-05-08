@@ -1517,9 +1517,12 @@ PROCESS_THREAD(dw1000_driver_process_sds_twr, ev, data){
                 dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) + 
                 DW1000_SPI_DELAY);
     }
-
+#ifdef DOUBLE_BUFFERING
     /* The receiver is re-enabled automatically after 
           the automatic transmission of the ACK */
+#else
+    dw_init_rx();
+#endif
 
     dw1000_driver_clear_pending_interrupt();
 

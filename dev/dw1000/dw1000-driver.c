@@ -90,6 +90,7 @@
 #endif /* DW1000_PRF */
 
 
+/* You should disable the ranging bias in case of antenna delay calibration */
 #define DW1000_ENABLE_RANGING_BIAS_CORRECTION 1
 #if DW1000_ENABLE_RANGING_BIAS_CORRECTION
   #include "dw1000-ranging-bias.h"
@@ -183,7 +184,8 @@ static uint32_t dw1000_driver_reply_time = 0UL;
  */
 static uint32_t dw1000_driver_schedule_reply_time = 0UL;
 
-static uint32_t dw1000_driver_last_prop_time = 0UL;
+/* can be negative if the antenna delay was to big */
+static int32_t dw1000_driver_last_prop_time = 0UL;
 
 /* store the current DW1000 configuration */
 static dw1000_base_conf_t dw1000_conf;
@@ -738,10 +740,16 @@ dw1000_driver_transmit(unsigned short payload_len)
                                         (uint8_t*) &t_round_R);
 
             /* Compute the propagation time using the Asymmetrical approach */
-            dw1000_driver_last_prop_time = 
-                (   (((uint64_t) t_round_I) * t_round_R) 
-                  - (((uint64_t) t_reply_I) * t_reply_R) )
-                / ( ((uint64_t) t_round_I) + t_round_R + t_reply_I + t_reply_R);
+            /* we use signed number to give the possibilities to have negative 
+                propagation time in case of the antenna delay was to hight 
+                when we calibrate the nodes */
+            dw1000_driver_last_prop_time = (int32_t)
+                (( ((int64_t) t_round_I * (int64_t) t_round_R) 
+                  - ((int64_t) t_reply_I * (int64_t)t_reply_R) )
+                /  ((int64_t) t_round_I 
+                  + (int64_t) t_round_R 
+                  + (int64_t) t_reply_I 
+                  + (int64_t) t_reply_R));
 
 // #define CHECK_SDS_TWR_VALUE
 #ifdef CHECK_SDS_TWR_VALUE
@@ -750,7 +758,7 @@ dw1000_driver_transmit(unsigned short payload_len)
             printf("t_reply_I %lu\n", t_reply_I);
             printf("t_round_R %lu\n", t_round_R);
             printf("t_reply_R %lu\n", t_reply_R);
-            printf("t_prop %lu\n", dw1000_driver_last_prop_time);
+            printf("t_prop %ld\n", dw1000_driver_last_prop_time);
 #endif /* CHECK_SDS_TWR_VALUE */
 
 #if DEBUG
@@ -2060,21 +2068,24 @@ dw1000_compute_prop_time_sstwr(int16_t t_reply_offset){
  *          approximately 15.65 picoseconds. The actual unit may be calculated 
  *          as 1/ (128*499.2×10^6 ) seconds.
  */
-uint32_t
+int32_t
 dw1000_driver_get_propagation_time(void){
-  uint32_t propagation = dw1000_driver_last_prop_time;
+  int32_t propagation = dw1000_driver_last_prop_time;
   dw1000_driver_last_prop_time = 0UL;
+
+#if DW1000_ENABLE_RANGING_BIAS_CORRECTION
   /* Avoid first negative propagation time and 
     second a ranging bias correction on a zero value.
     A zero value is the result of a error in the ranging protocol.
   */
-  if(propagation == 0)
-    return 0UL;
+  if(propagation <= 0)
+    return 0L;
 
-#if DW1000_ENABLE_RANGING_BIAS_CORRECTION
   return propagation - dw1000_getrangebias(dw1000_conf.channel, propagation, 
                                   dw1000_conf.prf);
 #else 
+  /* if we have disabled the ranging bias correction we should have negative 
+    value if the antenna delay are to big and we need to know this */
   return propagation;
 #endif /* DW1000_ENABLE_RANGING_BIAS_CORRECTION */
 }

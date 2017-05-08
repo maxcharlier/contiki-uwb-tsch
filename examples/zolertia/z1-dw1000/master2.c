@@ -199,7 +199,7 @@ PROCESS_THREAD(frame_master_process, ev, data)
               PROCESS_PAUSE();
             }
             printf("0x%08" PRIx32 "", 
-              (unsigned long int) dw1000_driver_get_propagation_time());
+              (long int) dw1000_driver_get_propagation_time());
 
             if(mode == 0x02){
               /* get quality */
@@ -512,7 +512,7 @@ PROCESS_THREAD(receive_process, ev, data)
 
           memcpy(&propagation_time, &payload[5], 4);
 
-          printf("0x%08" PRIx32 "", (unsigned long int) propagation_time);
+          printf("0x%08" PRIx32 "", (long int) propagation_time);
           if(mode == 0x02){
             /* get quality */
             dw1000_frame_quality quality ;

@@ -72,5 +72,5 @@ void dw1000_driver_sdstwr_request(void);
 uint8_t dw1000_driver_is_ranging_request(void);
 uint32_t dw1000_driver_get_reply_time(void);
 void dw1000_driver_set_reply_time(uint32_t reply_time);
-uint32_t dw1000_driver_get_propagation_time(void);
+int32_t dw1000_driver_get_propagation_time(void);
 dw1000_frame_quality dw1000_driver_get_packet_quality(void);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, UMons University.
+ * Copyright (c) 2017, Charlier Maximilien, UMons University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

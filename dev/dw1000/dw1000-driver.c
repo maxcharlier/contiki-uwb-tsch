@@ -744,12 +744,12 @@ dw1000_driver_transmit(unsigned short payload_len)
                 propagation time in case of the antenna delay was to hight 
                 when we calibrate the nodes */
             dw1000_driver_last_prop_time = (int32_t)
-                (( ((int64_t) t_round_I * (int64_t) t_round_R) 
-                  - ((int64_t) t_reply_I * (int64_t)t_reply_R) )
+                (( ((int64_t) t_round_I * t_round_R) 
+                  - ((int64_t) t_reply_I * t_reply_R) )
                 /  ((int64_t) t_round_I 
-                  + (int64_t) t_round_R 
-                  + (int64_t) t_reply_I 
-                  + (int64_t) t_reply_R));
+                  +  t_round_R 
+                  +  t_reply_I 
+                  +  t_reply_R));
 
 // #define CHECK_SDS_TWR_VALUE
 #ifdef CHECK_SDS_TWR_VALUE
@@ -984,7 +984,6 @@ dw1000_driver_on(void)
 void
 dw1000_on(void)
 {
-
 #ifdef DOUBLE_BUFFERING
   if(!dw_good_rx_buffer_pointer()) { /* check HSRBP == ICRBP */
     /* Host Side Receive Buffer Pointer Toggle to 1. */
@@ -1870,7 +1869,6 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   dw_config_switching_tx_to_rx_ACK();
   dw_sfd_init();
 #endif
-
 }
 
 /*===========================================================================*/

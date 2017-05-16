@@ -556,7 +556,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   uint16_t drx_tune0b_val = 0;
   uint16_t drx_tune1a_val = 0;
   uint16_t drx_tune1b_val = 0;
-  uint32_t drx_tune2_val = 0;
   uint16_t drx_tune4h_val = 0;
   uint8_t user_sfd_lenght = 0;
 
@@ -650,36 +649,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_configure_lde(dw_conf->preamble_code);
 
   /* === Configure PAC size */
-  switch(dw_conf->pac_size) {
-  case DW_PAC_SIZE_8:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x311A002DUL;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x313B006BUL;
-    }
-    break;
-  case DW_PAC_SIZE_16:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x331A0052UL;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x333B00BEUL;
-    }
-    break;
-  case DW_PAC_SIZE_32:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x351A009AUL;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x353B015EUL;
-    }
-    break;
-  case DW_PAC_SIZE_64:
-    if(dw_conf->prf == DW_PRF_16_MHZ) {
-      drx_tune2_val = 0x371A011DUL;
-    } else if(dw_conf->prf == DW_PRF_64_MHZ) {
-      drx_tune2_val = 0x373B0296UL;
-    }
-    break;
-  }
+  dw_set_pac_size(dw_conf->pac_size, dw_conf->prf);
 
   /* === Configure SFD */
   /* TODO: Implement user specified */
@@ -810,8 +780,6 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                   (uint8_t *) &drx_tune1b_val);
   dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
                   (uint8_t *) &drx_tune4h_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2,
-                  (uint8_t *) &drx_tune2_val);
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
 }
@@ -896,6 +864,44 @@ void dw_set_channel(dw1000_channel_t channel){
                   (uint8_t *) &tc_pgdelay_val);
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
+}
+
+void 
+dw_set_pac_size(dw1000_pac_size_t pac_size, dw1000_prf_t prf)
+{
+  uint32_t drx_tune2_val = 0;
+  switch(pac_size) {
+  case DW_PAC_SIZE_8:
+    if(prf == DW_PRF_16_MHZ) {
+      drx_tune2_val = 0x311A002DUL;
+    } else if(prf == DW_PRF_64_MHZ) {
+      drx_tune2_val = 0x313B006BUL;
+    }
+    break;
+  case DW_PAC_SIZE_16:
+    if(prf == DW_PRF_16_MHZ) {
+      drx_tune2_val = 0x331A0052UL;
+    } else if(prf == DW_PRF_64_MHZ) {
+      drx_tune2_val = 0x333B00BEUL;
+    }
+    break;
+  case DW_PAC_SIZE_32:
+    if(prf == DW_PRF_16_MHZ) {
+      drx_tune2_val = 0x351A009AUL;
+    } else if(prf == DW_PRF_64_MHZ) {
+      drx_tune2_val = 0x353B015EUL;
+    }
+    break;
+  case DW_PAC_SIZE_64:
+    if(prf == DW_PRF_16_MHZ) {
+      drx_tune2_val = 0x371A011DUL;
+    } else if(prf == DW_PRF_64_MHZ) {
+      drx_tune2_val = 0x373B0296UL;
+    }
+    break;
+  }
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE2, DW_SUBLEN_DRX_TUNE2,
+                  (uint8_t *) &drx_tune2_val);
 }
 /**
  * \Brief Configure the LDE Replica Coefficient.
@@ -1253,6 +1259,7 @@ dw_conf_print()
   uint32_t lde_cfg2 = 0UL;
   uint32_t lde_repc = 0UL;
   uint32_t tx_power_val = 0UL;
+  uint32_t rx_finfo_val = 0UL;
   uint8_t  user_sfd_lenght = 0;
   float temperature_val = 0;
   float voltage_val = 0;
@@ -1296,6 +1303,7 @@ dw_conf_print()
   dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_REPC, DW_SUBLEN_LDE_REPC,
                   (uint8_t *) &lde_repc);
   dw_read_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
+  dw_read_reg(DW_REG_RX_FINFO, DW_LEN_RX_FINFO, (uint8_t *) &rx_finfo_val);
   dw_read_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
                   (uint8_t *) &user_sfd_lenght);
 
@@ -1333,6 +1341,7 @@ dw_conf_print()
   printf("lde_cfg2   : 0x%08" PRIx32 "\r\n", lde_cfg2);
   printf("lde_repc   : 0x%08" PRIx32 "\r\n", lde_repc);
   printf("tx_power   : 0x%08" PRIx32 "\r\n", tx_power_val);
+  printf("rx_finfo   : 0x%08" PRIx32 "\r\n", rx_finfo_val);
   printf("user_sfd_lenght   : 0x%08X\r\n", user_sfd_lenght);
   printf("Temperature       : 0x%08" PRIx32 " (float)\n", *(long unsigned int*)
                                     &temperature_val);

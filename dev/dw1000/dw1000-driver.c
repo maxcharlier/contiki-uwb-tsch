@@ -496,7 +496,6 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw_idle();
     receive_on = 1;
   }
-
   if(dw1000_driver_wait_ACK || dw1000_driver_sstwr || dw1000_driver_sdstwr) {
     dw1000_driver_disable_interrupt();  
     dw1000_driver_clear_pending_interrupt();
@@ -1861,6 +1860,8 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   } else { /* 6800 kbps */
     dw1000_conf.sfd_type = DW_SFD_STANDARD;
   }
+
+  dw_set_default_antenna_delay(prf);
 
   dw_conf(&dw1000_conf);
 

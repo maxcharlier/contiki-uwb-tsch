@@ -45,3 +45,16 @@ Zoul pin-out
 [remote-back]: ../images/remote-back.png "Zolertia RE-Mote development platform"
 [remote-pinout-front]: ../images/remote-pinout-front.png "RE-Mote pin-out (front)"
 [remote-pinout-back]: ../images/remote-pinout-back.png "RE-Mote pin-out (back)"
+
+
+RE-Mote and DW1000 Connexions
+===========
+RE-Mote | DWM1000
+----------------
+Port 29 - ADC2 | Port 17 - SPICSn
+Port 36 - USD.CLK | Port 20 - SPICLK 
+Port 35 - USD.MOSI | Port 18 - SPIMOSI
+Port 34 - USD.MISO | Port 19 - SPIMISO
+Port 26 - GND | Port 8 or 21 or 23 or 24 - VSS
+Port 27 - 3.3VDC output pin | Port 5, 6, 7 - VDDAON, VDD3V3, VDD3V3
+Port 28 - ADC1 | Port 2 - IRQ / GPIO8

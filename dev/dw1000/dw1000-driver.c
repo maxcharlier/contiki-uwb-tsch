@@ -1185,6 +1185,17 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_CCA_THRESHOLD:
     return RADIO_RESULT_NOT_SUPPORTED;
+
+  case RADIO_PARAM_PAN_ID:
+    uint16_t pan_id = (uint16_t) value & 0xFFFF;
+    dw_set_pan_id(pan_id);
+    return RADIO_RESULT_OK;
+  
+  case RADIO_PARAM_16BIT_ADDR:
+    uint16_t short_addr = (uint16_t) value & 0xFFFF;
+    dw_set_short_addr(short_addr);
+    return RADIO_RESULT_OK;
+
   default:
     return RADIO_RESULT_NOT_SUPPORTED;
   }
@@ -1229,6 +1240,23 @@ dw1000_driver_set_object(radio_param_t param,
                          const void *src, size_t size)
 {
   PRINTF("dw1000_driver_set_object\r\n");
+  int i;
+
+  if(param == RADIO_PARAM_64BIT_ADDR) {
+    if(size != 8 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+
+    uint64_t euid = 0x0;
+    for(i = 0; i < 8; i++) {
+      // ((uint32_t *)RFCORE_FFSM_EXT_ADDR0)[i] = ((uint8_t *)src)[7 - i];
+
+      euid |= (uint64_t) ((uint8_t *)src)[7-i] << (8 * i));
+    }
+
+    dw_set_extendedUniqueID(euid);
+    return RADIO_RESULT_OK;
+  }
   return RADIO_RESULT_NOT_SUPPORTED;
 }
 /*---------------------------------------------------------------------------*/

@@ -399,6 +399,28 @@
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
+ * \name DWM1000 configuration
+ *
+ * These values configure the required pins to drive the DWM1000
+ * external module, to be used with SSI1
+ * @{
+ */ 
+#define DWM1000_SPI_INSTANCE         1
+#define DWM1000_CLK_PORT             SPI1_CLK_PORT
+#define DWM1000_CLK_PIN              SPI1_CLK_PIN
+#define DWM1000_MOSI_PORT            SPI1_TX_PORT
+#define DWM1000_MOSI_PIN             SPI1_TX_PIN
+#define DWM1000_MISO_PORT            SPI1_RX_PORT
+#define DWM1000_MISO_PIN             SPI1_RX_PIN
+#define DWM1000_CSN_PORT             GPIO_A_NUM
+#define DWM1000_CSN_PIN              4
+#define DWM1000_INT_PORT             GPIO_A_NUM /* Interrupt Port */
+#define DWM1000_INT_PIN              5
+
+#define DWM1000_GPIOx_VECTOR         NVIC_INT_GPIO_PORT_A
+/** @} */
+/*---------------------------------------------------------------------------*/
+/**
  * \name microSD configuration
  *
  * These values configure the required pins to drive the built-in microSD
@@ -485,7 +507,16 @@
  * \name Device string used on startup
  * @{
  */
-#define BOARD_STRING "Zolertia RE-Mote platform"
+#define BOARD_STRING "Zolertia RE-Mote platform with DWM1000"
+/** @} */
+
+/** @} */
+/*---------------------------------------------------------------------------*/
+/**
+ * \name Radio driver used
+ * @{
+ */
+#define NETSTACK_CONF_RADIO dw1000_driver
 /** @} */
 
 #endif /* BOARD_H_ */

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2012, Texas Instruments Incorporated - http://www.ti.com/
- * Copyright (c) 2015, Zolertia
+ * Copyright (c) 2016, Zolertia
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,16 +32,16 @@
  * \addtogroup zoul-platforms
  * @{
  *
- * \defgroup remote RE-Mote platform
+ * \defgroup remote-revb RE-Mote platform revision B
  *
  * The RE-Mote was designed jointly with universities and industry partners in
  * RERUM European project, to ease the development of private and secure
  * applications for IoT and Smart City applications.  The RE-Mote packs several
  * on-board resources, like a RTC, external WDT, Micro-SD, RF switch and a
- * Shutdown mode to reduce its power consumption down to 300nA.
+ * Shutdown mode to reduce its power consumption down to 150nA.
  *
  * This file provides connectivity information on LEDs, Buttons, UART and
- * other RE-Mote peripherals
+ * other RE-Mote revision A peripherals
  *
  * This file can be used as the basis to configure other platforms using the
  * cc2538 SoC.
@@ -50,7 +49,7 @@
  *
  * \file
  * Header file with definitions related to the I/O connections on the Zolertia's
- * RE-Mote platform, cc2538-based
+ * RE-Mote platform (revision B), cc2538-based
  *
  * \note   Do not include this file directly. It gets included by contiki-conf
  *         after all relevant directives have been set.
@@ -68,59 +67,67 @@
  * ----------------------+---+---+---------------------------------------------
  * PIN_NAME              |JP6|JP5|   PIN_NAME
  * ----------------------+---+---+---------------------------------------------
- * LED1/EXT_WDT/PD5      |-01|18-|   PC6/SPI1.MISO/USD.MISO
- * LED2/UART1.CTS/PD4    |-02|17-|   PC5/SPI1.MOSI/USD.MOSI
- * LED3/UART1.RTS/PD3    |-03|16-|   PC4/SPI1.SCLK/USD.SCLK
- * UART0.RX/PA0          |-04|15-|   PA3/BUTTON.USER
- * UART0.TX/PA1          |-05|14-|   RESET/JTAG.RESET/BUTTON.RESET
- * SHUTDOWN_ENABLE/PD1   |-06|13-|   DGND
- * RTC.SDA/I2C.SDA/PC2   |-07|12-|   D+3.3
- * RTC.SCL/I2C.SCL/PC3   |-08|11-|   PA5/AIN5/ADC1
- * DGND                  |-09|10-|   PA4/RTC_INT1/AIN4/ADC2
- * D+3.3                 |-10|09-|   DGND
- * USD.CS/AIN7/PA7       |-11|08-|   D+5.1
- * SHUTDOWN_DONE/PD0     |-12|07-|   PA2/AIN2/ADC3
- * UART1.RX/PC1          |-13|06-|   JTAG.TMS
- * UART1.TX/PC0          |-14|05-|   JTAG.TCK
- * DGND                  |-15|04-|   PB7/JTAG.TDO
- * D+3.3                 |-16|03-|   PB6/JTAG.TDI
- * DGND                  |-17|02-|   PS+EXT
- * +VBAT                 |-18|01-|   DGND
+ * LED1.R/PD4            |-01|17-|   PB2/SPIO0.SCLK/CC1200.SCLK
+ * LED2.G/JTAG.TDO/PB7   |-02|16-|   PB1/SPIO0.MOSI/CC1200.MOSI
+ * LED3.B/JTAG.TDI/PB6   |-03|15-|   PB3/SPIO0.MISO/CC1200.MISO
+ * UART0.RX/PA0          |-04|14-|   PA7/AIN7/USD.CS|ADC5
+ * UART0.TX/PA1          |-05|13-|   DGND
+ * PD0                   |-06|12-|   D+3.3
+ * I2C.SDA/PC2           |-07|11-|   PA5/AIN5/ADC1
+ * I2C.SCL/PC3           |-08|10-|   PA4/AIN4/ADC2
+ * DGND                  |-09|09-|   DGND
+ * D+3.3                 |-10|08-|   D+5.0
+ * CC1200.GPIO0/PB4      |-11|07-|   PA2/AIN2/ADC3
+ * CC1200.GPIO2/PB0      |-12|06-|   PA6/AIN6/USD.SEL|ADC4
+ * UART1.RX/PC1          |-13|05-|   PC6/SPI1.MISO
+ * UART1.TX/PC0          |-14|04-|   PC5/SPI1.MOSI
+ * DGND                  |-15|03-|   PC4/SPI1.SCLK
+ * D+3.3                 |-16|02-|   PS+EXT/VIN
+ * CC1200.CS/PB5         |-17|01-|   DGND
  * ----------------------+---+---+---------------------------------------------
+ *
+ * Two auxiliary connectors allow to connect an external LiPo battery and
+ * access to the RESET/user buttons:
+ *
+ * - JP4 (placed below JP6 connector): |1-| DGND, |2-| VBAT
+ * - JP9 (placed above JP5 connector): |1-| BUTTON.RESET, |2-| BUTTON.USER|ADC6
  */
 /*---------------------------------------------------------------------------*/
 /** \name RE-Mote LED configuration
  *
- * LEDs on the RE-Mote are connected as follows:
- * - LED1 (Red)    -> PD5
- * - LED2 (Green)  -> PD4
- * - LED3 (Blue)   -> PD3
+ * LEDs on the RE-Mote are exposed in the JP6 port as follows:
+ * - LED1 (Red)    -> PD4
+ * - LED2 (Green)  -> PB7 (shared with JTAG.TDO)
+ * - LED3 (Blue)   -> PB6 (shared with JTAG.TDI)
  *
- * LED1 pin shared with EXT_WDT and exposed in JP6 connector
- * LED2 pin shared with UART1 CTS, pin exposed in JP6 connector
- * LED3 pin shared with UART1 RTS, exposed in JP6 connector
+ * The LEDs are connected to a MOSFET to minimize current draw.  The LEDs can
+ * be disabled by removing resistors R12, R13 and R14.
  * @{
  */
 /*---------------------------------------------------------------------------*/
-/* Some files include leds.h before us, so we need to get rid of defaults in
- * leds.h before we provide correct definitions */
 #undef LEDS_GREEN
 #undef LEDS_YELLOW
 #undef LEDS_BLUE
 #undef LEDS_RED
 #undef LEDS_CONF_ALL
 
-/* In leds.h the LEDS_BLUE is defined by LED_YELLOW definition */
-#define LEDS_GREEN    (1 << 4) /**< LED1 (Green) -> PD4 */
-#define LEDS_BLUE     (1 << 3) /**< LED2 (Blue)  -> PD3 */
-#define LEDS_RED      (1 << 5) /**< LED3 (Red)   -> PD5 */
+#define LEDS_RED              1           /**< LED1 (Red)   -> PD4 */
+#define LEDS_RED_PIN_MASK     (1 << 4)
+#define LEDS_RED_PORT_BASE    GPIO_D_BASE
 
-#define LEDS_CONF_ALL (LEDS_GREEN | LEDS_BLUE | LEDS_RED)
+#define LEDS_GREEN            2           /**< LED2 (Green) -> PB7 */
+#define LEDS_GREEN_PIN_MASK   (1 << 7)
+#define LEDS_GREEN_PORT_BASE  GPIO_B_BASE
 
-#define LEDS_LIGHT_BLUE (LEDS_GREEN | LEDS_BLUE) /**< Green + Blue (24)       */
-#define LEDS_YELLOW     (LEDS_GREEN | LEDS_RED)  /**< Green + Red  (48)       */
-#define LEDS_PURPLE     (LEDS_BLUE  | LEDS_RED)  /**< Blue + Red   (40)       */
-#define LEDS_WHITE      LEDS_ALL                 /**< Green + Blue + Red (56) */
+#define LEDS_BLUE             4           /**< LED3 (Blue)  -> PB6 */
+#define LEDS_BLUE_PIN_MASK    (1 << 6)
+#define LEDS_BLUE_PORT_BASE   GPIO_B_BASE
+
+#define LEDS_CONF_ALL         (LEDS_GREEN | LEDS_BLUE | LEDS_RED) /* 7 */
+#define LEDS_LIGHT_BLUE       (LEDS_GREEN | LEDS_BLUE)            /* 6 */
+#define LEDS_YELLOW           (LEDS_GREEN | LEDS_RED)             /* 3 */
+#define LEDS_PURPLE           (LEDS_BLUE  | LEDS_RED)             /* 5 */
+#define LEDS_WHITE            LEDS_ALL                            /* 7 */
 
 /* Notify various examples that we have LEDs */
 #define PLATFORM_HAS_LEDS        1
@@ -148,8 +155,8 @@
  * - UART1:
  *   - RX:  PC1
  *   - TX:  PC0
- *   - CTS: PD4, shared with LED2 (Green), disabled as default
- *   - RTS: PD3, shared with LED3 (Blue), disabled as default
+ *   - CTS: disabled as default, PD0 may be assigned if not using I2C interrupts
+ *   - RTS: disabled as default
  *
  * We configure the port to use UART0 and UART1, CTS/RTS only for UART1,
  * both without a HW pull-up resistor
@@ -180,15 +187,16 @@
  *
  * The RE-Mote allows both 3.3V and 5V analogue sensors as follow:
  *
- * - ADC1: up to 3.3V.
- * - ADC2: up to 3.3V, shared with RTC_INT
- * - ADC3: up to 5V, by means of a 2/3 voltage divider.
+ * - ADC1 (PA5): up to 3.3V.
+ * - ADC2 (PA4): up to 3.3V
+ * - ADC3 (PA2): up to 5V, by means of a 2/3 voltage divider.
  *
  * Also there are other ADC channels shared by default with Micro SD card and
- * user button implementations: 
- * - ADC4: up to 3.3V.
- * - ADC5: up to 3.3V.
- * - ADC6: up to 3.3V.
+ * user button implementations:
+ *
+ * - ADC4 (PA6): up to 3.3V.
+ * - ADC5 (PA7): up to 3.3V.
+ * - ADC6 (PA3): up to 3.3V.
  *
  * ADC inputs can only be on port A.
  * All ADCx are exposed in JP5 connector, but only ADC1 and ADC3 have GND and
@@ -196,15 +204,24 @@
  * connector, for ADC2 either solder a wire to connect, or use a 4-pin connector
  * to expose both ADC1 and ADC2 in a single connector, but this will leave no
  * space for a ADC3 connector.
+ *
  * The internal ADC reference is 1190mV, use either a voltage divider as input,
- * or a different voltage reference, like AVDD5 or other externally (AIN7), but
- * note the PA7 is shared with the Micro-SD CSn pin, likewise for PA6 (AIN6)
- * shared witht the Micro-SD select pin
- * To use the ADC2 pin, remove the resistor on the Zoul's PA4 pin (JP1, pin 10)
- * and enable below (replace -1 with 4).
+ * or a different voltage reference, like AVDD5, or externally using PA7/AIN7
+ * and PA6/AIN6 configurable as differential reference, by removing the R26 and
+ * R33 0Ohm resistors to disconnect off the Micro-SD, and those will be
+ * accessible from JP5 connector.
+ *
+ * To enable the ADC[2,4-6], remove any 0Ohm resistors if required (see above),
+ * and define in your application `ADC_SENSORS_CONF_ADCx_PIN` and set its
+ * value with the corresponding pin number (i.e ADC2 to 4 as mapped to PA4).
+ * To disable any ADC[1-6] just define as above, but set to (-1) instead.
+
+ * Warning: if using ADC6 (PA3), you will need to disable the bootloader by
+ * making FLASH_CCA_CONF_BOOTLDR_BACKDOOR equal to zero
+ * 
  * @{
  */
-#define ADC_SENSORS_PORT         GPIO_A_NUM /**< ADC GPIO control port */
+#define ADC_SENSORS_PORT         GPIO_A_NUM    /**< ADC GPIO control port */
 
 #ifndef ADC_SENSORS_CONF_ADC1_PIN
 #define ADC_SENSORS_ADC1_PIN     5             /**< ADC1 to PA5, 3V3    */
@@ -245,7 +262,7 @@
 #endif
 
 #ifndef ADC_SENSORS_CONF_ADC6_PIN
-#define ADC_SENSORS_ADC6_PIN     (-1)             /**< ADC6 not declared    */
+#define ADC_SENSORS_ADC6_PIN     (-1)          /**< ADC6 not declared    */
 #else
 #define ADC_SENSORS_ADC6_PIN     3             /**< Hard-coded to PA3    */
 #endif
@@ -260,15 +277,23 @@
 /** \name RE-Mote Button configuration
  *
  * Buttons on the RE-Mote are connected as follows:
- * - BUTTON_USER  -> PA3, S1 user button, shared with bootloader and RTC_INT1
- * - BUTTON_RESET -> RESET_N line, S2 reset both CC2538 and CoP
- * - BUTTON_PIC1W -> shared with SHUTDOWN_ENABLE, not mounted.
+ * - BUTTON_USER  -> PA3, S1 user button, shared with bootloader
+ * - BUTTON_RESET -> RESET_N line, S2 reset the CC2538
+ * - BUTTON_PWR   -> Depending on the enabled resistor, it can be used to reset
+ *                   the onboard Low-power PIC, provoking a master reset on all
+ *                   the RE-Mote's onboards components.  Note the BUTTON_RESET
+ *                   only resets the CC2538.  This is disabled by default, as
+ *                   the R45 0Ohm resistor is not soldered on that position
+ *                   The other R45 position enables a test-button to drive the
+ *                   SYSOFF pin of the power management block, disconnecting the
+ *                   battery when used, leaving only powered the RTCC and
+ *                   Low-Power PIC.  Useful if developing applications using the
+ *                   shutdown mode if required to snap out of it.
  * @{
  */
-/** BUTTON_USER -> PA3 */
 #define BUTTON_USER_PORT       GPIO_A_NUM
 #define BUTTON_USER_PIN        3
-#define BUTTON_USER_VECTOR     NVIC_INT_GPIO_PORT_A
+#define BUTTON_USER_VECTOR     GPIO_A_IRQn
 
 /* Notify various examples that we have an user button.
  * If ADC6 channel is used, then disable the user button
@@ -307,7 +332,6 @@
  *
  * These values configure which CC2538 pins to use for the SPI (SSI1) lines,
  * shared with the microSD and exposed over JP5 connector.
- * It is advisable to use a CSn pin other than the Micro-SD's.
  * TX -> MOSI, RX -> MISO
  * @{
  */
@@ -323,11 +347,11 @@
  * \name I2C configuration
  *
  * These values configure which CC2538 pins to use for the I2C lines, exposed
- * over JP6 connector, also available as testpoints T2 (PC2) and T3 (PC3).
- * The I2C bus is shared with the on-board RTC.
+ * over JP6 connector.
+ * The I2C bus is shared with the on-board RTC and the Low-Power PIC
  * The I2C is exposed over the JP6 header, using a 5-pin connector with 2.54 mm
- * spacing, providing also D+3.3V, GND and a generic pin that can be used as an
- * interrupt pin
+ * spacing, providing also D+3.3V, GND and PD0 pin that can be used as an
+ * interrupt pin if required
  * @{
  */
 #define I2C_SCL_PORT             GPIO_C_NUM
@@ -335,8 +359,8 @@
 #define I2C_SDA_PORT             GPIO_C_NUM
 #define I2C_SDA_PIN              2
 #define I2C_INT_PORT             GPIO_D_NUM
-#define I2C_INT_PIN              1
-#define I2C_INT_VECTOR           NVIC_INT_GPIO_PORT_D
+#define I2C_INT_PIN              0
+#define I2C_INT_VECTOR           GPIO_D_IRQn
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
@@ -395,7 +419,7 @@
 #define CC1200_GDO2_PIN             0
 #define CC1200_RESET_PORT           GPIO_C_NUM
 #define CC1200_RESET_PIN            7
-#define CC1200_GPIOx_VECTOR         NVIC_INT_GPIO_PORT_B
+#define CC1200_GPIOx_VECTOR         GPIO_B_IRQn
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
@@ -416,16 +440,21 @@
 #define DWM1000_SPI_CSN_PIN          4
 #define DWM1000_INT_PORT             GPIO_A_NUM /* Interrupt Port */
 #define DWM1000_INT_PIN              5
-#define DWM1000_GPIOx_VECTOR         NVIC_INT_GPIO_PORT_A
+#define DWM1000_GPIOx_VECTOR         GPIO_A_IRQn
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
  * \name microSD configuration
  *
  * These values configure the required pins to drive the built-in microSD
- * external module, to be used with SSI1
+ * external module, to be used with SSI1.  USD_CSN and USD_SEL are shared with
+ * ADC4/ADC5, but it is disabled by default as there are 0Ohm resistors
+ * connecting the PA6/PA7 pins to the microSD (see ADC block above for comments)
+ * The USD_SEL pin can be used both as output and input, to detect if there is
+ * a microSD in the slot, or when connected to disable the microSD to save power
  * @{
  */
+#define USD_SPI_INSTANCE         1
 #define USD_CLK_PORT             SPI1_CLK_PORT
 #define USD_CLK_PIN              SPI1_CLK_PIN
 #define USD_MOSI_PORT            SPI1_TX_PORT
@@ -443,45 +472,45 @@
  *
  * The shutdown mode is an ultra-low power operation mode that effectively
  * powers-down the entire RE-Mote (CC2538, CC1200, attached sensors, etc) and
- * only keeps running a power gating timer (NanoTimer), the on-board RTC and
- * an ultra-low power consumption MCU (PIC12F635).  The Shutdown mode allows:
+ * only keeps running a the on-board RTC and an ultra-low power consumption MCU
+ * The Shutdown mode allows:
  *
- * - Put the RE-Mote in an ultra-low power sleep (shutdown) drawing <200nA avg.
- * - Periodically awake and execute tasks, being the shutdown period selectable
- *   via R47 resistor value (22KOhm as default for 1 minute shutdown period).
- * - Enter shutdown mode before the shutdown period expiration, by invoking the
- *   PM_SHUTDOWN_NOW macrp
+ * - Put the board in an ultra-low power sleep (shutdown) drawing <150nA avg.
+ * - Awake the system by scheduling the RTCC to awake the Low-Power PIC after
+ *   it disconnects the battery and goes to sleep mode.
+ * - Awake the system by using the Low-Power PIC's timer
  *
- * The shutdown mode can be disabled by hardware by short-circuiting or placing
- * an 0Ohm resistor across W1 pad.
+ * As commented above, S3 can be used to restart the entire board (power
+ * management block included), or to kick the board out of shutdown mode by
+ * reconnecting the battery.
  * @{
  */
-#define PM_DONE_PORT                GPIO_D_NUM
-#define PM_DONE_PIN                 0
-#define PM_CMD_PORT                 GPIO_D_NUM
-#define PM_CMD_PIN                  1
+#define PM_ENABLE_PORT                 GPIO_D_NUM
+#define PM_ENABLE_PIN                  1
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
- * \name On-board RTC
+ * \name On-board RTCC
  *
- * The shutdown mode can be disabled by hardware by short-circuiting or placing
- * an 0Ohm resistor across W1 pad.  As the RTC_INT1 pin is also shared with the
- * BUTTON_USER, so either disable or not use the user button, or upon receiving
- * an interrupt, poll the RTC.
- *
- * The RTC_INT1 can be used to exit the CC2538's LPM3 mode.
- * A second interruption pin is connected to the PIC12F635, for applications
- * requiring to put the PIC into deep-sleep and waking up at a certain time.
+ * The on-board RTCC (real time clock-calendar) is powered over USB/battery,
+ * and it will remain powered in shutdown mode with the Low-Power PIC.  The
+ * RTC_INT1 is connected to the CC2538, so it is possible to receive interrupts
+ * from a pre-configured alarm, even waking up the CC2538 from PM3.
+ * A second interruption pin (RTC_INT2) is connected to the Low-Power PIC, after
+ * configuring the RTCC the Low-Power PIC can drive the board to shutdown mode,
+ * and enter into low-power mode (sleep), being the RTCC interrupt the waking up
+ * source to resume operation.
+ * 
  * @{
  */
+#define PLATFORM_HAS_RTC            1
 #define RTC_SDA_PORT                I2C_SDA_PORT
 #define RTC_SDA_PIN                 I2C_SDA_PIN
 #define RTC_SCL_PORT                I2C_SCL_PORT
 #define RTC_SCL_PIN                 I2C_SCL_PIN
-#define RTC_INT1_PORT               GPIO_A_NUM
-#define RTC_INT1_PIN                2
-#define RTC_INT1_VECTOR             NVIC_INT_GPIO_PORT_A
+#define RTC_INT1_PORT               GPIO_D_NUM
+#define RTC_INT1_PIN                3
+#define RTC_INT1_VECTOR             GPIO_D_IRQn
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
@@ -492,10 +521,9 @@
  * The external WDT requires a short pulse (<1ms) to be sent before a 2-second
  * period.  The battery monitor keeps the device in Reset if the voltage input
  * is lower than 2.5V.
- * The external WDT can be disabled by removing the R40 0Ohm resistor.
- * The EXT_WDT pin is shared with LED1 (Red).  For long-time operation, it is
- * advised to remove R14 resistor to disable LED1.
+ * The external WDT can be disabled by removing the R34 0Ohm resistor.
  * As default the Texas Instrument's TPS3823 WDT is not mounted.
+ * Alternatively the testpoint or unused WDT's pad can be used to re-use as GPIO
  * @{
  */
 #define EXT_WDT_PORT                GPIO_D_NUM

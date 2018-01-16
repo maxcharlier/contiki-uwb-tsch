@@ -194,7 +194,7 @@ dwm1000_arch_gpio8_setup_irq(int rising)
 
   GPIO_ENABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
   ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
-  nvic_interrupt_enable(DWM1000_GPIOx_VECTOR);
+  NVIC_EnableIRQ(DWM1000_GPIOx_VECTOR);
   gpio_register_callback(dwm1000_int_handler, DWM1000_INT_PORT,
                          DWM1000_INT_PIN);
 }/*---------------------------------------------------------------------------*/
@@ -203,7 +203,7 @@ dwm1000_arch_gpio8_enable_irq(void)
 {
   GPIO_ENABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
   ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
-  nvic_interrupt_enable(DWM1000_GPIOx_VECTOR);
+  NVIC_EnableIRQ(DWM1000_GPIOx_VECTOR);
 }
 /*---------------------------------------------------------------------------*/
 void

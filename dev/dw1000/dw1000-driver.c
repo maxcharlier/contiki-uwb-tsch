@@ -50,6 +50,7 @@
 #include "dw1000.h"
 #include "dw1000-driver.h"
 #include "dw1000-util.h"
+#include "dw1000-const.h"
 
 #include "net/packetbuf.h"
 #include "net/rime/rimestats.h"
@@ -135,6 +136,7 @@
 
 /* #define DEBUG_RANGING 1 */
 
+// #define DEBUG 1
 #define DEBUG_VERBOSE 0
 #if DEBUG_VERBOSE
 #define DEBUG 1
@@ -283,6 +285,7 @@ PROCESS(dw1000_driver_process_ss_twr, "DW1000 driver SS TWR");
 
 signed char dw1000_driver_last_rssi;
 uint8_t dw1000_driver_last_correlation;
+/*---------------------------------------------------------------------------*/
 
 const struct radio_driver dw1000_driver =
 {
@@ -301,6 +304,7 @@ const struct radio_driver dw1000_driver =
   dw1000_driver_get_object,
   dw1000_driver_set_object
 };
+/*---------------------------------------------------------------------------*/
 
 static uint8_t receive_on = 0;
 
@@ -319,67 +323,75 @@ static uint8_t lock_off = 0;
 int
 dw1000_driver_init(void)
 {
-  PRINTF("dw1000_driver_init\r\n");
+  printf("dw1000_driver_init\r\n");
 
   dw1000_arch_init();
 
+
+  printf("dw1000_arch_init OK\n");
   /* Check if SPI communication works by reading device ID */
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+  printf("read %d\n", (int) dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
+  uint8_t tempRead1[8];
+  dw_read_reg(DW_REG_DEV_ID, DW_LEN_DEV_ID, tempRead1);
+  print_u8_Array_inHex("REG ID:", tempRead1, DW_LEN_DEV_ID);
   /* Simple reset of device. */
-  dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
+  // dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
   
+  printf("dw_soft_reset OK\n");
   /* clear all interrupt */
-  dw_clear_pending_interrupt(0x00000007FFFFFFFFULL);
+  dw_clear_pending_interrupt(0x07FFFFFFFFULL);
 
-  /* load the program to compute the timestamps */
-  dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
+//   printf("dw_clear_pending_interrupt OK\n");
+//   /* load the program to compute the timestamps */
+//   dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
 
-#if DW1000_IEEE802154_EXTENDED
-  PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, ");
-  PRINTF("extended frame max 265 bytes.\r\n");
-  dw_enable_extended_frame();
-#else
-  PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB standard mode.\r\n");
-  dw_disable_extended_frame();
-#endif
+// #if DW1000_IEEE802154_EXTENDED
+//   PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, ");
+//   PRINTF("extended frame max 265 bytes.\r\n");
+//   dw_enable_extended_frame();
+// #else
+//   PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB standard mode.\r\n");
+//   dw_disable_extended_frame();
+// #endif
 
-  dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
-                        DW1000_PRF);
+  // dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
+  //                       DW1000_PRF);
 
-  printf("Channel %d, Data rate %d kb/s, Preamble %d, PRM %d MHz\n", 
-                (unsigned int) DW1000_CHANNEL, 
-                (unsigned int) DW1000_DATA_RATE, 
-                (unsigned int) DW1000_PREAMBLE, 
-                (DW1000_PRF == 1) ? 16U : 64U);
+//   printf("Channel %d, Data rate %d kb/s, Preamble %d, PRM %d MHz\n", 
+//                 (unsigned int) DW1000_CHANNEL, 
+//                 (unsigned int) DW1000_DATA_RATE, 
+//                 (unsigned int) DW1000_PREAMBLE, 
+//                 (DW1000_PRF == 1) ? 16U : 64U);
 
-  dw_disable_rx_timeout();
+//   dw_disable_rx_timeout();
 
-  /* dw1000_driver_set_pan_addr is recall after by Contiki. */
-  dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);
+//   /* dw1000_driver_set_pan_addr is recall after by Contiki. */
+//   dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);
 
-#ifdef DOUBLE_BUFFERING
-  dw_enable_double_buffering();
-#else
-  dw_enable_automatic_receiver_Re_Enable();
-#endif /* DOUBLE_BUFFERING */
+// #ifdef DOUBLE_BUFFERING
+//   dw_enable_double_buffering();
+// #else
+//   dw_enable_automatic_receiver_Re_Enable();
+// #endif /* DOUBLE_BUFFERING */
 
-#if DEBUG_LED
+// #if DEBUG_LED
   dw_enable_gpio_led();
-#else
-  dw_disable_gpio_led();
-#endif
+// #else
+//   dw_disable_gpio_led();
+// #endif
 
-  enable_error_counter(); /* /!\ Increase the power consumption. */
+//   enable_error_counter(); /* /!\ Increase the power consumption. */
 
-  dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
+//   dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
 
-  /* because in some case the ranging request bit TR is TRUE */
-  dw_disable_ranging_frame();
+//   /* because in some case the ranging request bit TR is TRUE */
+//   dw_disable_ranging_frame();
 
-  process_start(&dw1000_driver_process, NULL);
-  process_start(&dw1000_driver_process_ss_twr, NULL);
-  process_start(&dw1000_driver_process_sds_twr, NULL);
+//   process_start(&dw1000_driver_process, NULL);
+//   process_start(&dw1000_driver_process_ss_twr, NULL);
+//   process_start(&dw1000_driver_process_sds_twr, NULL);
 
   dw1000_driver_init_down = 1;
   return 1;
@@ -1187,13 +1199,11 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     return RADIO_RESULT_NOT_SUPPORTED;
 
   case RADIO_PARAM_PAN_ID:
-    uint16_t pan_id = (uint16_t) value & 0xFFFF;
-    dw_set_pan_id(pan_id);
+    dw_set_pan_id(value & 0xFFFF);
     return RADIO_RESULT_OK;
   
   case RADIO_PARAM_16BIT_ADDR:
-    uint16_t short_addr = (uint16_t) value & 0xFFFF;
-    dw_set_short_addr(short_addr);
+    dw_set_short_addr(value & 0xFFFF);
     return RADIO_RESULT_OK;
 
   default:
@@ -1251,7 +1261,7 @@ dw1000_driver_set_object(radio_param_t param,
     for(i = 0; i < 8; i++) {
       // ((uint32_t *)RFCORE_FFSM_EXT_ADDR0)[i] = ((uint8_t *)src)[7 - i];
 
-      euid |= (uint64_t) ((uint8_t *)src)[7-i] << (8 * i));
+      euid |= ((uint64_t) ((uint8_t *)src)[7-i]) << (8 * i);
     }
 
     dw_set_extendedUniqueID(euid);
@@ -2026,7 +2036,7 @@ dw1000_compute_prop_time_sstwr(int16_t t_reply_offset){
                               dw_get_tx_timestamp();      
 
   PRINTF("t reply  %d Deca Time\n", (unsigned int) dw1000_driver_reply_time);
-  PRINTF("t reply 2 %d ms\n", (unsigned int) t_reply);
+  // PRINTF("t reply 2 %d ms\n", (unsigned int) t_reply);
 
   /* correct the reply time */
   reply_time += t_reply_offset;

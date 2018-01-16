@@ -74,3 +74,8 @@ uint32_t dw1000_driver_get_reply_time(void);
 void dw1000_driver_set_reply_time(uint32_t reply_time);
 int32_t dw1000_driver_get_propagation_time(void);
 dw1000_frame_quality dw1000_driver_get_packet_quality(void);
+
+/*---------------------------------------------------------------------------*/
+/** The NETSTACK data structure for the cc2538 RF driver */
+extern const struct radio_driver dw1000_driver;
+/*---------------------------------------------------------------------------*/

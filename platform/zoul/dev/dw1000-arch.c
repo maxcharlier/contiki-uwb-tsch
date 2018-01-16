@@ -48,8 +48,10 @@
 #include "dw1000-driver.h" /* link to dw1000_driver_interrupt */
 
 #include "contiki.h"
+#include "contiki-net.h"
 #include "sys/clock.h"
 
+#include "dev/leds.h"
 #include "reg.h"
 #include "spi-arch.h"
 #include "dev/ioc.h"
@@ -57,6 +59,8 @@
 #include "dev/spi.h"
 #include "dev/ssi.h"
 #include "dev/gpio.h"
+
+#include <stdio.h>
 /*---------------------------------------------------------------------------*/
 #define DWM1000_SPI_CLK_PORT_BASE   GPIO_PORT_TO_BASE(DWM1000_CLK_PORT)
 #define DWM1000_SPI_CLK_PIN_MASK    GPIO_PIN_MASK(DWM1000_CLK_PIN)
@@ -70,13 +74,25 @@
 #define DWM1000_INT_PIN_MASK       GPIO_PIN_MASK(DWM1000_INT_PIN)
 /*---------------------------------------------------------------------------*/
 
+#define DEBUG 1
 #if DEBUG
-  #include <stdio.h>
-  #define PRINTF(...) printf(__VA_ARGS__)
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#define BUSYWAIT_UNTIL(cond, max_time)                                  \
+  do {                                                                  \
+    rtimer_clock_t t0;                                                  \
+    t0 = RTIMER_NOW();                                                  \
+    while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time))) {} \
+    if(!(RTIMER_CLOCK_LT(RTIMER_NOW(), t0 + (max_time)))) { \
+      printf("ARCH: Timeout exceeded in line %d!\n", __LINE__); \
+    } \
+  } while(0)
 #else
   #define PRINTF(...) do {} while (0)
+  #define BUSYWAIT_UNTIL(cond, max_time) while(!cond)
 #endif
-
+/*---------------------------------------------------------------------------*/
+extern int dw1000_driver_interrupt(void);
 /*---------------------------------------------------------------------------*/
 void
 dwm1000_int_handler(uint8_t port, uint8_t pin)
@@ -89,28 +105,32 @@ void
 dwm1000_arch_spi_select(void)
 {
   /* Set CSn to low (0) */
-  GPIO_CLR_PIN(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
-  /* The MISO pin should go low before chip is fully enabled. */
-  BUSYWAIT_UNTIL(
-    GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0,
-    RTIMER_SECOND / 100);
+  GPIO_CLR_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
+   /* The MISO pin should go low before chip is fully enabled. */
+  // BUSYWAIT_UNTIL(
+  //   GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0,
+  //   RTIMER_SECOND / 100);
 }
 /*---------------------------------------------------------------------------*/
 void
 dwm1000_arch_spi_deselect(void)
-{
+{  
   /* Set CSn to high (1) */
-  GPIO_SET_PIN(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
+  GPIO_SET_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
 int
 dwm1000_arch_spi_rw_byte(uint8_t c)
 {
-  SPI_WAITFORTx_BEFORE();
+    // GPIO_CLR_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
+  // PRINTF("dwm1000_arch_spi_rw_byte 0x%2x\n", c);
+  SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
   SPIX_BUF(DWM1000_SPI_INSTANCE) = c;
   SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
   SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
   c = SPIX_BUF(DWM1000_SPI_INSTANCE);
+    // GPIO_SET_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
+
 
   return c;
 }/*---------------------------------------------------------------------------*/
@@ -124,7 +144,9 @@ dwm1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
     return 1;
   } else if(inbuf == NULL) {
     for(i = 0; i < len; i++) {
-      SPI_WAITFORTx_BEFORE();
+      // PRINTF("dwm1000_arch_spi_rw write  0x%2x\n", write_buf[i]);
+
+      SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
       SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
       SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
       SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
@@ -134,15 +156,18 @@ dwm1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
     }
   } else if(write_buf == NULL) {
     for(i = 0; i < len; i++) {
-      SPI_WAITFORTx_BEFORE();
+
+      SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
       SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
       SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
       SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
       inbuf[i] = SPIX_BUF(DWM1000_SPI_INSTANCE);
+
+      // PRINTF("dwm1000_arch_spi_rw read  0x%2x\n", inbuf[i]);
     }
   } else {
     for(i = 0; i < len; i++) {
-      SPI_WAITFORTx_BEFORE();
+      SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
       SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
       SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
       SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
@@ -168,16 +193,16 @@ dwm1000_arch_gpio8_setup_irq(int rising)
   }
 
   GPIO_ENABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
-  ioc_set_over(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK, IOC_OVERRIDE_PUE);
-  nvic_interrupt_enable(CC1200_GPIOx_VECTOR);
-  gpio_register_callback(dwm1000_int_handler, DWM1000_INT_PORT_BASE,
-                         DWM1000_INT_PIN_MASK);
+  ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
+  nvic_interrupt_enable(DWM1000_GPIOx_VECTOR);
+  gpio_register_callback(dwm1000_int_handler, DWM1000_INT_PORT,
+                         DWM1000_INT_PIN);
 }/*---------------------------------------------------------------------------*/
 void
 dwm1000_arch_gpio8_enable_irq(void)
 {
   GPIO_ENABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
-  ioc_set_over(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK, IOC_OVERRIDE_PUE);
+  ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
   nvic_interrupt_enable(DWM1000_GPIOx_VECTOR);
 }
 /*---------------------------------------------------------------------------*/
@@ -199,24 +224,34 @@ dwm1000_arch_gpio8_read_pin(void)
 **/
 void dw1000_arch_init()
 {
-  /* Initialize CSn, enable CSn and then wait for MISO to go low*/
+  printf("dw1000_arch_init\n");
+
+  /* Initialize CSn */
   spix_cs_init(DWM1000_SPI_CSN_PORT, DWM1000_SPI_CSN_PIN);
 
   /* Initialize SPI */
+  PRINTF("DWM1000_SPI_INSTANCE %d\n", (int) DWM1000_SPI_INSTANCE);
+
+  /* Configure SPI (CPOL = 1, CPHA = 0) */
+  // spix_init(CC1200_SPI_INSTANCE);
   spix_init(DWM1000_SPI_INSTANCE);
 
+  /* Change the SPI configuration to CPOL = 0, CPHA = 1 
+    clock_polarity = 0 : low when IDLE 
+    clock_phase = 0 data send on the second edge of the clock*/
+  spix_set_mode(DWM1000_SPI_INSTANCE, SSI_CR0_FRF_MOTOROLA, 0, 0, 8);
+
   /* Configure GPIOx */
-  GPIO_SOFTWARE_CONTROL(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
-  GPIO_SET_INPUT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
+  // GPIO_SOFTWARE_CONTROL(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
+  // GPIO_SET_INPUT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 
   /* Leave CSn as default */
   dwm1000_arch_spi_deselect();
 
-  /* Ensure MISO is high */
-  BUSYWAIT_UNTIL(
-    GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK),
-    RTIMER_SECOND / 10);
-
+  /* Ensure MISO is low */
+  // BUSYWAIT_UNTIL(
+  //   (GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0),
+  //   RTIMER_SECOND / 10);
 }
 
 /**
@@ -252,7 +287,7 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr,
 
   dwm1000_arch_spi_select(); 
   /* write bit = 1, sub-reg present bit = 1 */
-  dwm1000_arch_spi_rw_byte(subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
+  dwm1000_arch_spi_rw_byte((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
   if (subreg_addr > 0) {
     if (subreg_addr > 0x7F) {
       /* extended address bit = 1 */
@@ -263,6 +298,7 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr,
       dwm1000_arch_spi_rw_byte(subreg_addr & 0x7F);
     }
   }
+  // SPIX_FLUSH(DWM1000_SPI_INSTANCE); /* discard data read during previous write */
   dwm1000_arch_spi_rw(p_data, NULL, subreg_len);
   dwm1000_arch_spi_deselect();
 
@@ -306,6 +342,7 @@ void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr,
       dwm1000_arch_spi_rw_byte(subreg_addr & 0x7F);
     }
   }
+  
   dwm1000_arch_spi_rw(NULL, p_data, subreg_len);
   dwm1000_arch_spi_deselect();
 

@@ -412,11 +412,10 @@
 #define DWM1000_MOSI_PIN             SPI1_TX_PIN
 #define DWM1000_MISO_PORT            SPI1_RX_PORT
 #define DWM1000_MISO_PIN             SPI1_RX_PIN
-#define DWM1000_CSN_PORT             GPIO_A_NUM
-#define DWM1000_CSN_PIN              4
+#define DWM1000_SPI_CSN_PORT         GPIO_A_NUM
+#define DWM1000_SPI_CSN_PIN          4
 #define DWM1000_INT_PORT             GPIO_A_NUM /* Interrupt Port */
 #define DWM1000_INT_PIN              5
-
 #define DWM1000_GPIOx_VECTOR         NVIC_INT_GPIO_PORT_A
 /** @} */
 /*---------------------------------------------------------------------------*/
@@ -481,7 +480,7 @@
 #define RTC_SCL_PORT                I2C_SCL_PORT
 #define RTC_SCL_PIN                 I2C_SCL_PIN
 #define RTC_INT1_PORT               GPIO_A_NUM
-#define RTC_INT1_PIN                4
+#define RTC_INT1_PIN                2
 #define RTC_INT1_VECTOR             NVIC_INT_GPIO_PORT_A
 /** @} */
 /*---------------------------------------------------------------------------*/
@@ -510,14 +509,35 @@
 #define BOARD_STRING "Zolertia RE-Mote platform with DWM1000"
 /** @} */
 
-/** @} */
-/*---------------------------------------------------------------------------*/
-/**
- * \name Radio driver used
- * @{
- */
+/* Network setup for IPv6 */
+// #ifndef NETSTACK_CONF_NETWORK
+// #define NETSTACK_CONF_NETWORK       sicslowpan_driver
+// #endif
+
+// #ifndef NETSTACK_CONF_MAC
+// #define NETSTACK_CONF_MAC           csma_driver
+// #endif
+
+// #ifndef NETSTACK_CONF_RDC
+// #define NETSTACK_CONF_RDC           nullrdc_driver
+// #endif
+
+// #ifndef NETSTACK_CONF_FRAMER
+// #define NETSTACK_CONF_FRAMER        framer_802154
+// #endif
+
 #define NETSTACK_CONF_RADIO dw1000_driver
-/** @} */
+
+#define DW1000_IEEE802154_EXTENDED  0
+
+#if DW1000_IEEE802154_EXTENDED
+  #define PACKETBUF_CONF_SIZE       266
+#endif
+
+#define DW1000_CHANNEL              5
+#define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
+#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
+#define DW1000_PRF                  DW_PRF_64_MHZ
 
 #endif /* BOARD_H_ */
 

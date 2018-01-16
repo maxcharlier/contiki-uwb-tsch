@@ -1,3 +1,3 @@
 MOTELIST_ZOLERTIA = remote-dw1000
+MODULES += dev/dw1000
 BOARD_SOURCEFILES += board.c antenna-sw.c rtcc.c power-mgmt.c
-BOARD_SOURCEFILES += dw1000-arch.c dw1000.c dw1000-util.c dw1000-driver.c

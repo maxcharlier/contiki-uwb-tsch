@@ -1410,11 +1410,11 @@ void
 print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength)
 {
   uint32_t i = 0UL;
-  PRINTF("%s 0x", string);
+  printf("%s 0x", string);
   for(i = 0; i < arrayLength; i++) {
-    PRINTF("%02" PRIx8, array[i]);
+    printf("%02" PRIx8, array[i]);
   }
-  PRINTF("\r\n");
+  printf("\r\n");
 }
 /**
  * \brief Get the component PANID.
@@ -2610,7 +2610,6 @@ uint32_t
 dw_read_reg_32(uint32_t reg_addr, uint16_t reg_len)
 {
   uint32_t result = 0UL;
-
   /* avoid memory corruption */
   assert(reg_len <= 4);
 

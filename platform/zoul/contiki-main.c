@@ -55,6 +55,8 @@
 #include "dev/serial-line.h"
 #include "dev/slip.h"
 #include "dev/cc2538-rf.h"
+// add driver dw1000
+#include "dw1000-driver.h"
 #include "dev/udma.h"
 #include "dev/crypto.h"
 #include "dev/rtcc.h"
@@ -75,7 +77,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#if NETSTACK_CONF_WITH_IPV6
+#include "net/ipv6/uip-ds6.h"
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+
+#include "net/rime/rime.h"
+
 /*---------------------------------------------------------------------------*/
+ #define STARTUP_CONF_VERBOSE 1
 #if STARTUP_CONF_VERBOSE
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
@@ -262,11 +272,12 @@ main(void)
   crypto_disable();
 #endif
 
+
   rtc_init();
 
   netstack_init();
-  set_rf_params();
 
+  set_rf_params();
   PRINTF(" Net: ");
   PRINTF("%s\n", NETSTACK_NETWORK.name);
   PRINTF(" MAC: ");

@@ -45,7 +45,6 @@
  */
 /*---------------------------------------------------------------------------*/
 #include "dw1000-arch.h"
-#include "dw1000-driver.h" /* link to dw1000_driver_interrupt */
 
 #include "contiki.h"
 #include "contiki-net.h"
@@ -92,17 +91,17 @@
   #define BUSYWAIT_UNTIL(cond, max_time) while(!cond)
 #endif
 /*---------------------------------------------------------------------------*/
-extern int dw1000_driver_interrupt(void);
+extern int dw1000_driver_interrupt(void); /* declare in dw1000-driver.h */
 /*---------------------------------------------------------------------------*/
 void
-dwm1000_int_handler(uint8_t port, uint8_t pin)
+dw1000_int_handler(uint8_t port, uint8_t pin)
 {
   /* To keep the gpio_register_callback happy */
   dw1000_driver_interrupt();
 }
 /*---------------------------------------------------------------------------*/
 void
-dwm1000_arch_spi_select(void)
+dw1000_arch_spi_select(void)
 {
   /* Set CSn to low (0) */
   GPIO_CLR_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
@@ -113,14 +112,14 @@ dwm1000_arch_spi_select(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-dwm1000_arch_spi_deselect(void)
+dw1000_arch_spi_deselect(void)
 {  
   /* Set CSn to high (1) */
   GPIO_SET_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
 int
-dwm1000_arch_spi_rw_byte(uint8_t c)
+dw1000_arch_spi_rw_byte(uint8_t c)
 {
     // GPIO_CLR_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
   // PRINTF("dwm1000_arch_spi_rw_byte 0x%2x\n", c);
@@ -135,7 +134,7 @@ dwm1000_arch_spi_rw_byte(uint8_t c)
   return c;
 }/*---------------------------------------------------------------------------*/
 int
-dwm1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
+dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
 {
   int i;
   uint8_t c;
@@ -178,7 +177,7 @@ dwm1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
 }
 /*---------------------------------------------------------------------------*/
 void
-dwm1000_arch_gpio8_setup_irq(int rising)
+dw1000_arch_gpio8_setup_irq(void)
 {
 
   GPIO_SOFTWARE_CONTROL(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
@@ -186,20 +185,16 @@ dwm1000_arch_gpio8_setup_irq(int rising)
   GPIO_DETECT_EDGE(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
   GPIO_TRIGGER_SINGLE_EDGE(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 
-  if(rising) {
-    GPIO_DETECT_RISING(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
-  } else {
-    GPIO_DETECT_FALLING(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
-  }
+  GPIO_DETECT_RISING(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 
   GPIO_ENABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
   ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
   NVIC_EnableIRQ(DWM1000_GPIOx_VECTOR);
-  gpio_register_callback(dwm1000_int_handler, DWM1000_INT_PORT,
+  gpio_register_callback(dw1000_int_handler, DWM1000_INT_PORT,
                          DWM1000_INT_PIN);
 }/*---------------------------------------------------------------------------*/
 void
-dwm1000_arch_gpio8_enable_irq(void)
+dw1000_arch_gpio8_enable_irq(void)
 {
   GPIO_ENABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
   ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
@@ -207,21 +202,20 @@ dwm1000_arch_gpio8_enable_irq(void)
 }
 /*---------------------------------------------------------------------------*/
 void
-dwm1000_arch_gpio8_disable_irq(void)
+dw1000_arch_gpio8_disable_irq(void)
 {
   GPIO_DISABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
 int
-dwm1000_arch_gpio8_read_pin(void)
+dw1000_arch_gpio8_read_pin(void)
 {
   return GPIO_READ_PIN(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
-
-
-/** \brief Initialize the architecture specific part of the DW1000
-**/
+/**
+ * \brief Initialize the architecture specific part of the DW1000
+ **/
 void dw1000_arch_init()
 {
   printf("dw1000_arch_init\n");
@@ -233,7 +227,6 @@ void dw1000_arch_init()
   PRINTF("DWM1000_SPI_INSTANCE %d\n", (int) DWM1000_SPI_INSTANCE);
 
   /* Configure SPI (CPOL = 1, CPHA = 0) */
-  // spix_init(CC1200_SPI_INSTANCE);
   spix_init(DWM1000_SPI_INSTANCE);
 
   /* Change the SPI configuration to CPOL = 0, CPHA = 1 
@@ -246,106 +239,29 @@ void dw1000_arch_init()
   // GPIO_SET_INPUT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 
   /* Leave CSn as default */
-  dwm1000_arch_spi_deselect();
+  dw1000_arch_spi_deselect();
 
   /* Ensure MISO is low */
   // BUSYWAIT_UNTIL(
   //   (GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0),
   //   RTIMER_SECOND / 10);
 }
-
 /**
  * \brief     Wait a delay in microsecond.
  *
  * \param ms  The delay in microsecond.
- */
-void dw1000_us_delay(int ms){
- clock_delay_usec(ms);
+ **/
+void dw1000_us_delay(int us){
+ clock_delay_usec(us);
 }
-
 /**
- * \brief                 Reads the value from a sub-register on the DW1000 as 
- *                        a byte stream.
-
- * \param[in] reg_addr    Register address as specified in the manual and by
- *                        the DW_REG_* defines.
- * \param[in] subreg_addr Sub-register address as specified in the manual and
- *                        by the DW_SUBREG_* defines.
- * \param[in] subreg_len  Number of bytes to read. Should not be longer than
- *                        the length specified in the manual or the
- *                        DW_SUBLEN_* defines.
- * \param[out] p_data     Data read from the device.
- */
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-                    uint16_t subreg_len, uint8_t * p_data)
-{
-
-  /* SPI communications */ 
-
-  /* Disable interrupt */
-  // dint();
-
-  dwm1000_arch_spi_select(); 
-  /* write bit = 1, sub-reg present bit = 1 */
-  dwm1000_arch_spi_rw_byte((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
-  if (subreg_addr > 0) {
-    if (subreg_addr > 0x7F) {
-      /* extended address bit = 1 */
-      dwm1000_arch_spi_rw_byte(0x80 | (subreg_addr & 0x7F));
-      dwm1000_arch_spi_rw_byte((subreg_addr >> 7) & 0xFF);
-    } else {
-      /* extended address bit = 0 */
-      dwm1000_arch_spi_rw_byte(subreg_addr & 0x7F);
-    }
-  }
-  // SPIX_FLUSH(DWM1000_SPI_INSTANCE); /* discard data read during previous write */
-  dwm1000_arch_spi_rw(p_data, NULL, subreg_len);
-  dwm1000_arch_spi_deselect();
-
-
-  /* Re enable interrupt */
-  // eint();
+ * Change the SPI frequency to freq.
+ * If freq is bigger than the maximum SPI frequency value of the embedeed 
+ * system set this maximum value.
+ **/
+void dw1000_arch_spi_set_clock_freq(uint32_t freq){
+  spix_set_clock_freq(DWM1000_SPI_INSTANCE, freq);
 
 }
 
-/**
- * \brief                 Writes a value to a sub-register on the DW1000 as a 
- *                        byte stream.
- *
- * \param[in] reg_addr    Register address as specified in the manual and by
- *                        the DW_REG_* defines.
- * \param[in] subreg_addr Sub-register address as specified in the manual and
- *                        by the DW_SUBREG_* defines.
- * \param[in] subreg_len  Number of bytes to write. Should not be longer
- *                        than the length specified in the manual or the
- *                        DW_SUBLEN_* defines.
- * \param[in] p_data      A stream of bytes to write to device.
- */
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-                      uint16_t subreg_len, const uint8_t *p_data)
-{
-  /* SPI communications */
 
-  /* Disable interrupt */
-  // dint();
-
-  dwm1000_arch_spi_select(); 
-  /* write bit = 1, sub-reg present bit = 1 */
-  dwm1000_arch_spi_rw_byte(0x80 | (subreg_addr > 0 ?0x40:0x00) | (reg_addr & 0x3F));
-  if (subreg_addr > 0) {
-    if (subreg_addr > 0x7F) {
-      /* extended address bit = 1 */
-      dwm1000_arch_spi_rw_byte(0x80 | (subreg_addr & 0x7F));
-      dwm1000_arch_spi_rw_byte((subreg_addr >> 7) & 0xFF);
-    } else {
-      /* extended address bit = 0 */
-      dwm1000_arch_spi_rw_byte(subreg_addr & 0x7F);
-    }
-  }
-  
-  dwm1000_arch_spi_rw(NULL, p_data, subreg_len);
-  dwm1000_arch_spi_deselect();
-
-  /* Re enable interrupt */
-  // eint();
-}

@@ -46,6 +46,7 @@
 #include <string.h>
 #include <inttypes.h> /* for print unsigned int */
 #include "dw1000.h"
+#include "dw1000-arch.h"
 #include <stdlib.h>
 
 #include "assert.h"
@@ -2470,8 +2471,9 @@ dw_is_receive_status(uint64_t status)
     | DW_RXOVRR_MASK
     | DW_RXPTO_MASK
     | DW_AFFREJ_MASK
-    | DW_RXRSCS_MASK
-    | (DW_RXPREJ_MASK << 32);
+    | DW_RXRSCS_MASK;
+    /* | (DW_RXPREJ_MASK << 32); Preamble rejection give false 
+                                  positive detection*/
   return (status & mask) > 0;
 }
 /**
@@ -2688,6 +2690,93 @@ dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data)
 {
   dw_write_subreg(reg_addr, 0x0, reg_len, p_data);
 }
+/**
+ * \brief                 Reads the value from a sub-register on the DW1000 as 
+ *                        a byte stream.
+
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to read. Should not be longer than
+ *                        the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[out] p_data     Data read from the device.
+ */
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                    uint16_t subreg_len, uint8_t * p_data)
+{
+
+  /* SPI communications */ 
+
+  /* Disable interrupt */
+  // dint();
+
+  dw1000_arch_spi_select(); 
+  /* write bit = 1, sub-reg present bit = 1 */
+  dw1000_arch_spi_rw_byte((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      /* extended address bit = 1 */
+      dw1000_arch_spi_rw_byte(0x80 | (subreg_addr & 0x7F));
+      dw1000_arch_spi_rw_byte((subreg_addr >> 7) & 0xFF);
+    } else {
+      /* extended address bit = 0 */
+      dw1000_arch_spi_rw_byte(subreg_addr & 0x7F);
+    }
+  }
+  // SPIX_FLUSH(DWM1000_SPI_INSTANCE); /* discard data read during previous write */
+  dw1000_arch_spi_rw(p_data, NULL, subreg_len);
+  dw1000_arch_spi_deselect();
+
+
+  /* Re enable interrupt */
+  // eint();
+
+}
+
+/**
+ * \brief                 Writes a value to a sub-register on the DW1000 as a 
+ *                        byte stream.
+ *
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to write. Should not be longer
+ *                        than the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[in] p_data      A stream of bytes to write to device.
+ */
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                      uint16_t subreg_len, const uint8_t *p_data)
+{
+  /* SPI communications */
+
+  /* Disable interrupt */
+  // dint();
+
+  dw1000_arch_spi_select(); 
+  /* write bit = 1, sub-reg present bit = 1 */
+  dw1000_arch_spi_rw_byte(0x80 | (subreg_addr > 0 ?0x40:0x00) | (reg_addr & 0x3F));
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      /* extended address bit = 1 */
+      dw1000_arch_spi_rw_byte(0x80 | (subreg_addr & 0x7F));
+      dw1000_arch_spi_rw_byte((subreg_addr >> 7) & 0xFF);
+    } else {
+      /* extended address bit = 0 */
+      dw1000_arch_spi_rw_byte(subreg_addr & 0x7F);
+    }
+  }
+  
+  dw1000_arch_spi_rw(NULL, p_data, subreg_len);
+  dw1000_arch_spi_deselect();
+
+  /* Re enable interrupt */
+  // eint();
+}
+
 /**
  * \brief   Reads a value from the one time programmable memory.
  *

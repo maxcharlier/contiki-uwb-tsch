@@ -38,6 +38,7 @@
  */
 
 #include "contiki.h"
+
 #include "dw1000.h"
 #include "dw1000-arch.h"
 #include "dw1000-const.h"
@@ -115,7 +116,9 @@ PROCESS_THREAD(dwm1000_spi_test_process, ev, data)
 
       print_u8_Array_inHex("tempWrite1 0x4002:", tempWrite1, 2);
       print_u8_Array_inHex("REG ID 0xDECA:", tempRead1, 2);
-      printf("read %8X\n", (int) dw_read_reg_32(DW_REG_DEV_ID, 4));
+      printf("read %08X\n", dw_read_reg_32(DW_REG_DEV_ID, 4));
+      tempRead1[0] = dw_read_reg_32(DW_REG_DEV_ID, 4);
+      print_u8_Array_inHex("REG ID 0xDECA0130:", tempRead1, 4);
 
 
       etimer_reset(&timer);

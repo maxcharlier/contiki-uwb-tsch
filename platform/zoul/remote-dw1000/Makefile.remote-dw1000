@@ -1,5 +1,5 @@
 MOTELIST_ZOLERTIA = remote-dw1000
 MODULES += dev/dw1000
 
-BOARD_SOURCEFILES += board.c antenna-sw.c mmc-arch.c rtcc.c leds-res-arch.c power-mgmt.c
+BOARD_SOURCEFILES += board.c antenna-sw.c mmc-arch.c rtcc.c leds-res-arch.c power-mgmt.c dw1000-zoul-arch.c
 MODULES += lib/fs/fat lib/fs/fat/option platform/zoul/fs/fat dev/disk/mmc

@@ -50,6 +50,28 @@
 #include "isr_compat.h"
 #include "dev/spi.h"
  
+
+#include <stdint.h> // To add interger type uint32_t ...
+#include "assert.h"
+
+
+// === DW1000 connected on Z1 "east and south ports" ===
+/* P4.0 - Output: SPI Chip Select (CS_N) */
+#define DW1000_CSN_PORT(type)    P4##type
+#define DW1000_CSN_PIN           0
+/* P4.2 - Input: INT from DW1000 */
+#define DW1000_IRQ_VECTOR        PORT2_VECTOR
+#define DW1000_INT_PORT(type)    P2##type
+#define DW1000_INT_PIN           3
+
+/* ENABLE CSn (active low) */
+#define DW1000_SPI_ENABLE()     (DW1000_CSN_PORT(OUT) &= ~BV(DW1000_CSN_PIN))
+/* DISABLE CSn (active low) */
+#define DW1000_SPI_DISABLE()    (DW1000_CSN_PORT(OUT) |= BV(DW1000_CSN_PIN))
+#define DW1000_SPI_IS_ENABLED() ((DW1000_CSN_PORT(OUT) & BV(DW1000_CSN_PIN)) \
+                                != BV(DW1000_CSN_PIN))
+
+// #define DEBUG 1
 #if DEBUG
   #include <stdio.h>
   #define PRINTF(...) printf(__VA_ARGS__)
@@ -77,6 +99,19 @@ ISR(DW1000_IRQ, dw1000_irq_handler){
   ENERGEST_OFF(ENERGEST_TYPE_IRQ);
 }
 
+void
+dw1000_arch_spi_select(void)
+{
+  /* Set CSn to low (0) */
+  DW1000_SPI_ENABLE();
+}
+/*---------------------------------------------------------------------------*/
+void
+dw1000_arch_spi_deselect(void)
+{  
+  /* Set CSn to high (1) */
+  DW1000_SPI_DISABLE();
+}
 
 /** \brief Initialize the architecture specific part of the DW1000
 **/
@@ -106,7 +141,10 @@ void dw1000_arch_init()
   /* Chip select is disabled (=high) */
   DW1000_SPI_DISABLE();
 }
-
+/**
+ * Always enable on this platforme */
+void
+dw1000_arch_gpio8_setup_irq(void){}
 /**
  * \brief     Wait a delay in microsecond.
  *
@@ -119,6 +157,12 @@ void dw1000_us_delay(int ms){
     watchdog_periodic();
   }
 }
+/**
+ * Change the SPI frequency to freq.
+ * If freq is bigger than the maximum SPI frequency value of the embedeed 
+ * system set this maximum value.
+ **/
+void dw1000_arch_spi_set_clock_freq(uint32_t freq){}
 
 /**
  * \brief                 Reads the value from a sub-register on the DW1000 as 
@@ -133,7 +177,7 @@ void dw1000_us_delay(int ms){
  *                        DW_SUBLEN_* defines.
  * \param[out] p_data     Data read from the device.
  */
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+void dw_read_subreg2(uint32_t reg_addr, uint16_t subreg_addr, 
                     uint16_t subreg_len, uint8_t * p_data)
 {
 
@@ -185,7 +229,7 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr,
  *                        DW_SUBLEN_* defines.
  * \param[in] p_data      A stream of bytes to write to device.
  */
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+void dw_write_subreg2(uint32_t reg_addr, uint16_t subreg_addr, 
                       uint16_t subreg_len, const uint8_t *p_data)
 {
   /* SPI communications */
@@ -217,4 +261,51 @@ void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr,
 
   /* Re enable interrupt */
   eint();
+}
+
+/*---------------------------------------------------------------------------*/
+int
+dw1000_arch_spi_rw_byte(uint8_t c)
+{
+    // GPIO_CLR_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
+  // PRINTF("dwm1000_arch_spi_rw_byte 0x%2x\n", c);
+  SPI_WAITFORTx_BEFORE();
+  SPI_TXBUF = c;
+  SPI_WAITFOREOTx();
+  SPI_WAITFOREORx();
+  c = SPI_RXBUF;
+    // GPIO_SET_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
+
+
+  return c;
+}/*---------------------------------------------------------------------------*/
+int
+dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
+{
+  int i;
+
+  if((inbuf == NULL && write_buf == NULL) || len <= 0) {
+    return 1;
+  } else if(inbuf == NULL) {
+    for(i = 0; i < len; i++) {
+      // PRINTF("dwm1000_arch_spi_rw write  0x%2x\n", write_buf[i]);
+      SPI_WRITE_FAST(write_buf[i]);
+    }
+    SPI_WAITFORTx_ENDED();
+  } else if(write_buf == NULL) {
+    SPI_FLUSH();
+    for(i = 0; i < len; i++) {
+      SPI_READ(inbuf[i]);
+      // printf("inbuf[i] %d %d\n", i, inbuf[i]);
+    }
+  } else {
+    for(i = 0; i < len; i++) {
+      SPI_WAITFORTx_BEFORE();
+      SPI_TXBUF = write_buf[i];
+      SPI_WAITFOREOTx();
+      SPI_WAITFOREORx();
+      inbuf[i] = SPI_RXBUF;
+    }
+  }
+  return 0;
 }

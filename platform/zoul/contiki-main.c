@@ -55,7 +55,6 @@
 #include "dev/serial-line.h"
 #include "dev/slip.h"
 #include "dev/cc2538-rf.h"
-// add driver dw1000
 #include "dw1000-driver.h"
 #include "dev/udma.h"
 #include "dev/crypto.h"

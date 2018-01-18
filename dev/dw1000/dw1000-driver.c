@@ -46,9 +46,9 @@
 #if defined(__AVR__)
 #include <avr/io.h>
 #endif
-
 #include "dw1000.h"
 #include "dw1000-driver.h"
+#include "dw1000-arch.h"
 #include "dw1000-util.h"
 #include "dw1000-const.h"
 
@@ -240,13 +240,6 @@ ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
 /* end private function */
 
-/* PLATFORM DEPENDENT
- * these following functions are defined in 
- * platform/[platform]/dev/dw1000-arc.c 
- */
-void dw1000_arch_init(void);
-/* end PLATFORM DEPENDENT */
-
 static int dw1000_driver_prepare(const void *data, unsigned short payload_len);
 static int dw1000_driver_transmit(unsigned short payload_len);
 static int dw1000_driver_send(const void *data, unsigned short payload_len);
@@ -269,13 +262,6 @@ static radio_result_t dw1000_driver_get_object(radio_param_t param,
                                                void *dest, size_t size);
 static radio_result_t dw1000_driver_set_object(radio_param_t param,
                                                const void *src, size_t size);
-
-/* functions defined in platform/[platform]/dev/dw1000-arc.c */
-void dw1000_us_delay(int ms);
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-                    uint16_t subreg_len, uint8_t *p_data);
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-                    uint16_t subreg_len, const uint8_t *data);
 
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_driver_process, "DW1000 driver");
@@ -323,77 +309,78 @@ static uint8_t lock_off = 0;
 int
 dw1000_driver_init(void)
 {
-  printf("dw1000_driver_init\r\n");
+  PRINTF("dw1000_driver_init\r\n");
 
   dw1000_arch_init();
+  dw1000_arch_spi_set_clock_freq(CLOCK_FREQ_INIT_STATE);
 
-
-  printf("dw1000_arch_init OK\n");
   /* Check if SPI communication works by reading device ID */
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
-  printf("read %d\n", (int) dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
-
+  /* 
   uint8_t tempRead1[8];
   dw_read_reg(DW_REG_DEV_ID, DW_LEN_DEV_ID, tempRead1);
   print_u8_Array_inHex("REG ID:", tempRead1, DW_LEN_DEV_ID);
+  */
+
   /* Simple reset of device. */
-  // dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
+  dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
   
-  printf("dw_soft_reset OK\n");
   /* clear all interrupt */
   dw_clear_pending_interrupt(0x07FFFFFFFFULL);
 
-//   printf("dw_clear_pending_interrupt OK\n");
-//   /* load the program to compute the timestamps */
-//   dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
+  /* load the program to compute the timestamps */
+  dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
 
-// #if DW1000_IEEE802154_EXTENDED
-//   PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, ");
-//   PRINTF("extended frame max 265 bytes.\r\n");
-//   dw_enable_extended_frame();
-// #else
-//   PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB standard mode.\r\n");
-//   dw_disable_extended_frame();
-// #endif
+  dw1000_arch_spi_set_clock_freq(CLOCK_FREQ_IDLE_STATE);
 
-  // dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
-  //                       DW1000_PRF);
+#if DW1000_IEEE802154_EXTENDED
+  PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, ");
+  PRINTF("extended frame max 265 bytes.\r\n");
+  dw_enable_extended_frame();
+#else
+  PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB standard mode.\r\n");
+  dw_disable_extended_frame();
+#endif
 
-//   printf("Channel %d, Data rate %d kb/s, Preamble %d, PRM %d MHz\n", 
-//                 (unsigned int) DW1000_CHANNEL, 
-//                 (unsigned int) DW1000_DATA_RATE, 
-//                 (unsigned int) DW1000_PREAMBLE, 
-//                 (DW1000_PRF == 1) ? 16U : 64U);
+  dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
+                        DW1000_PRF);
 
-//   dw_disable_rx_timeout();
+  printf("Channel %d, Data rate %d kb/s, Preamble %d, PRM %d MHz\n", 
+                (unsigned int) DW1000_CHANNEL, 
+                (unsigned int) DW1000_DATA_RATE, 
+                (unsigned int) DW1000_PREAMBLE, 
+                (DW1000_PRF == 1) ? 16U : 64U);
 
-//   /* dw1000_driver_set_pan_addr is recall after by Contiki. */
-//   dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);
+  dw_disable_rx_timeout();
 
-// #ifdef DOUBLE_BUFFERING
-//   dw_enable_double_buffering();
-// #else
-//   dw_enable_automatic_receiver_Re_Enable();
-// #endif /* DOUBLE_BUFFERING */
+  /* dw1000_driver_set_pan_addr is recall after by Contiki. */
+  dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);
 
-// #if DEBUG_LED
+#ifdef DOUBLE_BUFFERING
+  dw_enable_double_buffering();
+#else
+  dw_enable_automatic_receiver_Re_Enable();
+#endif /* DOUBLE_BUFFERING */
+
+#if DEBUG_LED
   dw_enable_gpio_led();
-// #else
-//   dw_disable_gpio_led();
-// #endif
+#else
+  dw_disable_gpio_led();
+#endif
 
-//   enable_error_counter(); /* /!\ Increase the power consumption. */
+  enable_error_counter(); /* /!\ Increase the power consumption. */
 
-//   dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
+  dw1000_driver_set_reply_time(DW1000_RANGING_REPLY_TIME);
 
-//   /* because in some case the ranging request bit TR is TRUE */
-//   dw_disable_ranging_frame();
+  /* because in some case the ranging request bit TR is TRUE */
+  dw_disable_ranging_frame();
 
-//   process_start(&dw1000_driver_process, NULL);
-//   process_start(&dw1000_driver_process_ss_twr, NULL);
-//   process_start(&dw1000_driver_process_sds_twr, NULL);
+  process_start(&dw1000_driver_process, NULL);
+  process_start(&dw1000_driver_process_ss_twr, NULL);
+  process_start(&dw1000_driver_process_sds_twr, NULL);
 
   dw1000_driver_init_down = 1;
+  dw1000_arch_gpio8_setup_irq();
   return 1;
 }
 /**
@@ -472,7 +459,7 @@ dw1000_driver_prepare(const void *payload,
 #endif
   // RELEASE_LOCK();
 
-  return 0;
+  return RADIO_TX_OK;
 }
 /**
  * \brief   Transmit sends an already prepared packet.
@@ -508,7 +495,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw_idle();
     receive_on = 1;
   }
-  if(dw1000_driver_wait_ACK || dw1000_driver_sstwr || dw1000_driver_sdstwr) {
+  if( /* dw1000_driver_wait_ACK  || */ dw1000_driver_sstwr || dw1000_driver_sdstwr) {
     dw1000_driver_disable_interrupt();  
     dw1000_driver_clear_pending_interrupt();
   }
@@ -570,34 +557,34 @@ dw1000_driver_transmit(unsigned short payload_len)
   }
 
   /* start WAIT ACK */
-  if(dw1000_driver_wait_ACK && tx_return == RADIO_TX_OK) {
-    tx_return = RADIO_TX_NOACK;
-    uint8_t count_ack = 0;
-    sys_status_lo = 0x0; /* clear the value */
+  // if(dw1000_driver_wait_ACK && tx_return == RADIO_TX_OK) {
+  //   tx_return = RADIO_TX_NOACK;
+  //   uint8_t count_ack = 0;
+  //   sys_status_lo = 0x0; /* clear the value */
 
-    /* wait the ACK */
-    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
-                    &sys_status_lo); watchdog_periodic(); count_ack++,
-                    ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
-                    (DW_RXFCE_MASK >> 8))) != 0),
-                    (theorical_transmission_approx(dw1000_conf.preamble_length,
-                    dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 1) + 
-                    DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
+  //   /* wait the ACK */
+  //   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x1, 1, 
+  //                   &sys_status_lo); watchdog_periodic(); count_ack++,
+  //                   ((sys_status_lo & ((DW_RXFCG_MASK >> 8) | 
+  //                   (DW_RXFCE_MASK >> 8))) != 0),
+  //                   (theorical_transmission_approx(dw1000_conf.preamble_length,
+  //                   dw1000_conf.data_rate, dw1000_conf.prf, DW_ACK_LEN) << 1) + 
+  //                   DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME);
 
-    PRINTF("Number of loop waiting ACK %d\n", count_ack);
+  //   PRINTF("Number of loop waiting ACK %d\n", count_ack);
 
-    if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
-      /* (length ACK== 5) and (Sequence Number, 3rd byte == ACK number) */
-      if(dw_get_rx_len() == DW_ACK_LEN) {
-        uint8_t ack_num;
-        dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
-        if(ack_num == dw1000_driver_wait_ACK_num) {
-          tx_return = RADIO_TX_OK;
-        }
-      }
-      dw1000_update_frame_quality();
-    }
-  } /* end WAIT ACK */
+  //   if((sys_status_lo & (DW_RXFCG_MASK >> 8)) != 0) {
+  //     /* (length ACK== 5) and (Sequence Number, 3rd byte == ACK number) */
+  //     if(dw_get_rx_len() == DW_ACK_LEN) {
+  //       uint8_t ack_num;
+  //       dw_read_subreg(DW_REG_RX_BUFFER, 0x2, 1, &ack_num);
+  //       if(ack_num == dw1000_driver_wait_ACK_num) {
+  //         tx_return = RADIO_TX_OK;
+  //       }
+  //     }
+  //     dw1000_update_frame_quality();
+  //   }
+  // } /* end WAIT ACK */
 
   /* start SS TWR */
   if(dw1000_driver_sstwr && tx_return == RADIO_TX_OK){
@@ -628,7 +615,7 @@ dw1000_driver_transmit(unsigned short payload_len)
 
 #if DEBUG
       PRINTF("length of the ranging response %d\n", dw_get_rx_len());
-      PRINTF("waiting time %d\n", (unsigned long int ) 
+      PRINTF("waiting time %lu\n", (unsigned long int ) 
               (theorical_transmission_approx(dw1000_conf.preamble_length,
               dw1000_conf.data_rate, dw1000_conf.prf, DW1000_RANGING_MAX_LEN) + 
               DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
@@ -726,7 +713,7 @@ dw1000_driver_transmit(unsigned short payload_len)
                       &sys_status_lo);
 #if DEBUG
         PRINTF("ko %d %02X\n", count, sys_status_lo);
-        PRINTF("time interrupt %d\n", 
+        PRINTF("time interrupt %lu\n", 
                     theorical_transmission_approx(dw1000_conf.preamble_length,
                           dw1000_conf.data_rate, dw1000_conf.prf, 15) + 
                           DW1000_SPI_DELAY + IEEE802154_TURN_ARROUND_TIME + 
@@ -797,7 +784,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   } /* end SDS TWR */
 
 
-  if(dw1000_driver_wait_ACK || dw1000_driver_sstwr || dw1000_driver_sdstwr) {
+  if(/* dw1000_driver_wait_ACK  || */ dw1000_driver_sstwr || dw1000_driver_sdstwr) {
     dw_idle();  /* bug fix of waiting an ACK which
                    avoid the next transmission */
   }
@@ -828,16 +815,20 @@ dw1000_driver_transmit(unsigned short payload_len)
 
 #if DEBUG_VERBOSE
   print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+
+#endif
+#if DEBUG 
   if(tx_return == RADIO_TX_OK) {
     PRINTF("TX RADIO_TX_OK \r\n");
   }
-#endif
-#if DEBUG
-  if(tx_return == RADIO_TX_NOACK) {
-    printf("TX RADIO_TX_NOACK \r\n");
+  else if(tx_return == RADIO_TX_NOACK) {
+    PRINTF("TX RADIO_TX_NOACK \r\n");
   }
-  if(tx_return == RADIO_TX_ERR) {
-    printf("TX RADIO_TX_ERR \r\n");
+  else if(tx_return == RADIO_TX_ERR) {
+    PRINTF("TX RADIO_TX_ERR \r\n");
+  }
+  else{
+    printf("TX result %d\n", tx_return);
   }
 #endif
   return tx_return;
@@ -950,7 +941,9 @@ dw1000_driver_receiving_packet(void)
 {
   PRINTF("dw1000_driver_receiving_packet\r\n");
   uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+  // print_sys_status(status);
   return dw_is_receive_status(status);
+  // return 0;
 }
 /**
  * \brief     Checks to see if we have a pending packet. Some drivers check

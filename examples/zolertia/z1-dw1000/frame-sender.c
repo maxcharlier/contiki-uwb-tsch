@@ -73,14 +73,14 @@ PROCESS_THREAD(frame_sender_process, ev, data)
       broadcast_send(&bc);
 #else
       linkaddr_t addr;
-      addr.u8[0]= 7;
+      addr.u8[0]= 8;
       addr.u8[1]= 0;
       // rtimer_clock_t t1 = RTIMER_NOW();
       i ++; 
       printf("i %d\n", i);
       packetbuf_copyfrom("Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World Hello World HELHello World Hello World Hello World Hello World Hello World Hello Wo", i); //max110 //max248
-      /*printf("sending %s message %d to %d.%d\r\n",
-	RIME_TYPE, tx_count, addr.u8[0], addr.u8[1]);*/
+      printf("sending %s message %d to %d.%d\r\n",
+	RIME_TYPE, tx_count, addr.u8[0], addr.u8[1]);
       // packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
       unicast_send(&uc, &addr);
       PROCESS_PAUSE();

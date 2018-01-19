@@ -71,6 +71,20 @@
  * \brief Defines the len of an ACK 
  */
 #define DW_ACK_LEN 5
+ 
+ /* SPI Clock frequency in INIT state: SPI freq <= 3 MHz */
+#define DW_SPI_CLOCK_FREQ_INIT_STATE          3000000
+/*
+ * SPI Clock frequency in IDLE state: SPI freq <= 20 MHz */
+#define DW_SPI_CLOCK_FREQ_IDLE_STATE          20000000
+
+/*
+ * DW1000 TIME CLOCK : 499.2 MHz × 128 which is 63.8976 GHz 
+ * The System Time Counter is incremented at a rate of 125 MHz 
+ * in units of 512. The nine low-order bits of this register are 
+ * thus always zero. */
+#define DW_TIMESTAMP_CLOCK  125000
+#define DW_TIMESTAMP_CLOCK_OFFSET 9
 
 /**
  * \brief Used to align delayed timestamps.
@@ -78,7 +92,8 @@
  * are ignored by the device, thus to get the correct manual timestamping
  * behaviour this needs to be accounted for.
  */
-#define DX_TIMESTAMP_CLEAR_LOW_9 ((uint64_t) 0xFFFFFFFFFFFFFE00ULL)
+#define DW_TIMESTAMP_CLEAR_LOW_9 ((uint64_t) 0xFFFFFFFFFFFFFE00ULL)
+
 
 /**
  * \def DW_ERROR(...)
@@ -534,12 +549,12 @@ uint64_t dw_ms_to_device_time(float t);
 /* Device dependent */
 uint16_t dw_get_pan_id(void);
 uint16_t dw_get_short_addr(void);
-uint64_t dw_get_extendedUniqueID(void);
+uint64_t dw_get_extended_addr(void);
 uint32_t dw_get_device_id(void);
 uint64_t dw_get_device_time(void);
 void dw_set_pan_id(uint16_t pan_id);
 void dw_set_short_addr(uint16_t short_addr);
-void dw_set_extendedUniqueID(uint64_t euid);
+void dw_set_extended_addr(uint64_t ext_addr);
 void print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength);
 void dw_soft_reset(void);
 

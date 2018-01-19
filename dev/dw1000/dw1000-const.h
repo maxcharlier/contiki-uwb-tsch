@@ -46,13 +46,6 @@
 #ifndef DW1000_CONST_H
 #define DW1000_CONST_H
 
-
- /* SPI Clock frequency in INIT state: SPI freq <= 3 MHz */
-#define CLOCK_FREQ_INIT_STATE          3000000
-/*
- * SPI Clock frequency in IDLE state: SPI freq <= 20 MHz */
-#define CLOCK_FREQ_IDLE_STATE          20000000
-
 #define DW_REG_DEV_ID   0x00 /* \brief Register Device Identifier, address */
 #define DW_LEN_DEV_ID   4    /* \brief Register Device Identifier, length  */
 

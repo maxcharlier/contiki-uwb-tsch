@@ -1387,26 +1387,6 @@ dw_get_device_id(void)
 }
 uint8_t euid_set = 0;
 
-/**
- * \brief Get the component extended unique ID.
- * \return the component extended unique ID.
- */
-uint64_t
-dw_get_extendedUniqueID(void)
-{
-  uint64_t eid = 0ULL;
-  dw_read_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *)&eid);
-  return eid;
-}
-/**
- * \brief Set the component extended unique ID.
- * \param[in] euid the component extended unique ID.
- */
-void
-dw_set_extendedUniqueID(uint64_t euid)
-{
-  dw_write_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *)&euid);
-}
 void
 print_u8_Array_inHex(char *string, uint8_t *array, uint32_t arrayLength)
 {
@@ -1456,6 +1436,26 @@ void
 dw_set_short_addr(uint16_t short_addr)
 {
   dw_write_reg(DW_REG_PANADR, 2, (uint8_t *)&short_addr);
+}
+/**
+ * \brief Get the extended address (64 bits addr) also call extended unique ID.
+ * \return the  extended addr.
+ */
+uint64_t
+dw_get_extended_addr(void)
+{
+  uint64_t ext_addr = 0ULL;
+  dw_read_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *)&ext_addr);
+  return ext_addr;
+}
+/**
+ * \brief Set the component extended unique ID.
+ * \param[in] euid the component extended unique ID.
+ */
+void
+dw_set_extended_addr(uint64_t ext_addr)
+{
+  dw_write_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *) &ext_addr);
 }
 /**
  * \brief Returns the current system clock of the DW1000.
@@ -2167,7 +2167,7 @@ dw_get_clock_offset(void){
  * time has exceeded this value.
  *
  * \r\note The low order nine bits are ignored. Thus, when working with
- * dx_timestamps the macro \ref DX_TIMESTAMP_CLEAR_LOW_9 can be quite helpful.
+ * dx_timestamps the macro \ref DW_TIMESTAMP_CLEAR_LOW_9 can be quite helpful.
  */
 void
 dw_set_dx_timestamp(uint64_t timestamp)

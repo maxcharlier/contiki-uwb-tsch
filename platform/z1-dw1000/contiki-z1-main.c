@@ -280,7 +280,7 @@ main(int argc, char **argv)
 
   set_rime_addr();
 
-  dw1000_driver_init();
+  NETSTACK_RADIO.init();
   accm_init();
 
   {
@@ -295,7 +295,9 @@ main(int argc, char **argv)
            longaddr[0], longaddr[1], longaddr[2], longaddr[3],
            longaddr[4], longaddr[5], longaddr[6], longaddr[7]);
 
-    dw1000_driver_set_pan_addr(IEEE802154_PANID, shortaddr, longaddr);
+    NETSTACK_RADIO.set_value(RADIO_PARAM_PAN_ID, IEEE802154_PANID);
+    NETSTACK_RADIO.set_value(RADIO_PARAM_16BIT_ADDR, short_addr);
+    NETSTACK_RADIO.set_object(RADIO_PARAM_64BIT_ADDR, longaddr, 8);
   }
 
   leds_off(LEDS_ALL);

@@ -223,6 +223,14 @@ static uint8_t volatile pending = 0;
     } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), timeout)); \
   } while(0)
 
+/*---------------------------------------------------------------------------
+ * MAC timer
+ *---------------------------------------------------------------------------*/
+/* Timer conversion */
+#define RADIO_TO_RTIMER(X) ((uint32_t)(((X) >> DW_TIMESTAMP_CLOCK_OFFSET) \
+                      * RTIMER_ARCH_SECOND / DW_TIMESTAMP_CLOCK))
+/*---------------------------------------------------------------------------*/
+
 volatile uint8_t dw1000_driver_sfd_counter = 0;
 volatile uint16_t dw1000_driver_sfd_start_time = 0;
 volatile uint16_t dw1000_driver_sfd_end_time = 0;
@@ -262,6 +270,7 @@ static radio_result_t dw1000_driver_get_object(radio_param_t param,
                                                void *dest, size_t size);
 static radio_result_t dw1000_driver_set_object(radio_param_t param,
                                                const void *src, size_t size);
+static uint32_t get_sfd_timestamp(void);
 
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_driver_process, "DW1000 driver");
@@ -312,7 +321,7 @@ dw1000_driver_init(void)
   PRINTF("dw1000_driver_init\r\n");
 
   dw1000_arch_init();
-  dw1000_arch_spi_set_clock_freq(CLOCK_FREQ_INIT_STATE);
+  dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
 
   /* Check if SPI communication works by reading device ID */
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
@@ -331,7 +340,7 @@ dw1000_driver_init(void)
   /* load the program to compute the timestamps */
   dw_load_lde_code(); /* Need to be call with a SPI speed < 3MHz */
 
-  dw1000_arch_spi_set_clock_freq(CLOCK_FREQ_IDLE_STATE);
+  dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_IDLE_STATE);
 
 #if DW1000_IEEE802154_EXTENDED
   PRINTF("DW1000 set to use IEEE 802.15.4-2011 UWB non-standard mode, ");
@@ -353,8 +362,9 @@ dw1000_driver_init(void)
 
   dw_disable_rx_timeout();
 
-  /* dw1000_driver_set_pan_addr is recall after by Contiki. */
-  dw1000_driver_set_pan_addr(0xffff, 0x0000, NULL);
+  /* Contiki should set correct value. */
+  dw_set_pan_id(0xffff);
+  dw_set_short_addr(0x0000);
 
 #ifdef DOUBLE_BUFFERING
   dw_enable_double_buffering();
@@ -458,6 +468,7 @@ dw1000_driver_prepare(const void *payload,
   PRINTF("Data len %i\r\n", (unsigned int)data_len);
 #endif
   // RELEASE_LOCK();
+  printf("DW1000 prepare data lenght %u \n", (unsigned int)data_len);
 
   return RADIO_TX_OK;
 }
@@ -1098,7 +1109,13 @@ dw1000_driver_get_value(radio_param_t param,
     *value = receive_on ? RADIO_POWER_MODE_ON : RADIO_POWER_MODE_OFF;
     return RADIO_RESULT_OK;
   case RADIO_PARAM_CHANNEL:
-    *value = DW1000_CHANNEL;
+    *value = (radio_value_t) dw1000_conf.channel;
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_PAN_ID:
+    *value = (radio_value_t) dw_get_pan_id();
+    return RADIO_RESULT_OK;
+  case RADIO_PARAM_16BIT_ADDR:
+    *value = (radio_value_t) dw_get_short_addr();
     return RADIO_RESULT_OK;
   case RADIO_PARAM_RX_MODE:
     *value = 0;
@@ -1107,6 +1124,7 @@ dw1000_driver_get_value(radio_param_t param,
     if(DW1000_CONF_AUTOACK) {
       *value |= RADIO_RX_MODE_AUTOACK;
     }
+    *value |= RADIO_RX_MODE_ADDRESS_FILTER;
     /* Radio not support poll */
     /*   *value |= RADIO_RX_MODE_POLL_MODE; */
     return RADIO_RESULT_OK;
@@ -1114,19 +1132,17 @@ dw1000_driver_get_value(radio_param_t param,
     /* radio not support CCA */
     *value = 0;
     return RADIO_RESULT_OK;
+
   case RADIO_PARAM_TXPOWER:
-    return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_CCA_THRESHOLD:
-    return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_RSSI:
     /* Return the RSSI value in dBm */
-    return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_LAST_RSSI:
     /* RSSI of the last packet received */
-    return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_LAST_LINK_QUALITY:
     /* LQI of the last packet received */
     return RADIO_RESULT_NOT_SUPPORTED;
+
   case RADIO_CONST_CHANNEL_MIN:
     *value = 1;
     return RADIO_RESULT_OK;
@@ -1168,7 +1184,8 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     }
     return RADIO_RESULT_INVALID_VALUE;
   case RADIO_PARAM_CHANNEL:
-    if(value < 1 || value > 7) {
+    if(value < 1 || value > 7 || value == 6) {
+      /* channel 6 is not supported */
       return RADIO_RESULT_INVALID_VALUE;
     }
     /* TODO add support */
@@ -1218,10 +1235,28 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
  * \retval RADIO_RESULT_NOT_SUPPORTED  The value was not supported.
  */
 static radio_result_t
-dw1000_driver_get_object(radio_param_t param,
-                         void *dest, size_t size)
-{
+dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
+{  
   PRINTF("dw1000_driver_get_object\r\n");
+
+  if(param == RADIO_PARAM_64BIT_ADDR) {
+    if(size != 8 || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    /* The extended addr (64 bit) is store in the Extended Unique ID register */
+    dw_read_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *) dest);
+
+    return RADIO_RESULT_OK;
+  }
+
+  if(param == RADIO_PARAM_LAST_PACKET_TIMESTAMP) {
+    if(size != sizeof(rtimer_clock_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    *(rtimer_clock_t *)dest = get_sfd_timestamp();
+    return RADIO_RESULT_OK;
+  }
+
   return RADIO_RESULT_NOT_SUPPORTED;
 }
 /**
@@ -1242,22 +1277,22 @@ static radio_result_t
 dw1000_driver_set_object(radio_param_t param,
                          const void *src, size_t size)
 {
-  PRINTF("dw1000_driver_set_object\r\n");
   int i;
+  uint64_t ext_addr;
+  PRINTF("dw1000_driver_set_object\r\n");
 
   if(param == RADIO_PARAM_64BIT_ADDR) {
     if(size != 8 || !src) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-
-    uint64_t euid = 0x0;
+    ext_addr = 0;
     for(i = 0; i < 8; i++) {
-      // ((uint32_t *)RFCORE_FFSM_EXT_ADDR0)[i] = ((uint8_t *)src)[7 - i];
 
-      euid |= ((uint64_t) ((uint8_t *)src)[7-i]) << (8 * i);
+      ext_addr |= ((uint64_t) ((uint8_t *)src)[7-i]) << (8 * i);
     }
 
-    dw_set_extendedUniqueID(euid);
+    dw_set_extended_addr(ext_addr);
+
     return RADIO_RESULT_OK;
   }
   return RADIO_RESULT_NOT_SUPPORTED;
@@ -1760,31 +1795,6 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
-
-/**
- * \brief Set the pan id and the address (16 bits or IEEE eUID 64 bits).
- */
-void
-dw1000_driver_set_pan_addr(unsigned pan,
-                           unsigned addr,
-                           const uint8_t *ieee_addr)
-{
-  uint8_t i = 0;
-
-  uint16_t pan_id = pan & 0xFFFF;
-  dw_set_pan_id(pan_id);
-
-  uint16_t short_addr = addr & 0xFFFF;
-  dw_set_short_addr(short_addr);
-
-  if(ieee_addr != NULL) {
-    uint64_t euid = 0x0;
-    for(i = 0; i < 8; i++) {
-      euid |= ieee_addr[i] << (8 * i);
-    }
-    dw_set_extendedUniqueID(euid);
-  }
-}
 /**
  * \brief   Configure the transceiver for a wished channel and data rate.
  *
@@ -1809,7 +1819,7 @@ dw1000_driver_set_pan_addr(unsigned pan,
  *                  At 110 kbps: 1024 if data, 2048 if ranging;
  *                  At 850 kbps: 256 if data, 512 if ranging;
  *                  At 6800 kbps: 128 if data, 256 if ranging.
- * \param dw1000_prf_t The withed pulse repetition frequency.
+ * \param dw1000_prf_t The wiched pulse repetition frequency.
  *                  DW_PRF_16_MHZ is best for data.
  *                  DW_PRF_64_MHZ is best for ranging: improve the first 
  *                  path detection, but increase the power consumption.
@@ -1900,9 +1910,22 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   dw_enable_automatic_acknowledge();
   dw_config_switching_tx_to_rx_ACK();
   dw_sfd_init();
+#else
+  dw_turn_frame_filtering_on(); /* enable frame filtering */
 #endif
 }
 
+/*---------------------------------------------------------------------------*/
+uint32_t
+get_sfd_timestamp(void)
+{
+  uint64_t sys_time, rx_time;
+
+  sys_time = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME) & DW_TIMESTAMP_CLEAR_LOW_9;
+  rx_time = dw_read_reg_64(DW_REG_RX_TIME, DW_LEN_RX_TIME) & DW_TIMESTAMP_CLEAR_LOW_9;
+
+  return RTIMER_NOW() - RADIO_TO_RTIMER(sys_time - rx_time);
+}
 /*===========================================================================*/
 /* Ranging                                                                   */
 /*===========================================================================*/
@@ -1980,7 +2003,7 @@ dw1000_schedule_reply(void)
 {
   uint64_t schedule_time = dw_get_rx_timestamp();
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
-  schedule_time &= DX_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
   /* The 10nd bit have a "value" of 125Mhz */
   schedule_time += dw1000_driver_schedule_reply_time; 
 
@@ -1994,7 +2017,7 @@ dw1000_schedule_receive(uint16_t data_len)
 {
   uint64_t schedule_time = dw_get_tx_timestamp();
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
-  schedule_time &= DX_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
   /* The 10nd bit have a "value" of 125Mhz */
   schedule_time += ((uint64_t) (
         theorical_transmission_payload(dw1000_conf.data_rate, data_len) + 

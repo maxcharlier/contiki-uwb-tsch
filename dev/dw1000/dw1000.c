@@ -203,7 +203,7 @@ dw_config_switching_tx_to_rx_ACK(void)
  * Required Frame Filtering On
  */
 void
-dw_enable_automatic_acknowledge()
+dw_enable_automatic_acknowledge(void)
 {
   if(!dw1000.auto_ack) {
     dw_turn_frame_filtering_on(); /* required for automatic ACK */
@@ -220,7 +220,7 @@ dw_enable_automatic_acknowledge()
  * \brief Disable Automatic Acknowledge
  */
 void
-dw_disable_automatic_acknowledge()
+dw_disable_automatic_acknowledge(void)
 {
   if(dw1000.auto_ack) {
     uint32_t sys_config = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
@@ -228,6 +228,13 @@ dw_disable_automatic_acknowledge()
     dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&sys_config);
     dw1000.auto_ack = 0;
   }
+}
+
+/**
+ * \brief Return if the Automatic acknoledgement is enable.
+ */
+uint8_t dw_is_automatic_acknowledge(void){
+  return dw1000.auto_ack;
 }
 /**
  * \brief Enable Receiver Auto-Re-enable.
@@ -301,6 +308,16 @@ dw_turn_frame_filtering_off(void)
   frameFilteringData &= ~(DW_CFG_FF_ALL_EN | DW_FFEN_MASK); 
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &frameFilteringData);
 }
+/**
+ * \brief Return if the frame filtering is enabled.
+ */
+uint8_t dw_is_frame_filtering_on(void){
+  uint8_t frameFilteringData = 0;
+  /* we only read the first byte */
+  dw_read_subreg(DW_REG_SYS_CFG, 0, 0, (uint8_t *)&frameFilteringData);
+  return frameFilteringData & DW_FFEN_MASK; /* Frame Filtering Enable bit */
+}
+
 /**
  * \brief Enable the extended frame format.
  *      The default setting gives IEEE standard PHR encoding and a maximum data

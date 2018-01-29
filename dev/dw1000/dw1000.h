@@ -83,7 +83,7 @@
  * The System Time Counter is incremented at a rate of 125 MHz 
  * in units of 512. The nine low-order bits of this register are 
  * thus always zero. */
-#define DW_TIMESTAMP_CLOCK  125000
+#define DW_TIMESTAMP_CLOCK  125000000
 #define DW_TIMESTAMP_CLOCK_OFFSET 9
 
 /**
@@ -528,6 +528,7 @@ void dw_conf_rx(dw1000_rx_conf_t *rx_conf);
 void dw_conf_print(void);
 void dw_turn_frame_filtering_off(void);
 void dw_turn_frame_filtering_on(void);
+uint8_t dw_is_frame_filtering_on(void);
 void dw_enable_gpio_led(void);
 void dw_disable_gpio_led(void);
 void dw_set_sfd_timeout(uint16_t value);
@@ -628,6 +629,7 @@ void dw_db_init_rx(void);
 /* ACK */
 void dw_enable_automatic_acknowledge(void);
 void dw_disable_automatic_acknowledge(void);
+uint8_t dw_is_automatic_acknowledge(void);
 void dw_config_switching_tx_to_rx_ACK(void);
 
 void dw_clear_receive_status(void);

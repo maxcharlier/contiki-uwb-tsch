@@ -165,6 +165,9 @@
    the driver initialization */
 static int dw1000_driver_init_down = 0;
 
+/* Are we currently in poll mode? Disabled by default */
+static uint8_t volatile poll_mode = 0;
+
 /* Used to avoid multiple interrupt in ranging mode */
 static int volatile dw1000_driver_in_ranging = 0;
 
@@ -271,6 +274,9 @@ static radio_result_t dw1000_driver_get_object(radio_param_t param,
 static radio_result_t dw1000_driver_set_object(radio_param_t param,
                                                const void *src, size_t size);
 static uint32_t get_sfd_timestamp(void);
+static void set_frame_filtering(uint8_t enable);
+static void set_auto_ack(uint8_t enable);
+static void set_poll_mode(uint8_t enable);
 
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_driver_process, "DW1000 driver");
@@ -506,7 +512,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw_idle();
     receive_on = 1;
   }
-  if( /* dw1000_driver_wait_ACK  || */ dw1000_driver_sstwr || dw1000_driver_sdstwr) {
+  if( /* dw1000_driver_wait_ACK  || */ !poll_mode && (dw1000_driver_sstwr || dw1000_driver_sdstwr) ) {
     dw1000_driver_disable_interrupt();  
     dw1000_driver_clear_pending_interrupt();
   }
@@ -1008,8 +1014,10 @@ dw1000_on(void)
 
   dw_init_rx();
 
-  dw1000_driver_enable_interrupt();
-
+  if(!poll_mode){
+    dw1000_driver_enable_interrupt();
+  }
+  
   /* The receiver has a delay of 16μs after issuing the enable receiver command,
    *  after which it will start receiving preamble symbols. */
   dw1000_us_delay(16);
@@ -1065,9 +1073,10 @@ dw1000_off(void)
   ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
   /* we need to disable interrupt before the call of dw_idle() 
       because an ISR can append... */
-
-  dw1000_driver_disable_interrupt();  
-  dw1000_driver_clear_pending_interrupt();
+  if(!poll_mode){
+    dw1000_driver_disable_interrupt();  
+    dw1000_driver_clear_pending_interrupt();
+  }
 
 #ifdef DOUBLE_BUFFERING
   dw_trxoff_db_mode();
@@ -1083,7 +1092,9 @@ dw1000_off(void)
                 microsecond_to_clock_tik(50));
 #endif /* DEBUG */
 
-  dw1000_driver_enable_interrupt();  
+  if(!poll_mode){
+    dw1000_driver_enable_interrupt(); 
+  } 
 }
 /**
  * \brief   Get a radio parameter value.
@@ -1120,13 +1131,16 @@ dw1000_driver_get_value(radio_param_t param,
   case RADIO_PARAM_RX_MODE:
     *value = 0;
     /* radio not set to filtering frame */
-    /*  *value |= RADIO_RX_MODE_ADDRESS_FILTER; */
-    if(DW1000_CONF_AUTOACK) {
+
+    if(dw_is_frame_filtering_on()){
+      *value |= RADIO_RX_MODE_ADDRESS_FILTER;
+    }
+    if(dw_is_automatic_acknowledge()) {
       *value |= RADIO_RX_MODE_AUTOACK;
     }
-    *value |= RADIO_RX_MODE_ADDRESS_FILTER;
-    /* Radio not support poll */
-    /*   *value |= RADIO_RX_MODE_POLL_MODE; */
+    if(poll_mode){
+      *value |= RADIO_RX_MODE_ADDRESS_FILTER;
+    }
     return RADIO_RESULT_OK;
   case RADIO_PARAM_TX_MODE:
     /* radio not support CCA */
@@ -1192,14 +1206,13 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     /* dw1000_driver_config(value, dw1000_conf.data_rate); */
     return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_RX_MODE:
-    /* TODO add support */
-    /* if(value & ~(RADIO_RX_MODE_ADDRESS_FILTER |
+    if(value & ~(RADIO_RX_MODE_ADDRESS_FILTER |
          RADIO_RX_MODE_AUTOACK | RADIO_RX_MODE_POLL_MODE)) {
        return RADIO_RESULT_INVALID_VALUE;
        }
        set_frame_filtering((value & RADIO_RX_MODE_ADDRESS_FILTER) != 0);
        set_auto_ack((value & RADIO_RX_MODE_AUTOACK) != 0);
-       set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);*/
+       set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);
     return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_TX_MODE:
     return RADIO_RESULT_NOT_SUPPORTED;
@@ -1315,6 +1328,49 @@ void
 dw1000_driver_disable_interrupt(void)
 { 
   dw_enable_interrupt(0x0UL);
+}
+/**
+ * \brief Change the reception mode.
+ * \input     enable
+ *            If enable true: change the reception mode to pooling mode;
+ *            If false change the reception to interrupt mode (enable interrupt).
+ */
+static void
+set_poll_mode(uint8_t enable)
+{  poll_mode = enable;
+
+  if(enable) {
+    dw1000_driver_disable_interrupt();
+  } else {
+    dw1000_driver_enable_interrupt();
+  }
+}
+/**
+ * \brief Enable or disable automatic acknowledgment.
+ */
+static void
+set_auto_ack(uint8_t enable)
+{
+  if(enable) {
+    dw_enable_automatic_acknowledge();
+    dw_config_switching_tx_to_rx_ACK(); /* Configure the Automatic ACK Turnaround Time */
+    dw_sfd_init(); /* Do a fake send to initialize the SFD. 
+                    Required if we don't have send message before the first ACK. */
+  } else {
+    dw_disable_automatic_acknowledge();
+  }
+}
+/**
+ * \brief Enable or disable the frame filtering mode.
+ */
+static void
+set_frame_filtering(uint8_t enable)
+{
+  if(enable) {
+    dw_turn_frame_filtering_on(); /* enable frame filtering */
+  } else {
+    dw_turn_frame_filtering_off();
+  }
 }
 /**
  * \brief Clear pending interruption.
@@ -1920,11 +1976,13 @@ uint32_t
 get_sfd_timestamp(void)
 {
   uint64_t sys_time, rx_time;
+  uint32_t current_time;
 
   sys_time = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME) & DW_TIMESTAMP_CLEAR_LOW_9;
+  current_time = RTIMER_NOW();
   rx_time = dw_read_reg_64(DW_REG_RX_TIME, DW_LEN_RX_TIME) & DW_TIMESTAMP_CLEAR_LOW_9;
 
-  return RTIMER_NOW() - RADIO_TO_RTIMER(sys_time - rx_time);
+  return current_time - RADIO_TO_RTIMER(sys_time - rx_time);
 }
 /*===========================================================================*/
 /* Ranging                                                                   */

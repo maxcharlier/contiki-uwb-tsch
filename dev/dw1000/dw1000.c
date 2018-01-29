@@ -203,7 +203,7 @@ dw_config_switching_tx_to_rx_ACK(void)
  * Required Frame Filtering On
  */
 void
-dw_enable_automatic_acknowledge(void)
+dw_enable_automatic_ack(void)
 {
   if(!dw1000.auto_ack) {
     dw_turn_frame_filtering_on(); /* required for automatic ACK */
@@ -220,7 +220,7 @@ dw_enable_automatic_acknowledge(void)
  * \brief Disable Automatic Acknowledge
  */
 void
-dw_disable_automatic_acknowledge(void)
+dw_disable_automatic_ack(void)
 {
   if(dw1000.auto_ack) {
     uint32_t sys_config = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
@@ -233,7 +233,7 @@ dw_disable_automatic_acknowledge(void)
 /**
  * \brief Return if the Automatic acknoledgement is enable.
  */
-uint8_t dw_is_automatic_acknowledge(void){
+uint8_t dw_is_automatic_ack(void){
   return dw1000.auto_ack;
 }
 /**

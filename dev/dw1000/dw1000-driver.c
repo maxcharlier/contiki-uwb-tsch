@@ -391,6 +391,10 @@ dw1000_driver_init(void)
   /* because in some case the ranging request bit TR is TRUE */
   dw_disable_ranging_frame();
 
+  set_poll_mode(poll_mode);
+
+  set_auto_ack(DW1000_CONF_AUTOACK); /* enable auto ack */
+
   process_start(&dw1000_driver_process, NULL);
   process_start(&dw1000_driver_process_ss_twr, NULL);
   process_start(&dw1000_driver_process_sds_twr, NULL);
@@ -409,23 +413,21 @@ dw1000_driver_prepare(const void *payload,
   PRINTF("dw1000_driver_prepare\r\n");
 
   uint16_t data_len = payload_len;
-#if DW1000_CONF_AUTOACK
-  dw1000_driver_wait_ACK = (((uint8_t *)payload)[0] & (1 << 5)) ? 1 : 0;
-  if(dw1000_driver_wait_ACK) {
-    dw1000_driver_wait_ACK_num = ((uint8_t *)payload)[2];
+  if(dw_is_automatic_ack()){
+    dw1000_driver_wait_ACK = (((uint8_t *)payload)[0] & (1 << 5)) ? 1 : 0;
+    if(dw1000_driver_wait_ACK) {
+      dw1000_driver_wait_ACK_num = ((uint8_t *)payload)[2];
+    }
   }
-#endif
 
   RIMESTATS_ADD(lltx);
 
   if(dw1000_driver_sstwr || dw1000_driver_sdstwr){
     PRINTF("Ranging request\n");
     /* we can not wait for an ACK if we are in a ranging protocol */
-#if DW1000_CONF_AUTOACK
-    if(dw1000_driver_wait_ACK & dw1000_driver_sstwr){
+    if(dw_is_automatic_ack() & dw1000_driver_wait_ACK & dw1000_driver_sstwr){
       ((uint8_t *)payload)[0] &= ~(1U << 5);
     }
-#endif
     /* enable ACK request > reduce delay for the first response */
     if(dw1000_driver_sdstwr){
       ((uint8_t *)payload)[0] |= (1U << 5);
@@ -1135,7 +1137,7 @@ dw1000_driver_get_value(radio_param_t param,
     if(dw_is_frame_filtering_on()){
       *value |= RADIO_RX_MODE_ADDRESS_FILTER;
     }
-    if(dw_is_automatic_acknowledge()) {
+    if(dw_is_automatic_ack()) {
       *value |= RADIO_RX_MODE_AUTOACK;
     }
     if(poll_mode){
@@ -1352,12 +1354,12 @@ static void
 set_auto_ack(uint8_t enable)
 {
   if(enable) {
-    dw_enable_automatic_acknowledge();
+    dw_enable_automatic_ack();
     dw_config_switching_tx_to_rx_ACK(); /* Configure the Automatic ACK Turnaround Time */
     dw_sfd_init(); /* Do a fake send to initialize the SFD. 
                     Required if we don't have send message before the first ACK. */
   } else {
-    dw_disable_automatic_acknowledge();
+    dw_disable_automatic_ack();
   }
 }
 /**
@@ -1962,13 +1964,7 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 
   dw_conf(&dw1000_conf);
 
-#if DW1000_CONF_AUTOACK
-  dw_enable_automatic_acknowledge();
-  dw_config_switching_tx_to_rx_ACK();
-  dw_sfd_init();
-#else
-  dw_turn_frame_filtering_on(); /* enable frame filtering */
-#endif
+  set_auto_ack(dw_is_automatic_ack());
 }
 
 /*---------------------------------------------------------------------------*/

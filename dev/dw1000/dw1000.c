@@ -66,16 +66,6 @@
  */
 #define DW_MS_TO_DEVICE_TIME_SCALE 62.6566416e6f
 
-/** PLATFORM DEPENDENT
- *  these following functions are defined in 
- *  platform/[platform]/dev/dw1000-arc.c
- */
-void dw1000_us_delay(int ms);
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-                    uint16_t subreg_len, uint8_t *p_data);
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-                    uint16_t subreg_len, const uint8_t *data);
-/* end PLATFORM DEPENDENT */
 
 /*===========================================================================*/
 /*========================== Public Declarations ============================*/
@@ -1943,7 +1933,7 @@ dw_disable_rx_timeout()
  *        significant bits are zero.
  * \return The reeded timestamps. 
  */
-inline uint64_t
+uint64_t
 dw_get_rx_raw_timestamp(void)
 {
   uint64_t value = 0ULL;
@@ -2609,7 +2599,7 @@ dw1000_test_tx_del_on()
  *                     defines.
  * \param[out] pData   Data read from the device.
  */
-inline void
+void
 dw_read_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *pData)
 {
   dw_read_subreg(reg_addr, 0x0, reg_len, pData);
@@ -2702,7 +2692,7 @@ dw_read_subreg_64(uint32_t reg_addr, uint16_t subreg_addr, uint16_t subreg_len)
  *                      defines.
  * \param[in] p_data    A stream of bytes to write to device.
  */
-inline void
+void
 dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data)
 {
   dw_write_subreg(reg_addr, 0x0, reg_len, p_data);

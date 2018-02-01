@@ -592,7 +592,7 @@ void     dw_disable_rx_timeout(void);
 
 /* Ranging  / timestamps */
 uint64_t dw_get_rx_timestamp(void);
-inline uint64_t dw_get_rx_raw_timestamp(void);
+uint64_t dw_get_rx_raw_timestamp(void);
 uint64_t dw_get_tx_timestamp(void);
 uint64_t dw_get_tx_raw_timestamp(void);
 void     dw_set_antenna_delay(uint16_t antenna_delay);
@@ -627,9 +627,9 @@ void dw_db_mode_clear_pending_interrupt(void);
 void dw_db_init_rx(void);
 
 /* ACK */
-void dw_enable_automatic_acknowledge(void);
-void dw_disable_automatic_acknowledge(void);
-uint8_t dw_is_automatic_acknowledge(void);
+void dw_enable_automatic_ack(void);
+void dw_disable_automatic_ack(void);
+uint8_t dw_is_automatic_ack(void);
 void dw_config_switching_tx_to_rx_ACK(void);
 
 void dw_clear_receive_status(void);
@@ -660,8 +660,8 @@ void dw_cw_mode(dw1000_channel_t channel);
 /*========================== Device communication ===========================*/
 
 /* Registers */
-inline void dw_read_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data);
-inline void dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data);
+void dw_read_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data);
+void dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data);
 uint32_t dw_read_reg_32(uint32_t reg_addr, uint16_t reg_len);
 uint64_t dw_read_reg_64(uint32_t reg_addr, uint16_t reg_len);
 /* Sub registers */

@@ -890,7 +890,7 @@ theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght)
  * \brief Convert a duration in micro second to a number of clock ticks
  * \param duration A delay in micro second.
  */
-inline rtimer_clock_t 
+rtimer_clock_t 
 microsecond_to_clock_tik(int duration) {
   return ((( (long int) RTIMER_SECOND) * duration) / 1000000) + 1;
 }
@@ -898,7 +898,7 @@ microsecond_to_clock_tik(int duration) {
  * \brief Convert a number of clock ticks to a duration in micro second 
  * \param clock_tiks A number of clock ticks.
  */
-inline int16_t 
+int16_t 
 clock_ticks_to_microsecond(rtimer_clock_t clock_ticks) {
   return ((long int) (1000000l * clock_ticks) / ((long int) RTIMER_SECOND)) + 1;
 }

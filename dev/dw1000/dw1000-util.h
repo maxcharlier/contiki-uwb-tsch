@@ -77,7 +77,7 @@ theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate,
 unsigned long
 theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght);
 
-inline rtimer_clock_t microsecond_to_clock_tik(int duration);
-inline int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks);
+rtimer_clock_t microsecond_to_clock_tik(int duration);
+int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks);
 
 #endif /* __DW1000_UTIL_H__ */

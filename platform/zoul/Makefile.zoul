@@ -32,7 +32,6 @@ PLATFORM_ROOT_DIR = $(CONTIKI)/platform/$(TARGET)
 -include $(PLATFORM_ROOT_DIR)/$(BOARD)/Makefile.$(BOARD)
 
 ### Include
-CONTIKI_TARGET_SOURCEFILES += dw1000-zoul-arch.c dw1000.c dw1000-util.c dw1000-driver.c
 CONTIKI_TARGET_SOURCEFILES += contiki-main.c
 CONTIKI_TARGET_SOURCEFILES += leds.c cc1200-zoul-arch.c
 CONTIKI_TARGET_SOURCEFILES += adc-zoul.c button-sensor.c zoul-sensors.c
@@ -53,7 +52,8 @@ include $(CONTIKI_CPU)/Makefile.cc2538
 
 MODULES += core/net core/net/mac core/net/ip \
            core/net/mac/contikimac \
-           core/net/llsec core/net/llsec/noncoresec dev/cc1200
+           core/net/llsec core/net/llsec/noncoresec \
+           dev/cc1200 dev/dw1000
 
 ifeq ($(WITH_IP64),1)
   MODULES += core/net/ip64

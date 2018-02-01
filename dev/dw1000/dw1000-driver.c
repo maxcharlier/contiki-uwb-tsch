@@ -241,13 +241,13 @@ volatile uint16_t dw1000_driver_sfd_end_time = 0;
 static volatile uint16_t last_packet_timestamp = 0;
 
 /* start private function */
-inline void dw1000_schedule_reply(void);
-inline void dw1000_schedule_receive(uint16_t data_len);
+void dw1000_schedule_reply(void);
+void dw1000_schedule_receive(uint16_t data_len);
 void dw1000_compute_prop_time_sstwr(int16_t t_reply_offset);
-inline void  dw1000_update_frame_quality(void);
+void dw1000_update_frame_quality(void);
 void ranging_prepare_ack(void);
-uint8_t 
-ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send);
+uint8_t ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, 
+                          uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
 /* end private function */
 
@@ -514,7 +514,8 @@ dw1000_driver_transmit(unsigned short payload_len)
     dw_idle();
     receive_on = 1;
   }
-  if( /* dw1000_driver_wait_ACK  || */ !poll_mode && (dw1000_driver_sstwr || dw1000_driver_sdstwr) ) {
+  if( /* dw1000_driver_wait_ACK  || */ !poll_mode && 
+          (dw1000_driver_sstwr || dw1000_driver_sdstwr) ) {
     dw1000_driver_disable_interrupt();  
     dw1000_driver_clear_pending_interrupt();
   }
@@ -803,7 +804,8 @@ dw1000_driver_transmit(unsigned short payload_len)
   } /* end SDS TWR */
 
 
-  if(/* dw1000_driver_wait_ACK  || */ dw1000_driver_sstwr || dw1000_driver_sdstwr) {
+  if(/* dw1000_driver_wait_ACK  || */ dw1000_driver_sstwr || 
+        dw1000_driver_sdstwr) {
     dw_idle();  /* bug fix of waiting an ACK which
                    avoid the next transmission */
   }
@@ -959,10 +961,8 @@ static int
 dw1000_driver_receiving_packet(void)
 {
   PRINTF("dw1000_driver_receiving_packet\r\n");
-  uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-  // print_sys_status(status);
-  return dw_is_receive_status(status);
-  // return 0;
+  return dw_is_receive_status(dw_read_reg_64(DW_REG_SYS_STATUS, 
+                              DW_LEN_SYS_STATUS));
 }
 /**
  * \brief     Checks to see if we have a pending packet. Some drivers check
@@ -1117,6 +1117,7 @@ dw1000_driver_get_value(radio_param_t param,
   if(!value) {
     return RADIO_RESULT_INVALID_VALUE;
   }
+
   switch(param) {
   case RADIO_PARAM_POWER_MODE:
     *value = receive_on ? RADIO_POWER_MODE_ON : RADIO_POWER_MODE_OFF;
@@ -1132,8 +1133,6 @@ dw1000_driver_get_value(radio_param_t param,
     return RADIO_RESULT_OK;
   case RADIO_PARAM_RX_MODE:
     *value = 0;
-    /* radio not set to filtering frame */
-
     if(dw_is_frame_filtering_on()){
       *value |= RADIO_RX_MODE_ADDRESS_FILTER;
     }
@@ -1968,17 +1967,28 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 }
 
 /*---------------------------------------------------------------------------*/
+/**
+ * \brief Return the time of the last SFD detection (max of RX and TX SFD).
+ **/
 uint32_t
 get_sfd_timestamp(void)
 {
-  uint64_t sys_time, rx_time;
+  uint64_t sys_time, rx_time, tx_time, sfd_delay;
   uint32_t current_time;
 
-  sys_time = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME) & DW_TIMESTAMP_CLEAR_LOW_9;
+  sys_time = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME) & 
+                              DW_TIMESTAMP_CLEAR_LOW_9;
   current_time = RTIMER_NOW();
-  rx_time = dw_read_reg_64(DW_REG_RX_TIME, DW_LEN_RX_TIME) & DW_TIMESTAMP_CLEAR_LOW_9;
+  rx_time = dw_read_reg_64(DW_REG_RX_TIME, DW_LEN_RX_TIME) & 
+                            DW_TIMESTAMP_CLEAR_LOW_9;
+  tx_time= 0ull;
+  dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_STAMP, DW_SUBLEN_TX_STAMP, 
+                  (uint8_t *) &tx_time);
+  tx_time &= DW_TIMESTAMP_CLEAR_LOW_9;
+  /* we use the most recent detection */
+  sfd_delay = MIN(sys_time - rx_time, sys_time - tx_time);
 
-  return current_time - RADIO_TO_RTIMER(sys_time - rx_time);
+  return current_time - RADIO_TO_RTIMER(sfd_delay);
 }
 /*===========================================================================*/
 /* Ranging                                                                   */
@@ -2052,7 +2062,7 @@ dw1000_driver_set_reply_time(uint32_t reply_time)
  * \brief Based on the reply time and the RX timestamps, this function schedule 
  *        the ranging reply message.
  */
-inline void 
+void 
 dw1000_schedule_reply(void)
 {
   uint64_t schedule_time = dw_get_rx_timestamp();

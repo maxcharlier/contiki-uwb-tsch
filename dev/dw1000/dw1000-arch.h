@@ -18,12 +18,12 @@ void dw1000_arch_init();
 /** 
  * Select DW1000 (pull down CSn pin). 
  **/
-inline void dw1000_arch_spi_select(void);
+void dw1000_arch_spi_select(void);
 /*---------------------------------------------------------------------------*/
 /** 
  * De-select DW1000 (pull up CSn pin). 
  **/
-inline void dw1000_arch_spi_deselect(void);
+void dw1000_arch_spi_deselect(void);
 /*---------------------------------------------------------------------------*/
 /** 
  * Write a single byte via SPI, return response. 
@@ -48,10 +48,10 @@ int dw1000_arch_spi_rw(uint8_t *read_buf,
 void dw1000_arch_gpio8_setup_irq(void);
 /*---------------------------------------------------------------------------*/
 /** Reset interrupt flag and enable GPIO8 port IRQ. */
-inline void dw1000_arch_gpio8_enable_irq(void);
+void dw1000_arch_gpio8_enable_irq(void);
 /*---------------------------------------------------------------------------*/
 /* Reset interrupt flag and enable GPIO8 port IRQ. */
-inline void dw1000_arch_gpio8_disable_irq(void);
+void dw1000_arch_gpio8_disable_irq(void);
 /*---------------------------------------------------------------------------*/
 /**
  * Read back the status of the GPIO8 pin.
@@ -69,6 +69,6 @@ void dw1000_arch_spi_set_clock_freq(uint32_t freq);
 /**
  * Wait a delay in microsecond.
  **/
-inline void dw1000_us_delay(int us);
+void dw1000_us_delay(int us);
 
 #endif /* __DW1000_ARCH_H__ */

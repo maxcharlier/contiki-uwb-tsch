@@ -534,7 +534,7 @@
  * \name Device string used on startup
  * @{
  */
-#define BOARD_STRING "Zolertia RE-Mote platform with DWM1000"
+#define BOARD_STRING "Zolertia RE-Mote platform with DWM1000 configuration"
 /** @} */
 
 #define NETSTACK_CONF_WITH_IPV6 0
@@ -563,10 +563,11 @@
   #define PACKETBUF_CONF_SIZE       266
 #endif
 
-#define DW1000_CHANNEL              5
+#define DW1000_CHANNEL              0
 #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
 #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
 #define DW1000_PRF                  DW_PRF_64_MHZ
+#define DW1000_TSCH					1
 
 #endif /* BOARD_H_ */
 

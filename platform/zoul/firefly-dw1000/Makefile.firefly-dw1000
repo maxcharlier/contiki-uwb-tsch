@@ -1,0 +1,4 @@
+MOTELIST_ZOLERTIA = firefly-dw1000
+
+BOARD_SOURCEFILES += dw1000-zoul-arch.c dw1000.c dw1000-util.c dw1000-driver.c
+BOARD_SOURCEFILES += board.c leds-arch.c

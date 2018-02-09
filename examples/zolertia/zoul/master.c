@@ -3,6 +3,7 @@
 #include "dev/serial-line.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "net/netstack.h"
 #include "dw1000-driver.h"
 #include "dw1000-util.h"
 #include "dw1000.h"
@@ -69,6 +70,7 @@ static uint16_t master_addr; /* the address of the master node */
 static uint16_t tx_delay; /* the tx_delay settings */
 static uint16_t rx_delay; /* the rx_delay settings */
 static uint32_t tx_power;
+static uint16_t channel; /* the channel settings */
 /* store the last receivedd messag*/
 static char payload[30];
 static uint8_t payload_len;
@@ -113,8 +115,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("Node addr 0x%02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
-  printf("     1 Ranging request:            1 TWR SOURCE DEST\n");
-  printf("     2 Ranging and quality request 2 TWR SOURCE DEST\n");
+  printf("     1 Ranging request:            1 0/1 TWR SOURCE DEST\n");
+  printf("     2 Ranging and quality request 2 0/1 TWR SOURCE DEST\n");
   printf("     TWR 0 for SS TWR, 1 for DS TWR\n");
   printf("     3 Set TX and RX antenna delay 3 DEST TX_DELAY RX_DELAY\n");
   printf("     4 Get TX and RX antenna delay 4 DEST\n");
@@ -123,6 +125,8 @@ PROCESS_THREAD(frame_master_process, ev, data)
   printf("     9 Print sys status and error counter\n");
   printf("     A Reset error counter\n");
   printf("     B display number of reset\n");
+  printf("     C Reinit the receiver\n");
+  printf("     D Change the channel          D DEST TSCH_Channel (0 to 5)\n");
 
   printf("tx delay %u\n", dw_get_tx_antenna_delay());
   printf("rx delay %u\n", dw_get_rx_antenna_delay());
@@ -386,6 +390,46 @@ PROCESS_THREAD(frame_master_process, ev, data)
         dw1000_driver_off();
         dw1000_driver_on();
       }
+      else if(mode == 0x0D){ 
+        /* Set the TX and RX delay, this is construct as follow:
+        *  0x03 DEST TX_DELAY RX_DELAY */
+        uint16_t dest = strtol(str, &str, 16);
+        channel = strtol(str, &str, 16);
+        if(dest > 0){
+          PRINTF("dest: 0x%.4X\n", dest);
+          PRINTF("channel: 0x%.4X %u\n", channel, (unsigned int) channel);
+
+          if((dest & 0xFF) == linkaddr_node_addr.u8[0] && 
+             (dest >> 8 & 0xFF) == linkaddr_node_addr.u8[1]){
+            PRINTF("Master apply the channel value\n");
+            /* Master are the destination of the delay setter */
+
+            NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, (radio_value_t) channel);
+          }else
+          {
+            PRINTF("Master send the channel value settings.\n");
+            /* send the delay settings to the "dest" node */
+            linkaddr_t addr;
+            addr.u8[0]= dest & 0xFF;
+            addr.u8[1]= (dest >> 8) & 0xFF;
+            char report[3]; // 1 for mode, 2 for channel
+            /* store the mode */
+            report[0] = mode;
+
+            memcpy(&report[1], &channel, 2);
+
+            packetbuf_copyfrom(report, 3);
+
+            /* request an ACK */
+            packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
+
+            unicast_send(&uc, &addr);
+            PRINTF("Channel value settings sended to 0x%02X%02X\n", 
+                      addr.u8[0], 
+                      addr.u8[1]);
+          }
+        }
+      }
     }
   }
   PROCESS_END();
@@ -623,6 +667,18 @@ PROCESS_THREAD(receive_process, ev, data)
                       addr.u8[1], 
                       addr.u8[0]);
         }
+      }
+      else if(mode == 0x0D){
+        /** 
+         * This part is used to set the channel settings.
+         **/
+        PRINTF("Node set channel\n");
+
+        memcpy(&channel, &payload[1], 2);
+
+        NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, (radio_value_t) channel);
+
+        PRINTF("channel: 0x%.4X %d\n", channel, (unsigned int) channel);
       }
     }
   }

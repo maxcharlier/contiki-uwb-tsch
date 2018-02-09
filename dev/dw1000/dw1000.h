@@ -81,10 +81,11 @@
 /*
  * DW1000 TIME CLOCK : 499.2 MHz × 128 which is 63.8976 GHz 
  * The System Time Counter is incremented at a rate of 125 MHz 
- * in units of 512. The nine low-order bits of this register are 
- * thus always zero. */
-#define DW_TIMESTAMP_CLOCK  125000000
+ * (more precisely 499.2 MHz × 128 / 512) in units of 512. The nine low-order bits of
+ * this register are thus always zero. */
+#define DW_TIMESTAMP_CLOCK  124800000
 #define DW_TIMESTAMP_CLOCK_OFFSET 9
+#define DW_TIMESTAMP_CLOCK_INCREMENT 512
 
 /**
  * \brief Used to align delayed timestamps.

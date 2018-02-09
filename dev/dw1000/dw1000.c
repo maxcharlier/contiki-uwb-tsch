@@ -488,7 +488,7 @@ dw_load_lde_code(void){
 
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, 2, (uint8_t *)&lde1);
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 2, (uint8_t *)&lde);
-  dw1000_us_delay(155); /* Wait at least 150 us > see Table 4 p24 */
+  dw1000_us_delay(150); /* Wait at least 150 us > see Table 4 p24 */
 
   /* From DecaRanging software:
      Need to write lower byte separately before setting the higher byte(s) */

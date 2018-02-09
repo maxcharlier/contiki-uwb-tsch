@@ -77,11 +77,26 @@ typedef uint32_t rtimer_clock_t;
 #define RTIMER_CLOCK_DIFF(a, b)     ((int32_t)((a) - (b)))
 /** @} */
 /*---------------------------------------------------------------------------*/
-/* 352us from calling transmit() until the SFD byte has been sent */
-#define RADIO_DELAY_BEFORE_TX     ((unsigned)US_TO_RTIMERTICKS(352))
-/* 192us as in datasheet but ACKs are not always received, so adjusted to 250us */
-#define RADIO_DELAY_BEFORE_RX     ((unsigned)US_TO_RTIMERTICKS(250))
-#define RADIO_DELAY_BEFORE_DETECT 0
+#if NETSTACK_CONF_RADIO == dw1000_driver
+  /* 336us from calling transmit() until the SFD byte has been sent 
+    Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
+    in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
+    Dependant of the configuration (DATA_RATE, PREAMBLE_LENGHT)*/
+  #define RADIO_DELAY_BEFORE_TX     ((unsigned) 11)
+  /* the call of NETSTACK_CONF_RADIO.on take until 122us, not dependant of the configuration.
+    The radio is ready to receive after this call (we wait inside of the function). 
+    Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
+    in the radio driver and be calling NETSTACK_CONF_RADIO.off() and after 
+    NETSTACK_CONF_RADIO.on()*/
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned) 4)
+  #define RADIO_DELAY_BEFORE_DETECT 0
+#else /* NETSTACK_CONF_RADIO != dw1000_driver */
+  /* 352us from calling transmit() until the SFD byte has been sent */
+  #define RADIO_DELAY_BEFORE_TX     ((unsigned)US_TO_RTIMERTICKS(352))
+  /* 192us as in datasheet but ACKs are not always received, so adjusted to 250us */
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned)US_TO_RTIMERTICKS(250))
+  #define RADIO_DELAY_BEFORE_DETECT 0
+#endif /* NETSTACK_CONF_RADIO == dw1000_driver */
 /*---------------------------------------------------------------------------*/
 /**
  * \name Serial Boot Loader Backdoor configuration

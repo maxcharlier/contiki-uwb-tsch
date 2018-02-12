@@ -1308,9 +1308,13 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
        set_frame_filtering((value & RADIO_RX_MODE_ADDRESS_FILTER) != 0);
        set_auto_ack((value & RADIO_RX_MODE_AUTOACK) != 0);
        set_poll_mode((value & RADIO_RX_MODE_POLL_MODE) != 0);
-    return RADIO_RESULT_NOT_SUPPORTED;
+    return RADIO_RESULT_OK;
   case RADIO_PARAM_TX_MODE:
-    return RADIO_RESULT_NOT_SUPPORTED;
+    /* we can not send on CCA */
+    if(value & RADIO_TX_MODE_SEND_ON_CCA){
+      return RADIO_RESULT_NOT_SUPPORTED;
+    }
+    return RADIO_RESULT_OK;
   case RADIO_PARAM_TXPOWER:
     return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_PARAM_CCA_THRESHOLD:

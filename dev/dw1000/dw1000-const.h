@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, UMons University & Luleå University of Technology
+ * Copyright (c) 2016, UMONS University & Luleå University of Technology
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@
  *
  *          Based on the work of Hasan Derhamy & Kim Albertsson
  * \author
- *         Charlier Maximilien  <maximilien-charlier@outlook.com>
+ *         Charlier Maximilien  <maximilien.charlier@umons.ac.be>
  *         Hasan Derhamy        <hasan.derhamy@ltu.se>
  *         Kim Albertsson       <kim.albertsson@ltu.se>
  */

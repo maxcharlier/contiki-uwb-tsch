@@ -36,7 +36,7 @@
  *            dw1000 specific driver.
  *          Based on the work of Hasan Derhamy & Kim Albertsson
  * \author
- *         Charlier Maximilien  <maximilien-charlier@outlook.com>
+ *         Charlier Maximilien  <maximilien.charlier@umons.ac.be>
  *         Hasan Derhamy        <hasan.derhamy@ltu.se>
  *         Kim Albertsson       <kim.albertsson@ltu.se>
  */

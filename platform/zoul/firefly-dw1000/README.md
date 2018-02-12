@@ -1,41 +1,25 @@
-Zolertia Firefly Revision A platform
+Zolertia Firefly Revision A platform with DWM1000 support
 ============================================
 
 ![Zolertia Firefly Revision A breakout board][firefly-reva]
 
-The Firefly is a breakout board designed to inspire.
+This platform support the DWM1000 transceiver. 
+For more information about the radio driver read the [README of the DecaWave DW1000 radio driver](../../../dev/dw1000/README.md) and for more informations about the FIREFLY rev A please read the [README of the Zolertia Firefly Revision A](../firefly-reva/README.md).
 
-It exposes the most basic Zoul features, sporting only the most down-to-core features to work with the Zoul, providing the following:
+Connections between the DWM1000 and the Zolertia FIREFLY.
+------
 
-* ARM Cortex-M3 with 512KB flash and 32KB RAM (16KB retention), 32MHz.
-* ISM 2.4-GHz IEEE 802.15.4 & Zigbee compliant.
-* ISM 868-, 915-, 920-, 950-MHz ISM/SRD Band.
-* On-board printed PCB sub-1GHz antenna and 2.4Ghz ceramic chip antenna.
-* AES-128/256, SHA2 Hardware Encryption Engine.
-* ECC-128/256, RSA Hardware Acceleration Engine for Secure Key Exchange.
-* Compatible with breadboards and protoboards.
-* On-board CP2104/PIC to flash over USB-A connector.
-* User and reset buttons.
-* RGB LED to allow more than 7 colour combinations.
-* Small form factor (68.78 x 25.80mm).
+|Function       | Port on the Zolertia Z1 | Port on the DWM1000 |
+| ------------- | ----------------------- | ------------------- |
+| Interrupt     | 21 - PA5/ADC1/AIN5      | Port2.3 GPIO8       |
+| SCLK          | 16 - PD0/SPI1.SCLK      | SPICLK              |
+| MOSI          | 12 - PC6/SPI1.MOSI      | SPIMOSI             |
+| MISO          | 15 - PD2/SPI1.MISO      | SPIMISO             |
+| SS            | 22 - PA4/ADC2/AIN4  	  | SPICS               |
+| GND           | 10 or 19 - DGND         | GND                 |
+| Power, 3.3v   | 11 or 20 - +VDD         | VDD                 |
 
-The Firefly can be seen as the "small brother" of the RE-Mote, with a slick design and a lower cost.
 
-To work out of the box, the firefly includes a PCB antenna for the Sub-1GHz interface, and a ceramic chip antenna for the 2.4GHz radio interface.  Optionally 2 x u.Fl connectors for 2.4GHz and sub-1GHz external antennas can be mounted.
-
-The firefly can be programmed and debugged over JTAG and USB.  The board has a CP2104 USB to serial converter with a PIC, it allows to program the CC2538 without having to manually to put the device in bootloader mode.
-
-The most prominent changes respect to the previous Firefly release are:
-
-* On-board ceramic chip 2.4GHz antenna
-* Pin-out changes and CC1200 GPIO2 pin is exposed
-* RF matching improvements
-* Printed PCB USB A connector instead of Micro-USB connector
-
-Firefly pin-out
-=============
-
-![Firefly Revision A pin-out (front)][firefly-reva-pinout-front]
-
-[firefly-reva-pinout-front]: ../images/firefly-reva-pinout-front.png "Firefly Revision A pin-out (front)"
 [firefly-reva]: ../images/firefly-reva.jpg "Zolertia Firefly Revision A breakout board"
+[readme-dw1000]: ../../../dev/dw1000/README.md "README of the DecaWave DW1000 radio driver"
+[readme-firefly-reva]: ../firefly-reva/README.md "README of the Zolertia Firefly Revision A"

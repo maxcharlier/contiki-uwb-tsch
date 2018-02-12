@@ -34,7 +34,7 @@
  * \file
  *         Decawave DW1000 utility header file.
  * \author
- *         Charlier Maximilien <maximilien-charlier@outlook.com>
+ *         Charlier Maximilien <maximilien-charlier@umons.ac.be>
  *         Quoitin Bruno        <bruno.quoitin@umons.ac.be>
  */
 

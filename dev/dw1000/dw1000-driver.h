@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, UMons University.
+ * Copyright (c) 2016, UMONS University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@
  *          Based on the cc2420 driver.
  *
  * \author
- *         Charlier Maximilien  <maximilien-charlier@outlook.com>
+ *         Charlier Maximilien  <maximilien.charlier@umons.ac.be>
  */
 
 #include "contiki.h"

@@ -73,7 +73,7 @@
 #define DWM1000_INT_PIN_MASK       GPIO_PIN_MASK(DWM1000_INT_PIN)
 /*---------------------------------------------------------------------------*/
 
-#define DEBUG 1
+// #define DEBUG 1
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -205,6 +205,8 @@ void
 dw1000_arch_gpio8_disable_irq(void)
 {
   GPIO_DISABLE_INTERRUPT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
+  NVIC_DisableIRQ(RF_TX_RX_IRQn);                         /* disable RF interrupts */
+
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -218,7 +220,7 @@ dw1000_arch_gpio8_read_pin(void)
  **/
 void dw1000_arch_init()
 {
-  printf("dw1000_arch_init\n");
+  PRINTF("dw1000_arch_init\n");
 
   /* Initialize CSn */
   spix_cs_init(DWM1000_SPI_CSN_PORT, DWM1000_SPI_CSN_PIN);

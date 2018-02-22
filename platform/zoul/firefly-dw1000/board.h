@@ -70,14 +70,14 @@
  * -----------------------------+---+---+--------------------------------------
  * PB5/CC1200.CS                |-01|15-|   PD2/SPI1.MISO/DW1000.MISO
  * PB2/SPI0.SCLK/CC1200.SCLK    |-02|16-|   PD0/SPI1.SCLK/DW1000.SCLK
- * PB1/SPIO0.MOSI/CC1200.MOSI   |-03|17-|   ADC5/AIN7/PA7
- * PB3/SPIO0.MISO/CC1200.MISO   |-04|18-|   ADC4/AIN6/PA6
+ * PB1/SPIO0.MOSI/CC1200.MOSI   |-03|17-|   ADC5/AIN7/PA7/DW1000.RST
+ * PB3/SPIO0.MISO/CC1200.MISO   |-04|18-|   ADC4/AIN6/PA6/DW1000.WAKEUP
  * PB4/CC1200.GPIO0             |-05|19-|   DGND/DW1000.GND
  * PB0/CC1200.GPIO2             |-06|20-|   +VDD
  * PD1/I2C.INT                  |-07|21-|   ADC1/AIN5/PA5/DW1000 GPIO8
  * PC2/I2C.SDA                  |-08|22-|   ADC2/AIN4/PA4/DW1000 SPI.CSn
  * PC3/I2C.SCL                  |-09|23-|   BUTTON.USER/ADC6/AIN3/PA3
- * DGND                         |-10|24-|   ADC3/AIN2/PA2
+ * DGND                         |-10|24-|   ADC3/AIN2/PA2/DW1000.SLK BACKUP
  * +VDD/DW1000.D+3.3            |-11|25-|   PC0/UART1.TX
  * PC6/SPI1.MOSI/DW1000.MOSI    |-12|26-|   PC1/UART1.RX
  * USB.D+                       |-13|27-|   PC4
@@ -398,37 +398,29 @@
 #define BOARD_STRING "Zolertia Firefly revision A2 platform with DWM1000 configuration"
 /** @} */
 
-#define NETSTACK_CONF_WITH_IPV6 0
+// #define NETSTACK_CONF_WITH_IPV6 0
+
 /* Network setup for IPv6 */
-#ifndef NETSTACK_CONF_NETWORK
-#define NETSTACK_CONF_NETWORK       rime_driver
-#endif
+// #ifndef NETSTACK_CONF_NETWORK
+// #define NETSTACK_CONF_NETWORK       rime_driver
+// #endif
 
-#ifndef NETSTACK_CONF_MAC
-#define NETSTACK_CONF_MAC           csma_driver
-#endif
+// #ifndef NETSTACK_CONF_MAC
+// #define NETSTACK_CONF_MAC           csma_driver
+// #endif
 
-#ifndef NETSTACK_CONF_RDC
-#define NETSTACK_CONF_RDC           nullrdc_driver
-#endif
+// #ifndef NETSTACK_CONF_RDC
+// #define NETSTACK_CONF_RDC           nullrdc_driver
+// #endif
 
-#ifndef NETSTACK_CONF_FRAMER
-#define NETSTACK_CONF_FRAMER        contikimac_framer
-#endif
+// #ifndef NETSTACK_CONF_FRAMER
+// #define NETSTACK_CONF_FRAMER        contikimac_framer
+// #endif
 
-#define NETSTACK_CONF_RADIO         dw1000_driver
 
-#define DW1000_IEEE802154_EXTENDED  0
 
-#if DW1000_IEEE802154_EXTENDED
-  #define PACKETBUF_CONF_SIZE       266
-#endif
 
-#define DW1000_CHANNEL              0
-#define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
-#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
-#define DW1000_PRF                  DW_PRF_64_MHZ
-#define DW1000_TSCH					1
+#define RADIO_DRIVER_UWB 			1
 
 #endif /* BOARD_H_ */
 

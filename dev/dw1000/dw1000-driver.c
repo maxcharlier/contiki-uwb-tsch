@@ -91,7 +91,7 @@
 #endif /* DW1000_PRF */
 
 #ifndef DW1000_TSCH
-#define DW1000_TSCH     0
+#define DW1000_TSCH     1
 #endif /* DW1000_TSCH */
 
 /* You should disable the ranging bias in case of antenna delay calibration */
@@ -203,8 +203,6 @@ static int32_t dw1000_driver_last_prop_time = 0UL;
 /* store the current DW1000 configuration */
 static dw1000_base_conf_t dw1000_conf;
 static dw1000_frame_quality last_packet_quality;
-
-static uint8_t volatile pending = 0;
 
 /**
  * \brief Define a loop to wait until the success of "cond" or the expiration 
@@ -363,16 +361,17 @@ dw1000_driver_init(void)
 
 #if DW1000_TSCH
   dw1000_driver_set_value(RADIO_PARAM_CHANNEL, (radio_value_t) DW1000_CHANNEL);
+  printf("TSCH Channel %d, ", DW1000_CHANNEL);
 #else
   dw1000_driver_config(DW1000_CHANNEL, DW1000_DATA_RATE, DW1000_PREAMBLE, 
                         DW1000_PRF);
 #endif /* DW1000_TSCH */
 
-  printf("Channel %d, Data rate %d kb/s, Preamble %d, PRM %d MHz\n", 
-                (unsigned int) DW1000_CHANNEL, 
-                (unsigned int) DW1000_DATA_RATE, 
-                (unsigned int) DW1000_PREAMBLE, 
-                (DW1000_PRF == 1) ? 16U : 64U);
+  printf("Channel %d, Data rate %d kb/s, Preamble %d, PRF %d MHz\n", 
+                (unsigned int) dw1000_conf.channel, 
+                (unsigned int) dw1000_conf.data_rate, 
+                (unsigned int) dw1000_conf.preamble_length, 
+                (dw1000_conf.prf == 1) ? 16U : 64U);
 
   dw_disable_rx_timeout();
 
@@ -419,6 +418,8 @@ dw1000_driver_prepare(const void *payload,
                       unsigned short payload_len)
 {
   PRINTF("dw1000_driver_prepare\r\n");
+
+  // rtimer_clock_t t0 = RTIMER_NOW();
 
   uint16_t data_len = payload_len;
   if(dw_is_automatic_ack()){
@@ -485,7 +486,10 @@ dw1000_driver_prepare(const void *payload,
 #endif
   // RELEASE_LOCK();
   PRINTF("DW1000 prepare data lenght %u \n", (unsigned int)data_len);
-
+  
+  // rtimer_clock_t t1 = RTIMER_NOW();
+  // printf("Prepare time %ld (ms)\n", RTIMERTICKS_TO_US(t1-t0) );
+  
   return RADIO_TX_OK;
 }
 /**
@@ -514,6 +518,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   transmission_sfd = 0;
 #endif /* RADIO_DELAY_MEASUREMENT */
 
+  // rtimer_clock_t t0 = RTIMER_NOW();
   PRINTF("dw1000_driver_transmit ACK %d Ranging %d\r\n",
               dw1000_driver_wait_ACK,
               dw1000_driver_sstwr);
@@ -876,6 +881,9 @@ dw1000_driver_transmit(unsigned short payload_len)
     printf("TX result %d\n", tx_return);
   }
 #endif
+
+  // rtimer_clock_t t1 = RTIMER_NOW();
+  // printf("tx time %ld (ms)\n", RTIMERTICKS_TO_US(t1-t0) );
   return tx_return;
 }
 /**
@@ -892,6 +900,40 @@ dw1000_driver_send(const void *data, unsigned short payload_len)
   dw1000_driver_prepare(data, payload_len);
   return dw1000_driver_transmit(payload_len);
 }
+
+/**
+ * \brief     Clean intterrupt flag and receive status in poll mode.
+ */
+void driver_flush_receive_buffer(void){
+  if(poll_mode){
+    /* See Figure 14: Flow chart for using double RX buffering
+     * Of the manual */
+#ifdef DOUBLE_BUFFERING
+    uint32_t sys_status = dw_read_reg_32( DW_REG_SYS_STATUS, 4);
+    if((sys_status & DW_RXOVRR_MASK) > 0){ /* overrun may be occurs */
+
+      dw_idle();
+      dw_trxsoft_reset();
+      dw_change_rx_buffer();
+      
+      PRINTF("dw1000_process: RX Overrun case 2\n");
+      if(receive_on)
+        dw1000_on();
+    }
+    else{
+      if(dw_good_rx_buffer_pointer()){
+        dw_clear_receive_status();
+      }
+      dw_change_rx_buffer();
+    }
+#else
+    if(receive_on)
+      dw1000_on();
+    dw_clear_receive_status();
+#endif /* DOUBLE_BUFFERING */
+  }/* end if(poll_mode) */
+}
+
 /**
  * \brief     Reads a pending packet from the radio.
  *
@@ -900,8 +942,21 @@ dw1000_driver_send(const void *data, unsigned short payload_len)
 static int
 dw1000_driver_read(void *buf, unsigned short bufsize)
 {
-
   PRINTF("dw1000_driver_read\r\n");
+  if(poll_mode){
+#ifdef DOUBLE_BUFFERING
+    uint32_t sys_status = dw_read_reg_32(DW_REG_SYS_STATUS, 4);
+    if((sys_status & DW_RXOVRR_MASK) > 0){  /* Overrun */
+      PRINTF("dw1000_read > dw_overrun\r\n");
+      dw_idle();
+      dw_trxsoft_reset();
+      dw_change_rx_buffer();
+      if(receive_on) {
+        dw1000_on();
+      }
+    }
+#endif     /* DOUBLE_BUFFERING */
+  } /* end if(poll_mode) */
 
 #if DW1000_IEEE802154_EXTENDED
   int len = dw_get_rx_extended_len();
@@ -911,16 +966,19 @@ dw1000_driver_read(void *buf, unsigned short bufsize)
 
   if(len > DW1000_MAX_PACKET_LEN) {
     RIMESTATS_ADD(toolong);
+    driver_flush_receive_buffer();
     return 0;
   }
 
   if(len <= FOOTER_LEN) {
     RIMESTATS_ADD(tooshort);
+    driver_flush_receive_buffer();
     return 0;
   }
 
   if(len - FOOTER_LEN > bufsize) {
     RIMESTATS_ADD(toolong);
+    driver_flush_receive_buffer();
     return 0;
   }
 
@@ -937,9 +995,11 @@ dw1000_driver_read(void *buf, unsigned short bufsize)
   print_frame(len, buf);
 #endif
 
-  pending--;
+  driver_flush_receive_buffer();
+
   return len;
 }
+
 /**
  * \brief  Performs a Channel Clear Assessment to see if there is other
  *        RF activity on the channel to avoid collisions.
@@ -985,8 +1045,14 @@ static int
 dw1000_driver_receiving_packet(void)
 {
   PRINTF("dw1000_driver_receiving_packet\r\n");
-  return dw_is_receive_status(dw_read_reg_64(DW_REG_SYS_STATUS, 
-                              DW_LEN_SYS_STATUS));
+  uint64_t sys_status = dw_read_reg_64(DW_REG_SYS_STATUS, 
+                              DW_LEN_SYS_STATUS);
+  /* return if we currently receiving a message and we don't have finish to
+  receive it */
+  return ((sys_status & (DW_RXPRD_MASK     /* Receiver preamble detected */
+                      | DW_RXSFDD_MASK    /* Receiver SFD detected */
+                      | DW_RXPHD_MASK)) > 0)   /* Receiver PHY Header Detect */
+        && !((sys_status & DW_RXDFR_MASK) > 0);/* Receiver data frame ready */
 }
 /**
  * \brief     Checks to see if we have a pending packet. Some drivers check
@@ -999,7 +1065,8 @@ static int
 dw1000_driver_pending_packet(void)
 {
   PRINTF("dw1000_driver_receiving_packet\r\n");
-  return pending > 0;
+  /* return true if we have have the flag "data frame ready" */
+  return (dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & DW_RXDFR_MASK) > 0;
 }
 /**
  * \brief     Turns "on" the radio. This function should put the radio into
@@ -1298,6 +1365,7 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     /* only change the channel not others parameters */
     dw1000_driver_config(value, dw1000_conf.data_rate, \
                         dw1000_conf.preamble_length, dw1000_conf.prf);
+
     return RADIO_RESULT_OK;
 #endif
   case RADIO_PARAM_RX_MODE:
@@ -1440,8 +1508,10 @@ set_poll_mode(uint8_t enable)
 
   if(enable) {
     dw1000_driver_disable_interrupt();
+    dw1000_arch_gpio8_enable_irq();
   } else {
     dw1000_driver_enable_interrupt();
+    dw1000_arch_gpio8_disable_irq();
   }
 }
 /**
@@ -1540,7 +1610,6 @@ dw1000_driver_interrupt(void)
       else{    
       /* receiver Data Frame Ready. */
       process_poll(&dw1000_driver_process);
-      pending++;
       }
 #if DEBUG_INTERRUPT
     uint32_t value = 0x0;
@@ -2052,10 +2121,13 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   }
 
   if(data_rate == DW_DATA_RATE_110_KBPS) {
+    /* 64 symbols */
     dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;  
   } else if(data_rate == DW_DATA_RATE_850_KBPS) {
+    /* 16 symbols */
     dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;
   } else { /* 6800 kbps */
+    /* 8 symbols */
     dw1000_conf.sfd_type = DW_SFD_STANDARD;
   }
 
@@ -2068,40 +2140,48 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
 
 /*---------------------------------------------------------------------------*/
 /**
- * \brief Return the time of the last SFD detection (max of RX and TX SFD).
+ * \brief Return the time of the last receive SFD detection.
  **/
 uint32_t
 get_sfd_timestamp(void)
 {
-  uint64_t sys_time, rx_time, tx_time, sfd_delay;
-  uint32_t current_time;
+  uint64_t sys_time = 0, rx_time = 0, sfd_delay;
+  uint32_t current_mcu_time;
+
+  current_mcu_time = RTIMER_NOW();
   /* we use the DW1000 clock, We don't clean the 9 low bit because 
     RADIO_TO_RTIMER do this job. */
   sys_time = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME);
-  current_time = RTIMER_NOW();
-  rx_time = 0ull;
+
   dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
                   (uint8_t *) &rx_time);
 
-  tx_time= 0ull;
-  dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
-                  (uint8_t *) &tx_time);
+  sys_time &= DW_TIMESTAMP_MAX_VALUE;
+  rx_time &= DW_TIMESTAMP_MAX_VALUE;
 
-  /* we use the most recent detection */
-  sfd_delay = MIN(sys_time - rx_time, sys_time - tx_time);
+  if(sys_time > rx_time){
+    sfd_delay = sys_time - rx_time;
+  }
+  else {
+    /* we have an overflow. To compute the delay we have to take the maximum 
+    timestamps value into account (because this is a 40 bits number and 
+    we use 64 bits number). */
+    sfd_delay = sys_time + DW_TIMESTAMP_MAX_VALUE - rx_time;
+  }
 
 #if DEBUG_VERBOSE
   printf("get_sfd_timestamp(void)\n");
-  printf("current_time %lu\n", current_time);
+  printf("current_time %lu\n", current_mcu_time);
   printf("SYS_TIME %llu\n", sys_time);
   printf("RX_TIME %llu\n", rx_time);
-  printf("TX_TIME %llu\n", tx_time);
   printf("sfd_delay %llu\n", sfd_delay);
-  printf("RTIMER_ARCH_SECOND / DW_TIMESTAMP_CLOCK %d\n", RTIMER_ARCH_SECOND / DW_TIMESTAMP_CLOCK);
-  printf("RADIO_TO_RTIMER(sfd_delay) %lu\n", RADIO_TO_RTIMER(sfd_delay));
-#endif /* DEBUG_VERBOSE */
+  printf("RTIMER_ARCH_SECOND / DW_TIMESTAMP_CLOCK %d %d\n", 
+                            RTIMER_ARCH_SECOND,  DW_TIMESTAMP_CLOCK);
+  printf("RADIO_TO_RTIMER(sfd_delay) %lu %lu\n", RADIO_TO_RTIMER(sfd_delay), 
+    RTIMERTICKS_TO_US(RADIO_TO_RTIMER(sfd_delay)));
+#endif /*  DEBUG_VERBOSE */
 
-  return current_time - RADIO_TO_RTIMER(sfd_delay);
+  return current_mcu_time - RADIO_TO_RTIMER(sfd_delay)-1;
 }
 /*===========================================================================*/
 /* Ranging                                                                   */

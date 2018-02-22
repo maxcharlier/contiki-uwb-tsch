@@ -77,26 +77,20 @@ typedef uint32_t rtimer_clock_t;
 #define RTIMER_CLOCK_DIFF(a, b)     ((int32_t)((a) - (b)))
 /** @} */
 /*---------------------------------------------------------------------------*/
-#if NETSTACK_CONF_RADIO == dw1000_driver
-  /* 336us from calling transmit() until the SFD byte has been sent 
-    Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
-    in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
-    Dependant of the configuration (DATA_RATE, PREAMBLE_LENGHT)*/
-  #define RADIO_DELAY_BEFORE_TX     ((unsigned) 11)
-  /* the call of NETSTACK_CONF_RADIO.on take until 122us, not dependant of the configuration.
-    The radio is ready to receive after this call (we wait inside of the function). 
-    Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
-    in the radio driver and be calling NETSTACK_CONF_RADIO.off() and after 
-    NETSTACK_CONF_RADIO.on()*/
-  #define RADIO_DELAY_BEFORE_RX     ((unsigned) 4)
-  #define RADIO_DELAY_BEFORE_DETECT 0
-#else /* NETSTACK_CONF_RADIO != dw1000_driver */
-  /* 352us from calling transmit() until the SFD byte has been sent */
-  #define RADIO_DELAY_BEFORE_TX     ((unsigned)US_TO_RTIMERTICKS(352))
-  /* 192us as in datasheet but ACKs are not always received, so adjusted to 250us */
-  #define RADIO_DELAY_BEFORE_RX     ((unsigned)US_TO_RTIMERTICKS(250))
-  #define RADIO_DELAY_BEFORE_DETECT 0
-#endif /* NETSTACK_CONF_RADIO == dw1000_driver */
+/* Configuration for IEEE 802.15.4 NB radio */
+#ifndef RADIO_DELAY_BEFORE_TX
+/* 352us from calling transmit() until the SFD byte has been sent */
+#define RADIO_DELAY_BEFORE_TX     ((unsigned)US_TO_RTIMERTICKS(352))
+#endif
+
+#ifndef RADIO_DELAY_BEFORE_RX
+/* 192us as in datasheet but ACKs are not always received, so adjusted to 250us */
+#define RADIO_DELAY_BEFORE_RX     ((unsigned)US_TO_RTIMERTICKS(250))
+#endif
+
+#ifndef RADIO_DELAY_BEFORE_DETECT
+#define RADIO_DELAY_BEFORE_DETECT 0
+#endif
 /*---------------------------------------------------------------------------*/
 /**
  * \name Serial Boot Loader Backdoor configuration
@@ -398,6 +392,69 @@ typedef uint32_t rtimer_clock_t;
 #define ANTENNA_SW_SELECT_DEFAULT ANTENNA_SW_SELECT_DEF_CONF
 #endif /* ANTENNA_SW_SELECT_DEF_CONF */
 #endif /* REMOTE_DUAL_RF_ENABLED */
+
+#if RADIO_DRIVER_UWB
+  /* 336us from calling transmit() until the SFD byte has been sent 
+  Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
+  in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
+  Dependant of the configuration (DATA_RATE, PREAMBLE_LENGHT)*/
+  #undef RADIO_DELAY_BEFORE_TX
+  #define RADIO_DELAY_BEFORE_TX     ((unsigned) US_TO_RTIMERTICKS(336))
+  // #define RADIO_DELAY_BEFORE_TX     0
+  /* the call of NETSTACK_CONF_RADIO.on take until 122us, not dependant of the configuration.
+  The radio is ready to receive after this call (we wait inside of the function). 
+  Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
+  in the radio driver and be calling NETSTACK_CONF_RADIO.off() and after 
+  NETSTACK_CONF_RADIO.on()*/
+  #undef RADIO_DELAY_BEFORE_RX
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(122))
+  // #define RADIO_DELAY_BEFORE_RX     0
+
+  #undef RADIO_DELAY_BEFORE_DETECT
+  // #define RADIO_DELAY_BEFORE_DETECT ((unsigned) US_TO_RTIMERTICKS(1000))
+  #define RADIO_DELAY_BEFORE_DETECT 0
+  /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
+  #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
+  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 0, 1, 2, 3, 4, 5 }
+  #define TSCH_CONF_JOIN_HOPPING_SEQUENCE  (uint8_t[]){ 0 }
+  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 12000
+
+  // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
+  // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
+
+  #define TSCH_CONF_RX_WAIT 1000
+  // #define TSCH_CONF_RX_WAIT 3000
+  // #define DW1000_CONF_CHECKSUM 0
+  /* Radio delay to change the channel */
+  // #define RADIO_DELAY_CHANNEL_HOPPING ((unsigned) US_TO_RTIMERTICKS(920))
+
+  /* Calculate packet tx/rx duration in rtimer ticks based on sent
+   * packet len in bytes with 802.15.4 UWB 150:850 or 6800 kbps data rate.
+   * One byte = 32us at 250 kbps.
+   * One byte = 53.3us at 110 kbps.
+   * One byte = 9.4us at 850 kbps.
+   * One byte = 1.1us at 850 kbps.
+   * Add two bytes for CRC and one for len field */
+  #undef TSCH_PACKET_DURATION
+  #define TSCH_PACKET_DURATION(len) US_TO_RTIMERTICKS(1 * ((len) + 3))
+  #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1
+
+  /* configuration of the DW1000 radio driver */
+  #undef NETSTACK_CONF_RADIO
+  #define NETSTACK_CONF_RADIO         dw1000_driver
+  #define DW1000_IEEE802154_EXTENDED  0
+
+  #if DW1000_IEEE802154_EXTENDED
+    #define PACKETBUF_CONF_SIZE       266
+  #endif
+
+  #define DW1000_CHANNEL              0
+  #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
+  #define DW1000_PRF                  DW_PRF_64_MHZ
+  #define DW1000_TSCH                 1
+
+#endif /* RADIO_DRIVER_UWB */
 
 /** @} */
 /*---------------------------------------------------------------------------*/

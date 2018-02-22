@@ -95,6 +95,11 @@
  */
 #define DW_TIMESTAMP_CLEAR_LOW_9 ((uint64_t) 0xFFFFFFFFFFFFFE00ULL)
 
+/**
+ * \brief Used to correct time if we have an overflow.
+ */
+#define DW_TIMESTAMP_MAX_VALUE ((uint64_t) 0xFFFFFFFFFFLL)
+
 
 /**
  * \def DW_ERROR(...)

@@ -537,37 +537,28 @@
 #define BOARD_STRING "Zolertia RE-Mote platform with DWM1000 configuration"
 /** @} */
 
-#define NETSTACK_CONF_WITH_IPV6 0
+// #define NETSTACK_CONF_WITH_IPV6 0
+
 /* Network setup for IPv6 */
-#ifndef NETSTACK_CONF_NETWORK
-#define NETSTACK_CONF_NETWORK       rime_driver
-#endif
+// #ifndef NETSTACK_CONF_NETWORK
+// #define NETSTACK_CONF_NETWORK       rime_driver
+// #endif
 
-#ifndef NETSTACK_CONF_MAC
-#define NETSTACK_CONF_MAC           csma_driver
-#endif
+// #ifndef NETSTACK_CONF_MAC
+// #define NETSTACK_CONF_MAC           csma_driver
+// #endif
 
-#ifndef NETSTACK_CONF_RDC
-#define NETSTACK_CONF_RDC           nullrdc_driver
-#endif
+// #ifndef NETSTACK_CONF_RDC
+// #define NETSTACK_CONF_RDC           nullrdc_driver
+// #endif
 
-#ifndef NETSTACK_CONF_FRAMER
-#define NETSTACK_CONF_FRAMER        contikimac_framer
-#endif
+// #ifndef NETSTACK_CONF_FRAMER
+// #define NETSTACK_CONF_FRAMER        contikimac_framer
+// #endif
 
-#define NETSTACK_CONF_RADIO         dw1000_driver
 
-#define DW1000_IEEE802154_EXTENDED  0
+#define RADIO_DRIVER_UWB 			1
 
-#if DW1000_IEEE802154_EXTENDED
-  #define PACKETBUF_CONF_SIZE       266
-#endif
-
-#define DW1000_CHANNEL              0
-#define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
-#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
-#define DW1000_PRF                  DW_PRF_64_MHZ
-#define DW1000_TSCH					1
 
 #endif /* BOARD_H_ */
 

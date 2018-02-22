@@ -54,21 +54,21 @@ AUTOSTART_PROCESSES(&dwm1000_spi_test_process);
 PROCESS_THREAD(dwm1000_spi_test_process, ev, data)
 {
   static struct etimer timer;
-  static int csn = 0;
+  // static int csn = 0;
 
   PROCESS_BEGIN();
   printf("Startup of the DWM1000 SPI TEST\n");
-  dw1000_driver_init();
+  // dw1000_driver_init();
   dw1000_arch_init();
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
 
-  etimer_set(&timer, CLOCK_SECOND * 5);
+  etimer_set(&timer, CLOCK_SECOND);
   while (1) {
     PROCESS_WAIT_EVENT();
     if (ev == PROCESS_EVENT_TIMER) {
 
-      printf("CSN %d\n", csn);
+      // printf("CSN %d\n", csn);
       // if(csn == 1){
       //   dwm1000_arch_spi_select();
       //   csn = 0;
@@ -105,19 +105,19 @@ PROCESS_THREAD(dwm1000_spi_test_process, ev, data)
       print_u8_Array_inHex("REG ID 0xDECA0130:", tempRead1, 4);
 
 
-      tempRead1[0] = 0;
-      tempRead1[1] = 0;
-      tempRead1[2] = 0;
-      tempRead1[3] = 0;
-      uint8_t tempWrite1[2] = {0x40, 0x02};
-      dw1000_arch_spi_select();
-      dw1000_arch_spi_rw(NULL, tempWrite1, 2);
-      dw1000_arch_spi_rw(tempRead1, NULL, 2);
-      dw1000_arch_spi_deselect();
+      // tempRead1[0] = 0;
+      // tempRead1[1] = 0;
+      // tempRead1[2] = 0;
+      // tempRead1[3] = 0;
+      // uint8_t tempWrite1[2] = {0x40, 0x02};
+      // dw1000_arch_spi_select();
+      // dw1000_arch_spi_rw(NULL, tempWrite1, 2);
+      // dw1000_arch_spi_rw(tempRead1, NULL, 2);
+      // dw1000_arch_spi_deselect();
 
-      print_u8_Array_inHex("tempWrite1 0x4002:", tempWrite1, 2);
-      print_u8_Array_inHex("REG ID 0xDECA:", tempRead1, 2);
-      printf("read %8X\n", (int) dw_read_reg_32(DW_REG_DEV_ID, 4));
+      // print_u8_Array_inHex("tempWrite1 0x4002:", tempWrite1, 2);
+      // print_u8_Array_inHex("REG ID 0xDECA:", tempRead1, 2);
+      // printf("read %8X\n", (int) dw_read_reg_32(DW_REG_DEV_ID, 4));
 
 
       etimer_reset(&timer);

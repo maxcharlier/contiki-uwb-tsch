@@ -555,36 +555,11 @@ dw_soft_reset(void)
 void
 dw_conf(dw1000_base_conf_t *dw_conf)
 {
-  uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
-  uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
-  uint32_t tx_fctrl_val = dw_read_reg_32(DW_REG_TX_FCTRL, 4);
-  uint32_t agc_tune1_val = 0UL;
   const uint32_t agc_tune2_val = 0X2502A907UL;  /* Always use this */
   const uint16_t agc_tune3_val = 0x0035;    /* Always use this */
-  uint16_t drx_tune0b_val = 0;
-  uint16_t drx_tune1a_val = 0;
-  uint16_t drx_tune1b_val = 0;
-  uint16_t drx_tune4h_val = 0;
-  uint8_t user_sfd_lenght = 0;
 
   /* === Configure PRF */
-  tx_fctrl_val &= ~DW_TXPRF_MASK;
-  chan_ctrl_val &= ~DW_RXPRF_MASK;
-  switch(dw_conf->prf) {
-  case DW_PRF_16_MHZ:
-    agc_tune1_val = 0x8870;
-    drx_tune1a_val = 0x0087;
-    tx_fctrl_val |= (0x01UL << DW_TXPRF) & DW_TXPRF_MASK;
-    chan_ctrl_val |= (0x01UL << DW_RXPRF) & DW_RXPRF_MASK;
-    break;
-
-  case DW_PRF_64_MHZ:
-    agc_tune1_val = 0x889B;
-    drx_tune1a_val = 0x008D;
-    tx_fctrl_val |= (0x02UL << DW_TXPRF) & DW_TXPRF_MASK;
-    chan_ctrl_val |= (0x02UL << DW_RXPRF) & DW_RXPRF_MASK;
-    break;
-  }
+  dw_set_prf(dw_conf->prf);
 
   /* === Configure rx/tx channel */
   dw_set_channel(dw_conf->channel);
@@ -592,65 +567,10 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   dw_set_default_tx_power(dw_conf->channel, dw_conf->prf);
 
   /* === Configure Preamble length */
-  if(dw_conf->preamble_length == DW_PREAMBLE_LENGTH_64) {
-    drx_tune1b_val = 0x0010;
-  } else if(dw_conf->preamble_length <= DW_PREAMBLE_LENGTH_1024) {
-    drx_tune1b_val = 0x0020;
-  } else if(dw_conf->preamble_length > DW_PREAMBLE_LENGTH_1024) {
-    drx_tune1b_val = 0x0064;
-  }
-
-  if(dw_conf->preamble_length == DW_PREAMBLE_LENGTH_64) {
-    drx_tune4h_val = 0x0010;
-  } else {
-    drx_tune4h_val = 0x0028;
-  }
-  
-  /* Preamble length selection */
-  tx_fctrl_val &= ~DW_TXPSR_MASK;
-  tx_fctrl_val &= ~DW_PE_MASK;
-  switch(dw_conf->preamble_length) {
-  case DW_PREAMBLE_LENGTH_64:
-    tx_fctrl_val |= (0x01UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x00UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_128:
-    tx_fctrl_val |= (0x01UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x01UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_256:
-    tx_fctrl_val |= (0x01UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x02UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_512:
-    tx_fctrl_val |= (0x01UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x03UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_1024:
-    tx_fctrl_val |= (0x02UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x00UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_1536:
-    tx_fctrl_val |= (0x02UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x01UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_2048:
-    tx_fctrl_val |= (0x02UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x02UL << DW_PE) & DW_PE_MASK;
-    break;
-  case DW_PREAMBLE_LENGTH_4096:
-    tx_fctrl_val |= (0x03UL << DW_TXPSR) & DW_TXPSR_MASK;
-    tx_fctrl_val |= (0x00UL << DW_PE) & DW_PE_MASK;
-    break;
-  }
+  dw_set_preamble_length(dw_conf->preamble_length);
 
   /* === Configure Preamble code */
-  chan_ctrl_val &= ~DW_TX_PCODE_MASK;
-  chan_ctrl_val &= ~DW_RX_PCODE_MASK;
-
-  uint32_t preamble_code = (uint8_t) dw_conf->preamble_code;
-  chan_ctrl_val |= (preamble_code << DW_TX_PCODE) & DW_TX_PCODE_MASK;
-  chan_ctrl_val |= (preamble_code << DW_RX_PCODE) & DW_RX_PCODE_MASK;
+  dw_set_preamble_code(dw_conf->preamble_code);
 
   /* === Configure LDE Replica Coefficient */
   dw_lde_repc_config(dw_conf->preamble_code, dw_conf->data_rate);
@@ -659,72 +579,9 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* === Configure PAC size */
   dw_set_pac_size(dw_conf->pac_size, dw_conf->prf);
 
-  /* === Configure SFD */
-  /* TODO: Implement user specified */
-  chan_ctrl_val &= ~DW_DWSFD_MASK;
-  chan_ctrl_val &= ~DW_TNSSFD_MASK;
-  chan_ctrl_val &= ~DW_RNSSFD_MASK;
+  /* === Configure SFD  and data rate */
+  dw_set_datarate_and_sfd(dw_conf->data_rate, dw_conf->sfd_type);
 
-  if(dw_conf->sfd_type == DW_SFD_USER_SPECIFIED) {
-    DW_ERROR("dw_conf - SFD: User specified SFD not implemented");
-  }
-  switch(dw_conf->sfd_type) {
-  case DW_SFD_STANDARD:
-    chan_ctrl_val &= ~((1UL << DW_DWSFD) & DW_DWSFD_MASK);
-    break;
-  case DW_SFD_NON_STANDARD:
-    chan_ctrl_val |= (1UL << DW_DWSFD) & DW_DWSFD_MASK; /* use DW ns SFD */
-    /* The user manual specify that TNSSFD and RNSSFD are ignored when DWSFD 
-        is set but the receiver do not detect message without theses tow bits */
-    chan_ctrl_val |= DW_TNSSFD_MASK;
-    chan_ctrl_val |= DW_RNSSFD_MASK;
-
-    /* We need to specify the length of the non-standard SFD. */
-    /* This value must be set only for data rate greater 
-        or equal than 850 kbps
-        Value choose according the "Table 21: Recommended SFD sequence 
-        configurations for best performance" of the manual.*/
-    switch(dw_conf->data_rate) {
-      case DW_DATA_RATE_110_KBPS:
-         /* Default value, there are not operational effect.
-            The SFD length is always 64 at 110 kbps */
-        user_sfd_lenght = 64; 
-      break;
-      case DW_DATA_RATE_850_KBPS:
-        user_sfd_lenght = 16;
-      break;
-      case DW_DATA_RATE_6800_KBPS:
-        user_sfd_lenght = 8;
-      break;
-    }
-    break;
-  case DW_SFD_USER_SPECIFIED:
-    /* Not implemented yet! */
-    break;
-  }
-  switch(dw_conf->data_rate) {
-  case DW_DATA_RATE_110_KBPS:
-    if(dw_conf->sfd_type == DW_SFD_STANDARD) {
-      drx_tune0b_val = 0x000A;
-    } else if(dw_conf->sfd_type == DW_SFD_NON_STANDARD) {
-      drx_tune0b_val = 0x0016;
-    }
-    break;
-  case DW_DATA_RATE_850_KBPS:
-    if(dw_conf->sfd_type == DW_SFD_STANDARD) {
-      drx_tune0b_val = 0x0001;
-    } else if(dw_conf->sfd_type == DW_SFD_NON_STANDARD) {
-      drx_tune0b_val = 0x0006;
-    }
-    break;
-  case DW_DATA_RATE_6800_KBPS:
-    if(dw_conf->sfd_type == DW_SFD_STANDARD) {
-      drx_tune0b_val = 0x0001;
-    } else if(dw_conf->sfd_type == DW_SFD_NON_STANDARD) {
-      drx_tune0b_val = 0x0002;
-    }
-    break;
-  }
   /* == Configure SFD timeout */
   /* preamble length + 1 + SFD length - PAC size */
   if(dw_conf->data_rate == DW_DATA_RATE_110_KBPS) {
@@ -739,60 +596,22 @@ dw_conf(dw1000_base_conf_t *dw_conf)
                          + 16 /* SFD length */
                          - dw_conf->pac_size);
   }
-  /* === Configure Data rate */
-  tx_fctrl_val &= ~DW_TXBR_MASK;
-  switch(dw_conf->data_rate) {
-  case DW_DATA_RATE_110_KBPS:
-    /* Enable Receiver Mode 110 kbps data rate */
-    sys_cfg_val |= (1UL << DW_RXM110K) & DW_RXM110K_MASK;
-    /* 110 kbps bite rate */
-    tx_fctrl_val |= (0x00UL << DW_TXBR) & DW_TXBR_MASK;
-    break;
-  case DW_DATA_RATE_850_KBPS:
-    /* Disable Receiver Mode 110 kbps data rate */
-    sys_cfg_val &= ~DW_RXM110K_MASK; 
-    /* 850 kbps bite rate */
-    tx_fctrl_val |= (0x01UL << DW_TXBR) & DW_TXBR_MASK;
-    break;
-  case DW_DATA_RATE_6800_KBPS:
-    /* Disable Receiver Mode 110 kbps data rate */
-    sys_cfg_val &= ~DW_RXM110K_MASK; 
-    /* 6800 kbps bite rate */
-    tx_fctrl_val |= (0x02UL << DW_TXBR) & DW_TXBR_MASK;
-    break;
-  }
-  /* Enable receiver abort on PHR error.*/
-  sys_cfg_val &= ~DW_DIS_PHE_MASK;
 
-  /* We use the mid range value (0x0F) */
+
+  /* We adjust the crystal frequency.
+    We use the mid range value (0x0F) */
   dw_fs_xtalt(0xFU);
 
   /* Commit configuration to device */
-  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
-  dw_write_reg(DW_REG_TX_FCTRL, 4, (uint8_t *) &tx_fctrl_val);
-
-  dw_write_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
-                  (uint8_t *) &user_sfd_lenght);
-  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1,
-                  (uint8_t *) &agc_tune1_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2,
                   (uint8_t *) &agc_tune2_val);
   dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE3, DW_SUBLEN_AGC_TUNE3,
                   (uint8_t *) &agc_tune3_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b, DW_SUBLEN_DRX_TUNE0b,
-                  (uint8_t *) &drx_tune0b_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a, DW_SUBLEN_DRX_TUNE1a,
-                  (uint8_t *) &drx_tune1a_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b,
-                  (uint8_t *) &drx_tune1b_val);
-  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
-                  (uint8_t *) &drx_tune4h_val);
   dw1000.conf = *dw_conf;
   /* DW_LOG("Configuration complete."); */
 }
 /**
- * \brief Configure the DW1000 according the gived channel.
+ * \brief Configure the DW1000 according to a channel.
  *    Include the configuration of RF_TXCTRL (Analog TX Control Register),
  *      RF_TXCTRL (Analog TX Control Register),
  *      TC_PGDELAY (Transmitter Calibration - Pulse Generator Delay),
@@ -802,17 +621,21 @@ dw_conf(dw1000_base_conf_t *dw_conf)
  * \param[in] channel   The channel.
  */
 void dw_set_channel(dw1000_channel_t channel){
-  uint32_t chan_ctrl_val = dw_read_reg_32(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL);
-  uint32_t rf_rxctrlh_val = 0UL;
-  uint32_t rf_txctrl_val = 0UL;
+  /*  Channel Control Register */
+  uint8_t chan_ctrl_val = 0; /* 8 first bits on the Channel control register */
+  /* Analog RX Control Register : define if we use 500 or 1300 MHz channel */
+  uint8_t rf_rxctrlh_val = 0; /* 8 bits register */
+  /* Analog TX Control Register */
+  uint32_t rf_txctrl_val = 0UL; /* 24 bits register */
+  /* Transmitter Calibration - Pulse Generator Delay */
   uint8_t tc_pgdelay_val = 0;
+  /* Frequency synthesiser – PLL configuration */
   uint32_t fs_pllcfg_val = 0UL;
-  uint32_t fs_plltune_val = 0UL;
-    /* === Configure rx/tx channel */
-  chan_ctrl_val &= ~DW_TXCHAN_MASK;
-  chan_ctrl_val &= ~DW_RXCHAN_MASK;
-
-  uint16_t channelNum = ((uint8_t)channel & 0xF);
+  /* Frequency synthesiser – PLL Tuning */
+  uint8_t fs_plltune_val = 0;
+  
+  /* === Configure rx/tx channel */
+  uint8_t channelNum = ((uint8_t)channel & 0xF);
   chan_ctrl_val |= (channelNum << DW_TXCHAN) & DW_TXCHAN_MASK;
   chan_ctrl_val |= (channelNum << DW_RXCHAN) & DW_RXCHAN_MASK;
 
@@ -861,7 +684,9 @@ void dw_set_channel(dw1000_channel_t channel){
     break;
   }
 
-  dw_write_reg(DW_REG_CHAN_CTRL, DW_LEN_CHAN_CTRL, (uint8_t *) &chan_ctrl_val);
+  /* we only rewite the channel used */
+  dw_write_subreg(DW_REG_CHAN_CTRL, 0, 1, (uint8_t *) &chan_ctrl_val);
+
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLCFG, DW_SUBLEN_FS_PLLCFG,
                   (uint8_t *) &fs_pllcfg_val);
   dw_write_subreg(DW_REG_RF_CONF, DW_SUBREG_RF_RXCTRLH, DW_SUBLEN_RF_RXCTRLH,
@@ -873,7 +698,282 @@ void dw_set_channel(dw1000_channel_t channel){
   dw_write_subreg(DW_REG_FS_CTRL, DW_SUBREG_FS_PLLTUNE, DW_SUBLEN_FS_PLLTUNE,
                   (uint8_t *) &fs_plltune_val);
 }
+/**
+ * \brief Configure the transceiver according to the PRF. 
+ **/
+void
+dw_set_prf(dw1000_prf_t prf){
+  /* Transmit Frame Control */
+  uint8_t tx_fctrl_val = 0;
+  /* Channel Control Register */
+  uint8_t chan_ctrl_val = 0;
+  /* Automatic Gain Control configuration and control Tuning register 1 */
+  uint16_t agc_tune1_val;
+  /* Digital Receiver Configuration Tuning Register 1a */
+  uint16_t drx_tune1a_val;
 
+  /* we focus on the PRF bits : TXPRF (bit 16 and 17). Thus we only touch the 
+  3nd byte */
+  dw_read_subreg(DW_REG_TX_FCTRL, 2, 1, (uint8_t *)&tx_fctrl_val);
+  tx_fctrl_val &= ~(DW_TXPRF_MASK >> 16);
+
+  /* we focus on the PRF bits : RXPRF (bit 18 and 19). Thus we only touch the 
+  3nd byte */
+  dw_read_subreg(DW_REG_CHAN_CTRL, 2, 1, (uint8_t *)&chan_ctrl_val);
+  chan_ctrl_val &= ~(DW_RXPRF_MASK >> 16);
+
+  switch(prf) {
+    case DW_PRF_16_MHZ:
+      agc_tune1_val   = 0x8870;
+      drx_tune1a_val  = 0x0087;
+      tx_fctrl_val   |= (0x01UL << (DW_TXPRF - 16)) & (DW_TXPRF_MASK >> 16);
+      chan_ctrl_val  |= (0x01UL << (DW_RXPRF - 16)) & (DW_RXPRF_MASK >> 16);
+      break;
+
+    case DW_PRF_64_MHZ:
+      agc_tune1_val   = 0x889B;
+      drx_tune1a_val  = 0x008D;
+      tx_fctrl_val   |= (0x02UL << (DW_TXPRF - 16)) & (DW_TXPRF_MASK >> 16);
+      chan_ctrl_val  |= (0x02UL << (DW_RXPRF - 16)) & (DW_RXPRF_MASK >> 16);
+      break;
+  }
+
+  dw_write_subreg(DW_REG_TX_FCTRL, 2, 1, (uint8_t *)&tx_fctrl_val);
+  dw_write_subreg(DW_REG_CHAN_CTRL, 2, 1, (uint8_t *)&chan_ctrl_val);
+  dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE1, DW_SUBLEN_AGC_TUNE1,
+                  (uint8_t *) &agc_tune1_val);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1a, DW_SUBLEN_DRX_TUNE1a,
+                  (uint8_t *) &drx_tune1a_val);
+}
+
+/**
+ * \Brief Configure the transceiver according to the preamble length 
+ **/
+void
+dw_set_preamble_length(dw1000_preamble_length_t preamble_length){
+
+  /* Transmit Frame Control */
+  uint16_t tx_fctrl_val = 0;
+  /* Digital Receiver Configuration - Tuning Register 1b */
+  uint16_t drx_tune1b_val = 0;
+  /* Digital Receiver Configuration - Tuning Register 4H */
+  uint16_t drx_tune4h_val = 0;
+
+  if(preamble_length == DW_PREAMBLE_LENGTH_64) {
+    drx_tune1b_val = 0x0010;
+  } 
+  else if(preamble_length <= DW_PREAMBLE_LENGTH_1024) {
+    drx_tune1b_val = 0x0020;
+  } 
+  else if(preamble_length > DW_PREAMBLE_LENGTH_1024) {
+    drx_tune1b_val = 0x0064;
+  }
+
+  if(preamble_length == DW_PREAMBLE_LENGTH_64) {
+    drx_tune4h_val = 0x0010;
+  } 
+  else {
+    drx_tune4h_val = 0x0028;
+  }
+  
+  /* we focus on the TXPSR bits (bit 18 and 19) and PE (20 and 21) 
+  Thus we only touch the 3nd and 4nd byte */
+  dw_read_subreg(DW_REG_TX_FCTRL, 2, 2, (uint8_t *)&tx_fctrl_val);
+  tx_fctrl_val &= ~(DW_TXPSR_MASK >> 16);
+  tx_fctrl_val &= ~(DW_PE_MASK >> 16);
+  switch(preamble_length) {
+  case DW_PREAMBLE_LENGTH_64:
+    tx_fctrl_val |= (0x01UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x00UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_128:
+    tx_fctrl_val |= (0x01UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x01UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_256:
+    tx_fctrl_val |= (0x01UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x02UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_512:
+    tx_fctrl_val |= (0x01UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x03UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_1024:
+    tx_fctrl_val |= (0x02UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x00UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_1536:
+    tx_fctrl_val |= (0x02UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x01UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_2048:
+    tx_fctrl_val |= (0x02UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x02UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  case DW_PREAMBLE_LENGTH_4096:
+    tx_fctrl_val |= (0x03UL << (DW_TXPSR - 16)) & (DW_TXPSR_MASK >> 16);
+    tx_fctrl_val |= (0x00UL << (DW_PE - 16)) & (DW_PE_MASK >> 16);
+    break;
+  }
+  dw_write_subreg(DW_REG_TX_FCTRL, 2, 2, (uint8_t *)&tx_fctrl_val);
+
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE1b, DW_SUBLEN_DRX_TUNE1b,
+                  (uint8_t *) &drx_tune1b_val);
+
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE4h, DW_SUBLEN_DRX_TUNE4h,
+                  (uint8_t *) &drx_tune4h_val);
+}
+/**
+ * \brief Configure the transceiver according to the preamble code.
+ **/
+void
+dw_set_preamble_code(dw1000_preamble_code_t preamble_code){
+  /* Channel Control Register */
+  uint16_t chan_ctrl_val = 0;
+  /* For the Channel Control Register, we focus on the TX_PCODE (bit 22 to 26)
+    and the RX_PCODE (bit 27 to 31).
+    Thus we only touch the 3nd and 4nd byte */
+  dw_read_subreg(DW_REG_CHAN_CTRL, 2, 2, (uint8_t *)&chan_ctrl_val);
+
+  chan_ctrl_val &= ~(DW_TX_PCODE_MASK >> 16);
+  chan_ctrl_val &= ~(DW_RX_PCODE_MASK >> 16);
+
+  chan_ctrl_val |= (((uint32_t) preamble_code) << (DW_TX_PCODE - 16)) 
+                    & (DW_TX_PCODE_MASK >> 16);
+  chan_ctrl_val |= (((uint32_t) preamble_code) << (DW_RX_PCODE - 16)) 
+                    & (DW_RX_PCODE_MASK >> 16);
+
+  dw_write_subreg(DW_REG_CHAN_CTRL, 2, 2, (uint8_t *)&chan_ctrl_val);
+}
+/**
+ * \Brief Configure the transceiver according to the SFD type and the data rate.
+ * We currently not support the usage of user specified SFD.
+ */
+void
+dw_set_datarate_and_sfd(dw1000_data_rate_t data_rate, dw1000_sfd_type_t sfd_type){
+  /* Channel Control Register */
+  uint8_t chan_ctrl_val = 0;
+  /* User-specified short/long TX/RX SFD sequences - SFD Length */
+  uint8_t user_sfd_lenght = 0;
+  /* Digital Receiver Configuration - Tuning Register 0b */
+  uint16_t drx_tune0b_val = 0;
+
+  uint8_t tx_fctrl_val = 0;
+  uint8_t sys_cfg_val = 0;
+
+  /* For the Channel Control Register, we focus on the DWSFD (bit 17), the
+     TNSSFD (bit 20) and the RNSSFD (bit 21)
+  Thus we only touch the 3nd byte */
+  dw_read_subreg(DW_REG_CHAN_CTRL, 2, 1, (uint8_t *)&chan_ctrl_val);
+  chan_ctrl_val &= ~(DW_DWSFD_MASK  >> 16);
+  chan_ctrl_val &= ~(DW_TNSSFD_MASK  >> 16);
+  chan_ctrl_val &= ~(DW_RNSSFD_MASK  >> 16);
+
+  switch(sfd_type) {
+  case DW_SFD_STANDARD:
+    chan_ctrl_val &= ~((1UL << (DW_DWSFD - 16)) & (DW_DWSFD_MASK >> 16));
+    break;
+  case DW_SFD_NON_STANDARD:
+    chan_ctrl_val |= (1UL << (DW_DWSFD - 16)) & (DW_DWSFD_MASK >> 16); /* use DW ns SFD */
+    /* The user manual specify that TNSSFD and RNSSFD are ignored when DWSFD 
+        is set but the receiver do not detect message without theses tow bits */
+    chan_ctrl_val |= (DW_TNSSFD_MASK >> 16);
+    chan_ctrl_val |= (DW_RNSSFD_MASK >> 16);
+    break;
+  case DW_SFD_USER_SPECIFIED:
+    /* Not implemented yet! */  
+    DW_ERROR("dw_conf - SFD: User specified SFD not implemented");
+    break;
+  }
+
+  /* We need to specify the length for the non-standard SFD. */
+  if(sfd_type == DW_SFD_NON_STANDARD){
+    /* This value must be set only for data rate greater 
+        or equal than 850 kbps
+        Value choose according the "Table 21: Recommended SFD sequence 
+        configurations for best performance" of the manual.*/
+    switch(data_rate) {
+      case DW_DATA_RATE_110_KBPS:
+         /* Default value, there are not operational effect.
+            The SFD length is always 64 at 110 kbps */
+        user_sfd_lenght = 64; 
+      break;
+      case DW_DATA_RATE_850_KBPS:
+        user_sfd_lenght = 16;
+      break;
+      case DW_DATA_RATE_6800_KBPS:
+        user_sfd_lenght = 8;
+      break;
+    }
+  }
+
+  switch(data_rate) {
+  case DW_DATA_RATE_110_KBPS:
+    if(sfd_type == DW_SFD_STANDARD) {
+      drx_tune0b_val = 0x000A;
+    } else if(sfd_type == DW_SFD_NON_STANDARD) {
+      drx_tune0b_val = 0x0016;
+    }
+    break;
+  case DW_DATA_RATE_850_KBPS:
+    if(sfd_type == DW_SFD_STANDARD) {
+      drx_tune0b_val = 0x0001;
+    } else if(sfd_type == DW_SFD_NON_STANDARD) {
+      drx_tune0b_val = 0x0006;
+    }
+    break;
+  case DW_DATA_RATE_6800_KBPS:
+    if(sfd_type == DW_SFD_STANDARD) {
+      drx_tune0b_val = 0x0001;
+    } else if(sfd_type == DW_SFD_NON_STANDARD) {
+      drx_tune0b_val = 0x0002;
+    }
+    break;
+  }
+
+  /* For the System Configuration bitmap Register, we focus on the RXM110K 
+    (bit 22). Thus we only touch the 3nd byte */
+  dw_read_subreg(DW_REG_SYS_CFG, 2, 1, (uint8_t *) &sys_cfg_val);
+
+  /* For the Transmit Frame Control Register, we focus on the TXBR (bit 13-14).
+   Thus we only touch the 2nd byte */
+  dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &tx_fctrl_val);
+  tx_fctrl_val &= ~DW_TXBR_MASK;
+
+  switch(data_rate) {
+  case DW_DATA_RATE_110_KBPS:
+    /* Enable Receiver Mode 110 kbps data rate */
+    sys_cfg_val |= (1UL << (DW_RXM110K - 16)) & (DW_RXM110K_MASK >> 16);
+    /* 110 kbps bite rate */
+    tx_fctrl_val |= (0x00UL << (DW_TXBR - 8)) & (DW_TXBR_MASK >> 8);
+    break;
+  case DW_DATA_RATE_850_KBPS:
+    /* Disable Receiver Mode 110 kbps data rate */
+    sys_cfg_val &= ~(DW_RXM110K_MASK >> 16); 
+    /* 850 kbps bite rate */
+    tx_fctrl_val |= (0x01UL << (DW_TXBR - 8)) & (DW_TXBR_MASK >> 8);
+    break;
+  case DW_DATA_RATE_6800_KBPS:
+    /* Disable Receiver Mode 110 kbps data rate */
+    sys_cfg_val &= ~(DW_RXM110K_MASK >> 16); 
+    /* 6800 kbps bite rate */
+    tx_fctrl_val |= (0x02UL << (DW_TXBR - 8)) & (DW_TXBR_MASK >> 8);
+    break;
+  }
+
+  dw_write_subreg(DW_REG_CHAN_CTRL, 2, 1, (uint8_t *)&chan_ctrl_val);
+  dw_write_subreg(DW_REG_SYS_CFG, 2, 1, (uint8_t *) &sys_cfg_val);
+  dw_write_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &tx_fctrl_val);
+
+  dw_write_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
+                  (uint8_t *) &user_sfd_lenght);
+  dw_write_subreg(DW_REG_DRX_CONF, DW_SUBREG_DRX_TUNE0b, DW_SUBLEN_DRX_TUNE0b,
+                  (uint8_t *) &drx_tune0b_val);
+}
+/**
+ * \Brief Configure the preamble acquisition chunk (PAC) according 
+ * to the PAC size and the PRF. 
+ **/
 void 
 dw_set_pac_size(dw1000_pac_size_t pac_size, dw1000_prf_t prf)
 {

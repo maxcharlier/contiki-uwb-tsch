@@ -256,6 +256,9 @@ void ranging_prepare_ack(void);
 uint8_t ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, 
                           uint8_t wait_send);
 uint16_t convert_payload_len(uint16_t payload_len);
+dw1000_preamble_code_t
+dw1000_get_preamble_code(dw1000_channel_t channel, dw1000_prf_t prf);
+void dw1000_set_tsch_channel(uint8_t tsch_channel);
 /* end private function */
 
 static int dw1000_driver_prepare(const void *data, unsigned short payload_len);
@@ -360,6 +363,10 @@ dw1000_driver_init(void)
 #endif
 
 #if DW1000_TSCH
+  /* we configure the bitrate and the preamble lenght */
+  dw1000_driver_config(DW_CHANNEL_1, DW1000_DATA_RATE, DW1000_PREAMBLE, 
+                        DW1000_PRF);
+  /* we change the cannal according the default configuration */
   dw1000_driver_set_value(RADIO_PARAM_CHANNEL, (radio_value_t) DW1000_CHANNEL);
   printf("TSCH Channel %d, ", DW1000_CHANNEL);
 #else
@@ -486,7 +493,7 @@ dw1000_driver_prepare(const void *payload,
 #endif
   // RELEASE_LOCK();
   PRINTF("DW1000 prepare data lenght %u \n", (unsigned int)data_len);
-  
+
   // rtimer_clock_t t1 = RTIMER_NOW();
   // printf("Prepare time %ld (ms)\n", RTIMERTICKS_TO_US(t1-t0) );
   
@@ -1326,33 +1333,7 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     if(receive_on){
         dw1000_driver_off();
     }
-    tsch_channel = value;
-    switch(value){
-      case 0:
-        dw1000_driver_config(DW_CHANNEL_1, DW1000_DATA_RATE, \
-            DW1000_PREAMBLE, DW_PRF_16_MHZ);
-        break;
-      case 1:
-        dw1000_driver_config(DW_CHANNEL_3, DW1000_DATA_RATE, \
-            DW1000_PREAMBLE, DW_PRF_16_MHZ);
-        break;
-      case 2:
-        dw1000_driver_config(DW_CHANNEL_5, DW1000_DATA_RATE, \
-            DW1000_PREAMBLE, DW_PRF_16_MHZ);
-        break;
-      case 3:
-        dw1000_driver_config(DW_CHANNEL_1, DW1000_DATA_RATE, \
-            DW1000_PREAMBLE, DW_PRF_64_MHZ);
-        break;
-      case 4:
-        dw1000_driver_config(DW_CHANNEL_3, DW1000_DATA_RATE, \
-            DW1000_PREAMBLE, DW_PRF_64_MHZ);
-        break;
-      case 5:
-        dw1000_driver_config(DW_CHANNEL_5, DW1000_DATA_RATE, \
-            DW1000_PREAMBLE, DW_PRF_64_MHZ);
-        break;
-    }
+    dw1000_set_tsch_channel(value);
     if(receive_state){
         dw1000_driver_on();
     }
@@ -2058,39 +2039,8 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   dw1000_conf.sfd_type = DW_SFD_STANDARD;
   dw1000_conf.preamble_length = preamble_length;
 
-  /* we define the preamble code to get the smallest the channel interference 
-    radius according to the APH010 of DecaWave (section 5). */
-  if(channel == DW_CHANNEL_1) {
-    dw1000_conf.channel = DW_CHANNEL_1;
-    dw1000_conf.preamble_code = DW_PREAMBLE_CODE_1;
-    if(prf == DW_PRF_64_MHZ)
-      dw1000_conf.preamble_code = DW_PREAMBLE_CODE_12;
-  } else if(channel == DW_CHANNEL_2) {
-    dw1000_conf.channel = DW_CHANNEL_2;
-    dw1000_conf.preamble_code = DW_PREAMBLE_CODE_3;
-    if(prf == DW_PRF_64_MHZ)
-      dw1000_conf.preamble_code = DW_PREAMBLE_CODE_9;
-  } else if(channel == DW_CHANNEL_3) {
-    dw1000_conf.channel = DW_CHANNEL_3;
-    dw1000_conf.preamble_code = DW_PREAMBLE_CODE_5;
-    if(prf == DW_PRF_64_MHZ)
-      dw1000_conf.preamble_code = DW_PREAMBLE_CODE_9;
-  } else if(channel == DW_CHANNEL_4) {
-    dw1000_conf.channel = DW_CHANNEL_4;
-    dw1000_conf.preamble_code = DW_PREAMBLE_CODE_7;
-    if(prf == DW_PRF_64_MHZ)
-      dw1000_conf.preamble_code = DW_PREAMBLE_CODE_17;
-  } else if(channel == DW_CHANNEL_5) {
-    dw1000_conf.channel = DW_CHANNEL_5;
-    dw1000_conf.preamble_code = DW_PREAMBLE_CODE_3;
-    if(prf == DW_PRF_64_MHZ)
-      dw1000_conf.preamble_code = DW_PREAMBLE_CODE_9;
-  } else { /* channel 7 */
-    dw1000_conf.channel = DW_CHANNEL_7;
-    dw1000_conf.preamble_code = DW_PREAMBLE_CODE_7;
-    if(prf == DW_PRF_64_MHZ)
-      dw1000_conf.preamble_code = DW_PREAMBLE_CODE_17;
-  }
+  dw1000_conf.channel = channel;
+  dw1000_conf.preamble_code = dw1000_get_preamble_code(channel, prf);
 
   if(data_rate == DW_DATA_RATE_110_KBPS) {
     dw1000_conf.data_rate = DW_DATA_RATE_110_KBPS;
@@ -2138,6 +2088,85 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
   set_auto_ack(dw_is_automatic_ack());
 }
 
+/**
+ * \Brief Configure the transceiver according a given TSCH channel.
+ **/
+void
+dw1000_set_tsch_channel(uint8_t tsch_channel){
+  switch(tsch_channel){
+    case 0:
+      dw1000_conf.channel = DW_CHANNEL_1;
+      dw1000_conf.prf = DW_PRF_16_MHZ;
+      break;
+    case 1:
+      dw1000_conf.channel = DW_CHANNEL_3;
+      dw1000_conf.prf = DW_PRF_16_MHZ;
+      break;
+    case 2:
+      dw1000_conf.channel = DW_CHANNEL_5;
+      dw1000_conf.prf = DW_PRF_16_MHZ;
+      break;
+    case 3:
+      dw1000_conf.channel = DW_CHANNEL_1;
+      dw1000_conf.prf = DW_PRF_64_MHZ;
+      break;
+    case 4:
+      dw1000_conf.channel = DW_CHANNEL_3;
+      dw1000_conf.prf = DW_PRF_64_MHZ;
+      break;
+    case 5:
+      dw1000_conf.channel = DW_CHANNEL_5;
+      dw1000_conf.prf = DW_PRF_64_MHZ;
+      break;
+  }
+  dw1000_conf.preamble_code = dw1000_get_preamble_code(dw1000_conf.channel, dw1000_conf.prf);
+
+  dw_set_prf(dw1000_conf.prf);
+  dw_set_channel(dw1000_conf.channel);
+  dw_set_default_tx_power(dw1000_conf.channel, dw1000_conf.prf);
+  dw_set_preamble_code(dw1000_conf.preamble_code);
+
+  dw_lde_repc_config(dw1000_conf.preamble_code, dw1000_conf.data_rate);
+  dw_configure_lde(dw1000_conf.preamble_code);
+
+  dw_set_pac_size(dw1000_conf.pac_size, dw1000_conf.prf);
+}
+/**
+ * \Brief For a given channel and PRF return a preamble code.
+ *  Based on the APH010 of DecaWave (section 5).
+ **/
+dw1000_preamble_code_t
+dw1000_get_preamble_code(dw1000_channel_t channel, dw1000_prf_t prf){
+  dw1000_preamble_code_t preamble_code;
+  /* we define the preamble code to get the smallest the channel interference 
+    radius according to the APH010 of DecaWave (section 5). */
+  if(channel == DW_CHANNEL_1) {
+    preamble_code = DW_PREAMBLE_CODE_1;
+    if(prf == DW_PRF_64_MHZ)
+      preamble_code = DW_PREAMBLE_CODE_12;
+  } else if(channel == DW_CHANNEL_2) {
+    preamble_code = DW_PREAMBLE_CODE_3;
+    if(prf == DW_PRF_64_MHZ)
+      preamble_code = DW_PREAMBLE_CODE_9;
+  } else if(channel == DW_CHANNEL_3) {
+    preamble_code = DW_PREAMBLE_CODE_5;
+    if(prf == DW_PRF_64_MHZ)
+      preamble_code = DW_PREAMBLE_CODE_9;
+  } else if(channel == DW_CHANNEL_4) {
+    preamble_code = DW_PREAMBLE_CODE_7;
+    if(prf == DW_PRF_64_MHZ)
+      preamble_code = DW_PREAMBLE_CODE_17;
+  } else if(channel == DW_CHANNEL_5) {
+    preamble_code = DW_PREAMBLE_CODE_3;
+    if(prf == DW_PRF_64_MHZ)
+      preamble_code = DW_PREAMBLE_CODE_9;
+  } else { /* channel 7 */
+    preamble_code = DW_PREAMBLE_CODE_7;
+    if(prf == DW_PRF_64_MHZ)
+      preamble_code = DW_PREAMBLE_CODE_17;
+  }
+  return preamble_code;
+}
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Return the time of the last receive SFD detection.

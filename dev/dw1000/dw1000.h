@@ -523,6 +523,10 @@ void dw1000_init(void);
 /* Configuration */
 void dw_conf(dw1000_base_conf_t *dw_conf);
 void dw_set_channel(dw1000_channel_t channel);
+void dw_set_prf(dw1000_prf_t prf);
+void dw_set_preamble_length(dw1000_preamble_length_t preamble_length);
+void dw_set_preamble_code(dw1000_preamble_code_t preamble_code);
+void dw_set_datarate_and_sfd(dw1000_data_rate_t data_rate, dw1000_sfd_type_t sfd_type);
 void dw_set_pac_size(dw1000_pac_size_t pac_size, dw1000_prf_t prf);
 void dw_lde_repc_config(dw1000_preamble_code_t preamble_code, 
                     dw1000_data_rate_t data_rate);

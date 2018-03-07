@@ -26,8 +26,8 @@
 #define DW1000_CONF_TX_DMA_SPI_ENC   UDMA_CH11_SSI1TX
 /* Configure the channel with 8 bit source and destination size,
  * 8 source increment and 0 bit destination increment, one would need to pass */
-#define DW1000_TX_CRTL_WORD (UDMA_CHCTL_DSTINC_NONE | \
-  UDMA_CHCTL_SRCINC_8 | UDMA_CHCTL_SRCSIZE_8 | UDMA_CHCTL_DSTSIZE_8)
+#define DW1000_TX_CRTL_WORD (UDMA_CHCTL_XFERMODE_AUTO | UDMA_CHCTL_XFERMODE_BASIC | \
+  UDMA_CHCTL_SRCINC_8 | UDMA_CHCTL_SRCSIZE_8 | UDMA_CHCTL_DSTSIZE_16)
 #define DW1000_CONF_RX_DMA_SPI_ENC   UDMA_CH10_SSI1RX
 /* SSI receive/transmit data register (R/W) 
   See "SSI_DR" in the CC2538 user manual */
@@ -39,6 +39,11 @@
   UDMA_CHCTL_SRCINC_NONE | UDMA_CHCTL_SRCSIZE_8 | UDMA_CHCTL_DSTSIZE_8)
 
 
+#define DMA_CHAN_5 5
+#define DMA_CHAN_5_ENC 0
+#define DMA_CHAN_5_CRTL_WORD (UDMA_CHCTL_ARBSIZE_512 | UDMA_CHCTL_XFERMODE_BASIC \
+  | UDMA_CHCTL_DSTINC_8 | UDMA_CHCTL_DSTSIZE_8\
+  | UDMA_CHCTL_SRCINC_8 | UDMA_CHCTL_SRCSIZE_8)
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_dma, "Frame master");
 
@@ -67,13 +72,27 @@ PROCESS_THREAD(dw1000_dma, ev, data)
   // init_gpio();
 
   random_init(2018);
-  
+
+#ifndef RADIO_DRIVER_UWB
+  /* initialize SPI 1 */
+  dw1000_arch_init();
+#endif
+
   spix_cs_init(TIME_PORT, TIME_PIN);
 
   printf("Node addr 0x%02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
-  printf("     [0, DMA, n] write n random byte in the RX buffer using DMA (MDA= 1) or simple SPI DMA = 0\n");
+  printf("MACRO value\n");
+  printf("CC2538_DW1000_SPI_DMA_REG 0x%08X\n", CC2538_DW1000_SPI_DMA_REG);
+  printf("SSI_DMACTL_TXDMAE_M 0x%08X\n", SSI_DMACTL_TXDMAE_M);
+  printf("UDMA_CHCTL_XFERMODE_STOP 0x%08X\n", UDMA_CHCTL_XFERMODE_STOP);
+  printf("CC2538_DW1000_SPI_FIFO_REG 0x%08X\n", CC2538_DW1000_SPI_FIFO_REG);
+  printf("DW1000_CONF_TX_DMA_SPI_CHAN 0x%08X\n", DW1000_CONF_TX_DMA_SPI_CHAN);
+  printf("DW1000_CONF_TX_DMA_SPI_ENC 0x%08X\n", DW1000_CONF_TX_DMA_SPI_ENC);
+  printf("DW1000_TX_CRTL_WORD 0x%08X\n", DW1000_TX_CRTL_WORD);
+
+  printf("     [0, DMA, n] write n random byte in the RX buffer using DMA (MDA= 1) or simple SPI (DMA = 0)\n");
   printf("     [1, n] read n byte in the RX buffer\n");
 
 
@@ -86,6 +105,7 @@ PROCESS_THREAD(dw1000_dma, ev, data)
       uint16_t mode = strtol(data, &str, 16);
 
       printf("Received line: %s\n", (char *)data);
+
       if(mode == 0x0 ){ 
         uint16_t dma_enable = strtol(str, &str, 16);
         uint16_t nb_bytes = strtol(str, &str, 16);
@@ -123,7 +143,7 @@ PROCESS_THREAD(dw1000_dma, ev, data)
            * Set the channel's end DST : The SPI FIFO register.
            */
           udma_set_channel_dst(DW1000_CONF_TX_DMA_SPI_CHAN, 
-                                    CC2538_DW1000_SPI_FIFO_REG);
+                                    CC2538_DW1000_SPI_FIFO_REG+1);
 
           /*
            * Use the primary DMA structure (the secondary structure doesn't exist in contiki).
@@ -136,11 +156,12 @@ PROCESS_THREAD(dw1000_dma, ev, data)
             In burst mode the arbitration size should be the same as 
             the number of byte to transfer see 10.3.4.2 Burst Request*/
           udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
-                                  DW1000_TX_CRTL_WORD | udma_xfer_size(write_spi_len));
+                                  DW1000_TX_CRTL_WORD | udma_xfer_size(write_spi_len) |
                                   // UDMA_CHCTL_ARBSIZE_1024);
-                                  // udma_arb_size(len));
+                                  udma_arb_size(write_spi_len));
 
-          // udma_channel_use_burst(DW1000_CONF_TX_DMA_SPI_CHAN);
+          udma_channel_use_burst(DW1000_CONF_TX_DMA_SPI_CHAN);
+          // printf("REG(CC2538_DW1000_SPI_FIFO_REG) 0X%08X\n", REG(CC2538_DW1000_SPI_FIFO_REG));
 
           /* Enabled the RF TX uDMA channel */
           udma_channel_enable(DW1000_CONF_TX_DMA_SPI_CHAN);
@@ -158,13 +179,13 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 
           uint32_t result = udma_channel_get_mode(DW1000_CONF_TX_DMA_SPI_CHAN);
           // printf("max channel %d\n", UDMA_CONF_MAX_CHANNEL);
-          printf("udma_channel_get_mode(DW1000_CONF_TX_DMA_SPI_CHAN) %08X\n", result);
-
+          // printf("udma_channel_get_mode(DW1000_CONF_TX_DMA_SPI_CHAN) %08X\n", result);
+          // printf("REG(CC2538_DW1000_SPI_FIFO_REG) 0X%08X\n", REG(CC2538_DW1000_SPI_FIFO_REG));
           /* Wait for the transfer to complete. */
           while(udma_channel_get_mode(DW1000_CONF_TX_DMA_SPI_CHAN)
                    != UDMA_CHCTL_XFERMODE_STOP);
 
-          clock_delay_usec(200);
+          // clock_delay_usec(200);
 
           dw1000_arch_spi_deselect(); 
         
@@ -188,6 +209,86 @@ PROCESS_THREAD(dw1000_dma, ev, data)
         printf("Random tab %u: ", nb_bytes);
         for(int i = 0; i < nb_bytes; i++){
           printf("%u ", random_bytes[i]);
+          watchdog_periodic();
+        }
+        printf("\n");
+      }
+      else if(mode == 0x2){ 
+        printf("0X2\n");
+        uint16_t nb_bytes = strtol(str, &str, 16);
+        /* generate the random bytes tab */
+        uint8_t random_bytes[512];
+        uint8_t random_bytes_dest[512];
+
+        printf("Random tab %u: ", nb_bytes);
+        for(int i = 0; i < nb_bytes; i++){
+          random_bytes[i] = random_rand();
+        }
+        for(int i = 0; i < nb_bytes; i++){
+          printf("%u ", random_bytes[i]);
+          watchdog_periodic();
+        }
+        printf("\n");
+
+        gpio_down();
+        /* Disable peripheral triggers for the channel and enable software usage of
+        the channel.*/
+        udma_channel_mask_set(DMA_CHAN_5);
+
+        /* set the encoding param for the channel */
+        // udma_set_channel_assignment(DMA_CHAN_5, DMA_CHAN_5_ENC);
+
+        /* Set the transfer source's end address */
+        udma_set_channel_src(DMA_CHAN_5, (uint32_t)(&random_bytes[0]) + nb_bytes - 1);
+        printf("SRC ADDR 0X%08lX\n", (uint32_t)(&random_bytes[0]) + nb_bytes - 1);
+        printf("SRC ADDR %ld\n", (uint32_t)(&random_bytes[0]) + nb_bytes - 1);
+        /*
+        * Set the channel's end DST
+        */
+        udma_set_channel_dst(DMA_CHAN_5, (uint32_t)(&random_bytes_dest[0]) + nb_bytes - 1);
+        printf("DST ADDR 0X%08lX\n", (uint32_t)(&random_bytes_dest[0]) + nb_bytes - 1);
+        printf("DST ADDR %ld\n", (uint32_t)(&random_bytes_dest[0]) + nb_bytes - 1);
+
+        /*
+        * Use the primary DMA structure (the secondary structure doesn't exist in contiki).
+        */
+        // udma_channel_use_primary(DMA_CHAN_5);
+        // printf("write buf start %08X, end %08X\n", (uint32_t)(write_buf), (uint32_t)(write_buf) + len - 1);
+
+
+        /* Configure the control word 
+        In burst mode the arbitration size should be the same as 
+        the number of byte to transfer see 10.3.4.2 Burst Request*/
+        udma_set_channel_control_word(DMA_CHAN_5,
+                            DMA_CHAN_5_CRTL_WORD | udma_xfer_size(nb_bytes));
+                            // UDMA_CHCTL_ARBSIZE_1024);
+                            // udma_arb_size(len));
+
+        // udma_channel_use_burst(DMA_CHAN_5);
+        // printf("REG(CC2538_DW1000_SPI_FIFO_REG) 0X%08X\n", REG(CC2538_DW1000_SPI_FIFO_REG));
+
+        /* Enabled the RF TX uDMA channel */
+        udma_channel_enable(DMA_CHAN_5);
+
+
+        /* Trigger the uDMA transfer */
+        udma_channel_sw_request(DMA_CHAN_5);
+
+        uint32_t result = udma_channel_get_mode(DMA_CHAN_5);
+        // printf("max channel %d\n", UDMA_CONF_MAX_CHANNEL);
+        // printf("udma_channel_get_mode(DMA_CHAN_5) %08X\n", result);
+        // printf("REG(CC2538_DW1000_SPI_FIFO_REG) 0X%08X\n", REG(CC2538_DW1000_SPI_FIFO_REG));
+        /* Wait for the transfer to complete. */
+        while(udma_channel_get_mode(DMA_CHAN_5)
+             != UDMA_CHCTL_XFERMODE_STOP);
+
+        gpio_up();
+
+        printf("udma_channel_get_mode(DMA_CHAN_5) %08X\n", result);
+
+        printf("Random tab dest %u: ", nb_bytes);
+        for(int i = 0; i < nb_bytes; i++){
+          printf("%u ", random_bytes_dest[i]);
           watchdog_periodic();
         }
         printf("\n");

@@ -182,7 +182,9 @@ typedef uint32_t rtimer_clock_t;
 #define USB_ARCH_CONF_TX_DMA_CHAN   1 /**< RAM -> USB DMA channel */
 #define CC2538_RF_CONF_TX_DMA_CHAN  2 /**< RF -> RAM DMA channel */
 #define CC2538_RF_CONF_RX_DMA_CHAN  3 /**< RAM -> RF DMA channel */
-#define UDMA_CONF_MAX_CHANNEL       CC2538_RF_CONF_RX_DMA_CHAN
+#define DW1000_CONF_RX_DMA_SPI_CHAN  10
+#define DW1000_CONF_TX_DMA_SPI_CHAN  11
+#define UDMA_CONF_MAX_CHANNEL       DW1000_CONF_TX_DMA_SPI_CHAN
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**
@@ -411,13 +413,13 @@ typedef uint32_t rtimer_clock_t;
   // #define RADIO_DELAY_BEFORE_RX     0
 
   #undef RADIO_DELAY_BEFORE_DETECT
-  // #define RADIO_DELAY_BEFORE_DETECT ((unsigned) US_TO_RTIMERTICKS(1000))
   #define RADIO_DELAY_BEFORE_DETECT 0
+
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
   #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 0, 1, 2, 3, 4, 5 }
   #define TSCH_CONF_JOIN_HOPPING_SEQUENCE  (uint8_t[]){ 0 }
-  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 12000
+  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 5000
 
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
@@ -434,7 +436,7 @@ typedef uint32_t rtimer_clock_t;
    * One byte = 53.3us at 110 kbps.
    * One byte = 9.4us at 850 kbps.
    * One byte = 1.1us at 850 kbps.
-   * Add two bytes for CRC and one for len field */
+   * Add two bytes for CRC and one for PHR field */
   #undef TSCH_PACKET_DURATION
   #define TSCH_PACKET_DURATION(len) US_TO_RTIMERTICKS(1 * ((len) + 3))
   #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1
@@ -451,9 +453,10 @@ typedef uint32_t rtimer_clock_t;
   #define DW1000_CHANNEL              0
   #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
   #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
-  #define DW1000_PRF                  DW_PRF_64_MHZ
+  #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
 
+  #define DW1000_ARCH_CONF_DMA        0
 #endif /* RADIO_DRIVER_UWB */
 
 /** @} */

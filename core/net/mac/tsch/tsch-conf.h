@@ -121,20 +121,6 @@
 #define TSCH_DEFAULT_TS_MAX_TX             4256
 #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    10000
 
-#elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 12000
-#define TSCH_DEFAULT_TS_CCA_OFFSET         1000
-#define TSCH_DEFAULT_TS_CCA                128
-#define TSCH_DEFAULT_TS_TX_OFFSET          2120
-#define TSCH_DEFAULT_TS_RX_OFFSET          (TSCH_DEFAULT_TS_TX_OFFSET - (TSCH_CONF_RX_WAIT / 2))
-#define TSCH_DEFAULT_TS_RX_ACK_DELAY       1000
-#define TSCH_DEFAULT_TS_TX_ACK_DELAY       1200
-#define TSCH_DEFAULT_TS_RX_WAIT            TSCH_CONF_RX_WAIT
-#define TSCH_DEFAULT_TS_ACK_WAIT           400 
-#define TSCH_DEFAULT_TS_RX_TX              70 /* not used */
-#define TSCH_DEFAULT_TS_MAX_ACK            367
-#define TSCH_DEFAULT_TS_MAX_TX             434
-#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    5000
-
 #elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 15000
 /* Default timeslot timing for platforms requiring 15ms slots */
 
@@ -171,6 +157,26 @@
 #define TSCH_DEFAULT_TS_MAX_ACK            2400
 #define TSCH_DEFAULT_TS_MAX_TX             4256
 #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    65000
+
+/*  Default UWB TSCH channel operation 
+    The UWB driver take 1 ms to change the channel. We can not start the transmission befor at least 1 ms.
+    The receiver need to be wake up before the transmission (because of the guard time used to 
+    avoid the clock ofsset). We also need 1 ms to change the channel, in result the reception change the start 
+    time of the transmission to 2 ms.
+    In UWB we can not make CCA. We define TS_CCA and TS_CCA_OFFSET but there are not used */
+#elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 5000
+#define TSCH_DEFAULT_TS_CCA_OFFSET         1000     /* not relevant */
+#define TSCH_DEFAULT_TS_CCA                128      /* not relevant */
+#define TSCH_DEFAULT_TS_TX_OFFSET          2120
+#define TSCH_DEFAULT_TS_RX_OFFSET          (TSCH_DEFAULT_TS_TX_OFFSET - (TSCH_CONF_RX_WAIT / 2))
+#define TSCH_DEFAULT_TS_RX_ACK_DELAY       1000
+#define TSCH_DEFAULT_TS_TX_ACK_DELAY       1200
+#define TSCH_DEFAULT_TS_RX_WAIT            TSCH_CONF_RX_WAIT
+#define TSCH_DEFAULT_TS_ACK_WAIT           400
+#define TSCH_DEFAULT_TS_RX_TX              70      /* not used */
+#define TSCH_DEFAULT_TS_MAX_ACK            367
+#define TSCH_DEFAULT_TS_MAX_TX             434
+#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    5000
 
 #else
 #error "TSCH: Unsupported default timeslot length"

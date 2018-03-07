@@ -13,7 +13,7 @@
 #include "dev/ssi.h"
 #include "dev/gpio.h" 
 
-#include "dw1000-arch.h"
+// #include "dw1000-arch.h"
 
 // #define DEBUG 1
 
@@ -31,7 +31,7 @@ AUTOSTART_PROCESSES(&dw1000_time);
 #endif
 
 #define TIME_PORT     GPIO_A_NUM
-#define TIME_PIN      7
+#define TIME_PIN      2
 
 void init_gpio(void);
 void gpio_up(void);
@@ -102,7 +102,7 @@ PROCESS_THREAD(dw1000_time, ev, data)
         printf("delay: 0x%.4X %u\n", delay, (unsigned int) delay);
 
         gpio_down();
-        dw1000_us_delay(delay);
+        // dw1000_us_delay(delay);
         gpio_up();
       }
     }

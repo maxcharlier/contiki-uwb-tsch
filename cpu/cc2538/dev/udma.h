@@ -696,6 +696,18 @@ uint8_t udma_channel_get_mode(uint8_t channel);
  */
 #define udma_xfer_size(len) ((len - 1) << 4)
 
+/**
+ * \brief Calculate the value of the arbsize field in the control structure
+ * \param len The number of items to be transferred
+ * \return The value to be written to the control structure to achieve the
+ * desired transfer size
+ *
+ * If we want to transfer \e len items in burst mode, we will normally do 
+ * something like udma_set_channel_control_word(OTHER_FLAGS | 
+ * udma_xfer_size(len) | udma_arb_size(len))
+ */
+#define udma_arb_size(len) (len << 14)
+
 #endif /* UDMA_H_ */
 
 /**

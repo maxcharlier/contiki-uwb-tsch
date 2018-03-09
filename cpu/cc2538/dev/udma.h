@@ -547,6 +547,8 @@
 #define UDMA_CHCTL_XFERMODE_MEM_SGA  0x00000005  /**< Memory Scatter-Gather Alt */
 #define UDMA_CHCTL_XFERMODE_PER_SG   0x00000006  /**< Peripheral Scatter-Gather */
 #define UDMA_CHCTL_XFERMODE_PER_SGA  0x00000007  /**< Peripheral Scatter-Gather Alt */
+
+#define UDMA_CHCTL_NXTUSEBURST       0x00000008  /**< Burst Mode */
 /** @} */
 /*---------------------------------------------------------------------------*/
 
@@ -587,6 +589,13 @@ void udma_set_channel_dst(uint8_t channel, uint32_t dst_end);
  * Macros defined as 0 can be omitted.
  */
 void udma_set_channel_control_word(uint8_t channel, uint32_t ctrl);
+
+/**
+ * \brief Give the channel control word
+ * \param channel The channel as a value in [0 , UDMA_CONF_MAX_CHANNEL]
+ * \return The channel's control word.
+ */
+uint32_t udma_channel_get_control_word(uint8_t channel);
 
 /**
  * \brief Choose an encoding for a uDMA channel

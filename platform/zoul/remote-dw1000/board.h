@@ -73,15 +73,15 @@
  * UART0.RX/PA0          |-04|14-|   PA7/AIN7/USD.CS|ADC5
  * UART0.TX/PA1          |-05|13-|   DGND
  * PD0                   |-06|12-|   D+3.3
- * I2C.SDA/PC2           |-07|11-|   PA5/AIN5/ADC1
- * I2C.SCL/PC3           |-08|10-|   PA4/AIN4/ADC2
+ * I2C.SDA/PC2           |-07|11-|   PA5/AIN5/ADC1/DW1000.INT
+ * I2C.SCL/PC3           |-08|10-|   PA4/AIN4/ADC2/DW1000.CSN
  * DGND                  |-09|09-|   DGND
  * D+3.3                 |-10|08-|   D+5.0
  * CC1200.GPIO0/PB4      |-11|07-|   PA2/AIN2/ADC3
  * CC1200.GPIO2/PB0      |-12|06-|   PA6/AIN6/USD.SEL|ADC4
- * UART1.RX/PC1          |-13|05-|   PC6/SPI1.MISO
- * UART1.TX/PC0          |-14|04-|   PC5/SPI1.MOSI
- * DGND                  |-15|03-|   PC4/SPI1.SCLK
+ * UART1.RX/PC1          |-13|05-|   PC6/SPI1.MISO/DW1000.MISO
+ * UART1.TX/PC0          |-14|04-|   PC5/SPI1.MOSI/DM1000.MOSI
+ * DGND                  |-15|03-|   PC4/SPI1.SCLK/DW1000.CLK
  * D+3.3                 |-16|02-|   PS+EXT/VIN
  * CC1200.CS/PB5         |-17|01-|   DGND
  * ----------------------+---+---+---------------------------------------------
@@ -557,7 +557,7 @@
 // #endif
 
 
-#define RADIO_DRIVER_UWB 			1
+// #define RADIO_DRIVER_UWB 			1
 
 
 #endif /* BOARD_H_ */

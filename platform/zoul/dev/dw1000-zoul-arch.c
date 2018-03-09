@@ -319,9 +319,9 @@ void dw1000_arch_init()
   dw1000_arch_spi_deselect();
 
   /* Ensure MISO is low */
-  BUSYWAIT_UNTIL(
-    (GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0),
-    RTIMER_SECOND / 10);
+  // BUSYWAIT_UNTIL(
+  //   (GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0),
+  //   RTIMER_SECOND / 10);
 
   if(DW1000_ARCH_CONF_DMA) {
     printf("dma enabled\n");

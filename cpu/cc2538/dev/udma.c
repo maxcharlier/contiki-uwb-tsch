@@ -42,6 +42,8 @@
 
 #include <stdint.h>
 #include <string.h>
+
+#include <stdio.h>
 /*---------------------------------------------------------------------------*/
 struct channel_ctrl {
   uint32_t src_end_ptr;
@@ -96,6 +98,16 @@ udma_set_channel_control_word(uint8_t channel, uint32_t ctrl)
   channel_config[channel].ctrl_word = ctrl;
 }
 /*---------------------------------------------------------------------------*/
+uint32_t
+udma_channel_get_control_word(uint8_t channel)
+{
+  if(channel > UDMA_CONF_MAX_CHANNEL) {
+    return 0;
+  }
+
+  return (channel_config[channel].ctrl_word);
+}
+/*---------------------------------------------------------------------------*/
 void
 udma_set_channel_assignment(uint8_t channel, uint8_t enc)
 {
@@ -114,6 +126,13 @@ udma_set_channel_assignment(uint8_t channel, uint8_t enc)
 
   /* Read CHMAPx value, zero out channel's bits and write the new value */
   REG(base_chmap) = (REG(base_chmap) & ~(0x0F << shift)) | (enc << shift);
+
+  /* Setting a bit selects the secondary channel assignment as 
+      specified in the section "Channel Assignments" */
+  if(enc != 0)
+    REG(UDMA_CHASGN) |= 0x1 << channel;
+  else
+    REG(UDMA_CHASGN) &= ~(0x1 << channel);
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -246,6 +265,7 @@ udma_isr()
 {
   /* Simply clear Channel interrupt status for now */
   REG(UDMA_CHIS) = UDMA_CHIS_CHIS;
+  // printf("udma_isr\n");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -253,6 +273,7 @@ udma_err_isr()
 {
   /* Stub Implementation, just clear the error flag */
   REG(UDMA_ERRCLR) = 1;
+  printf("udma_err_isr\n");
 }
 /*---------------------------------------------------------------------------*/
 

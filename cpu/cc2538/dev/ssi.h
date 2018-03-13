@@ -140,6 +140,8 @@
 #define SSI_ICR_RTIC_S          1          /**< Receive time-out interrupt clear shift */
 #define SSI_ICR_RORIC_M         0x00000001 /**< Receive overrun interrupt clear mask */
 #define SSI_ICR_RORIC_S         0          /**< Receive overrun interrupt clear shift */
+#define SSI_DMACTL_DMAERR_M     0x00000003 /**< DMA on error mask */
+#define SSI_DMACTL_DMAERR_S     2          /**< DMA on error shift */
 #define SSI_DMACTL_TXDMAE_M     0x00000002 /**< Transmit DMA enable mask */
 #define SSI_DMACTL_TXDMAE_S     1          /**< Transmit DMA enable shift */
 #define SSI_DMACTL_RXDMAE_M     0x00000001 /**< Receive DMA enable mask */

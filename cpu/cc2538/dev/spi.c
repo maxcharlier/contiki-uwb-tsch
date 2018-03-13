@@ -46,6 +46,10 @@
 #include "dev/spi.h"
 #include "dev/ssi.h"
 #include "dev/gpio.h"
+
+
+#include <stdio.h>
+
 /*---------------------------------------------------------------------------*/
 /* Check port / pin settings for SPI0 and provide default values for spi_cfg */
 #ifndef SPI0_CLK_PORT
@@ -339,13 +343,17 @@ spix_set_clock_freq(uint8_t spi, uint32_t freq)
   if(!freq) {
     scr = 255;
   } else {
-    div = (uint64_t)regs->ssi_cprs_cpsdvsr * freq;
+    div = (uint64_t) (regs->ssi_cprs_cpsdvsr) * freq;
     scr = (SSI_SYS_CLOCK + div - 1) / div;
+    // scr = (SSI_SYS_CLOCK) / div;
     scr = MIN(MAX(scr, 1), 256) - 1;
   }
   REG(regs->base + SSI_CR0) = (REG(regs->base + SSI_CR0) & ~SSI_CR0_SCR_M) |
                               scr << SSI_CR0_SCR_S;
-
+// printf("ssi_cprs_cpsdvsr %ld\n", regs->ssi_cprs_cpsdvsr);
+// printf("SSI_SYS_CLOCK %ld\n", SSI_SYS_CLOCK);
+  printf("requested clock  %ld\n", freq);
+  printf("Effective clock  %ld\n", SSI_SYS_CLOCK / (regs->ssi_cprs_cpsdvsr *(1+scr)));
   /* Re-enable the SSI */
   REG(regs->base + SSI_CR1) |= SSI_CR1_SSE;
 }
@@ -358,5 +366,24 @@ spix_cs_init(uint8_t port, uint8_t pin)
   ioc_set_over(port, pin, IOC_OVERRIDE_DIS);
   GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(port), GPIO_PIN_MASK(pin));
   GPIO_SET_PIN(GPIO_PORT_TO_BASE(port), GPIO_PIN_MASK(pin));
+}
+/*---------------------------------------------------------------------------*/
+void
+spix_enbale_dma(uint8_t spi, uint8_t mode){  
+  if(spi >= SSI_INSTANCE_COUNT) {
+    return;
+  }
+
+  REG(SSI_BASE(spi) + SSI_DMACTL) |= mode;
+}
+
+/*---------------------------------------------------------------------------*/
+void
+spix_disable_dma(uint8_t spi, uint8_t mode){
+  if(spi >= SSI_INSTANCE_COUNT) {
+    return;
+  }
+
+  REG(SSI_BASE(spi) + SSI_DMACTL) &= ~(SSI_DMACTL_TXDMAE_M);
 }
 /** @} */

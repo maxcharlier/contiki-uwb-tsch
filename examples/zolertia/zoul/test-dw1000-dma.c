@@ -32,7 +32,7 @@
  * 8 source increment and 0 bit destination increment, one would need to pass */
 #define DW1000_TX_CRTL_WORD (UDMA_CHCTL_XFERMODE_BASIC  \
   | UDMA_CHCTL_SRCINC_8 | UDMA_CHCTL_SRCSIZE_8 \
-  | UDMA_CHCTL_DSTINC_NONE | UDMA_CHCTL_DSTSIZE_8 | UDMA_CHCTL_NXTUSEBURST)
+  | UDMA_CHCTL_DSTINC_NONE | UDMA_CHCTL_DSTSIZE_8)
 
 #define WRITE_BUFFER        DW_REG_TX_BUFFER 
 
@@ -107,6 +107,22 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 
   // dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
 
+  /* According 8.3.3 DMA Flash Write, "High priority should also be ensured for
+    the DMA channel, so it is not interrupted in the write process. If 
+    interrupted for more than 20 μs, the write operation may time out, 
+    and the write bit, FCTL.WRITE, is set to 0." */
+  udma_channel_prio_set_high(DW1000_CONF_TX_DMA_SPI_CHAN);
+
+  /* Set the channel to the assignment 1 according to the Table 10-1. 
+    "μDMA Channel Assignments */
+  udma_set_channel_assignment(DW1000_CONF_TX_DMA_SPI_CHAN, 
+                            DW1000_CONF_TX_DMA_SPI_ENC);
+
+  /*
+   * Set the channel's end DST : The SPI FIFO register.
+   */
+  udma_set_channel_dst(DW1000_CONF_TX_DMA_SPI_CHAN, 
+                            CC2538_DW1000_SPI_FIFO_REG);
   for(;;) {
     PROCESS_YIELD();
     if(ev == serial_line_event_message) {
@@ -146,11 +162,6 @@ PROCESS_THREAD(dw1000_dma, ev, data)
           // udma_channel_disable(DW1000_CONF_TX_DMA_SPI_CHAN);
           // udma_channel_disable(DW1000_CONF_RX_DMA_SPI_CHAN);
 
-          /* According 8.3.3 DMA Flash Write, "High priority should also be 
-          ensured for the DMA channel, so it is not interrupted in the write 
-          process. If interrupted for more than 20 μs, the write operation may 
-          time out, and the write bit, FCTL.WRITE, is set to 0."" */
-          udma_channel_prio_set_high(DW1000_CONF_TX_DMA_SPI_CHAN);
 
           /* Enable uDMA for the transmit SSI FIFO */
           REG(CC2538_DW1000_SPI_DMA_REG) |= SSI_DMACTL_TXDMAE_M;
@@ -162,19 +173,12 @@ PROCESS_THREAD(dw1000_dma, ev, data)
           the channel.*/
           // udma_channel_mask_set(DW1000_CONF_TX_DMA_SPI_CHAN);
 
-          /* set the encoding param for the channel */
-          udma_set_channel_assignment(DW1000_CONF_TX_DMA_SPI_CHAN, 
-                                    DW1000_CONF_TX_DMA_SPI_ENC);
 
           /* Set the transfer source's end address */
           udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
                                (uint32_t)(&random_bytes[0]) + write_spi_len - 1);
 
-          /*
-           * Set the channel's end DST : The SPI FIFO register.
-           */
-          udma_set_channel_dst(DW1000_CONF_TX_DMA_SPI_CHAN, 
-                                    CC2538_DW1000_SPI_FIFO_REG);
+
 
 
           /*
@@ -189,13 +193,14 @@ PROCESS_THREAD(dw1000_dma, ev, data)
             the number of byte to transfer see 10.3.4.2 Burst Request*/
           udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
                                   DW1000_TX_CRTL_WORD | udma_xfer_size(write_spi_len) |
-                                  UDMA_CHCTL_ARBSIZE_1);
+                                  // udma_arb_size(write_spi_len));
+                                  UDMA_CHCTL_ARBSIZE_4);
 
           // udma_channel_use_single(DW1000_CONF_TX_DMA_SPI_CHAN);
 
           /* SPI support burst of 4 bytes according to the Table 10-2. 
             Request Type Support */
-          udma_channel_use_burst(DW1000_CONF_TX_DMA_SPI_CHAN);
+          // udma_channel_use_burst(DW1000_CONF_TX_DMA_SPI_CHAN);
           // printf("REG(CC2538_DW1000_SPI_FIFO_REG) 0X%08X\n", REG(CC2538_DW1000_SPI_FIFO_REG));
 
 

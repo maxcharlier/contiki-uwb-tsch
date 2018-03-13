@@ -182,8 +182,8 @@ typedef uint32_t rtimer_clock_t;
 #define USB_ARCH_CONF_TX_DMA_CHAN   1 /**< RAM -> USB DMA channel */
 #define CC2538_RF_CONF_TX_DMA_CHAN  2 /**< RF -> RAM DMA channel */
 #define CC2538_RF_CONF_RX_DMA_CHAN  3 /**< RAM -> RF DMA channel */
-#define DW1000_CONF_RX_DMA_SPI_CHAN  10
-#define DW1000_CONF_TX_DMA_SPI_CHAN  11
+#define DW1000_CONF_RX_DMA_SPI_CHAN  10 /**< SPI -> RAM DMA channel */
+#define DW1000_CONF_TX_DMA_SPI_CHAN  11 /**< RAM -> SPI DMA channel */
 #define UDMA_CONF_MAX_CHANNEL       DW1000_CONF_TX_DMA_SPI_CHAN
 /** @} */
 /*---------------------------------------------------------------------------*/
@@ -456,7 +456,7 @@ typedef uint32_t rtimer_clock_t;
   #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
 
-  #define DW1000_ARCH_CONF_DMA        0
+  #define DW1000_ARCH_CONF_DMA        1
 #endif /* RADIO_DRIVER_UWB */
 
 /** @} */

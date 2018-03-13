@@ -213,6 +213,26 @@ void spix_set_clock_freq(uint8_t spi, uint32_t freq);
  */
 void spix_cs_init(uint8_t port, uint8_t pin);
 
+/**
+ * \brief Configure the SPI to enable the DMA usage in TX ou RX.
+ *
+ * \param spi SSI instance 
+ * \param mode The DMA mode (RX or TX):
+ * For example to enable RX and TX mode : 
+ *      mode = SSI_DMACTL_TXDMAE_M | SSI_DMACTL_RXDMAE_M
+ */
+void spix_enbale_dma(uint8_t spi, uint8_t mode);
+
+/**
+ * \brief Configure the SPI to disable the DMA usage in TX ou RX.
+ *
+ * \param spi SSI instance 
+ * \param mode The DMA transfert mode (RX or TX):
+ * For example to disable RX and TX DMA mode : 
+ *      mode = SSI_DMACTL_TXDMAE_M | SSI_DMACTL_RXDMAE_M
+ */
+void spix_disable_dma(uint8_t spi, uint8_t mode);
+
 /** @} */
 
 #endif /* SPI_ARCH_H_ */

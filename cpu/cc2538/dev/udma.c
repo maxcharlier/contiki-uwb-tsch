@@ -267,12 +267,24 @@ udma_channel_get_mode(uint8_t channel)
 
   return (channel_config[channel].ctrl_word & 0x07);
 }
+
+uint16_t
+udma_channel_get_xfer_size(uint8_t channel)
+{
+  if(channel > UDMA_CONF_MAX_CHANNEL) {
+    return 0;
+  }
+
+  return ((channel_config[channel].ctrl_word & UDMA_CHCTL_XFERSIZE_M) 
+                                          >> UDMA_CHCTL_XFERSIZE_S);
+}
 /*---------------------------------------------------------------------------*/
 void
 udma_isr()
 {
   /* Simply clear Channel interrupt status for now */
   REG(UDMA_CHIS) = UDMA_CHIS_CHIS;
+  printf("udma_isr\n");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -280,6 +292,7 @@ udma_err_isr()
 {
   /* Stub Implementation, just clear the error flag */
   REG(UDMA_ERRCLR) = 1;
+  printf("udma_err_isr\n");
 }
 /*---------------------------------------------------------------------------*/
 

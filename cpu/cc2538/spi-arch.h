@@ -233,6 +233,23 @@ void spix_enbale_dma(uint8_t spi, uint8_t mode);
  */
 void spix_disable_dma(uint8_t spi, uint8_t mode);
 
+/**
+ * \brief Retrieve if the transmit SPI FIFO is empty. 
+ *      Could be used to detect the end of a DMA transmission.
+ *
+ * \param spi SSI instance 
+ */
+uint8_t spix_transmit_fifo_is_empty(uint8_t spi);
+
+/**
+ * \brief Retrieve if the SPI is busy. I.E. SSI is currently transmitting 
+ *          and/or receiving a frame or the transmit FIFO is not empty.
+ *      Could be used to detect the end of a DMA transmission.
+ *
+ * \param spi SSI instance 
+ */
+uint8_t spix_is_busy(uint8_t spi);
+
 /** @} */
 
 #endif /* SPI_ARCH_H_ */

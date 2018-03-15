@@ -503,6 +503,25 @@
 #define UDMA_CH31_RESERVED3         0x03
 #define UDMA_CH31_RESERVED4         0x04
 /** @} */
+
+/* Control Word */
+#define UDMA_CHCTL_XFERMODE_M     0x00000007 /**< XFERMODE masked state mask */
+#define UDMA_CHCTL_XFERMODE_S     0          /**< XFERMODE masked state shift */
+#define UDMA_CHCTL_NXTUSEBURST_M  0x00000008 /**< NXTUSEBURST masked state mask */
+#define UDMA_CHCTL_NXTUSEBURST_S  3          /**< NXTUSEBURST masked state shift */
+#define UDMA_CHCTL_XFERSIZE_M     0x00003FF0 /**< XFERSIZE masked state mask */
+#define UDMA_CHCTL_XFERSIZE_S     4          /**< XFERSIZE masked state shift */
+#define UDMA_CHCTL_ARBSIZE_M      0x0003C000 /**< ARBSIZE masked state mask */
+#define UDMA_CHCTL_ARBSIZE_S      14         /**< ARBSIZE masked state shift */
+#define UDMA_CHCTL_SRCSIZE_M      0x03000000 /**< SRCSIZE masked state mask */
+#define UDMA_CHCTL_SRCSIZE_S      24         /**< SRCSIZE masked state shift */
+#define UDMA_CHCTL_SRCINC_M       0x0C000000 /**< SRCINC masked state mask */
+#define UDMA_CHCTL_SRCINC_S       26         /**< SRCINC masked state shift */
+#define UDMA_CHCTL_DSTSIZE_M      0x30000000 /**< DSTSIZE masked state mask */
+#define UDMA_CHCTL_DSTSIZE_S      28         /**< DSTSIZE masked state shift */
+#define UDMA_CHCTL_DSTINC_M       0xC0000000 /**< DSTINC masked state mask */
+#define UDMA_CHCTL_DSTINC_S       30         /**< DSTINC masked state shift */
+/** @} */
 /*---------------------------------------------------------------------------*/
 /**
  * \name Values to ORd together as the ctrl argument of
@@ -693,6 +712,17 @@ void udma_channel_sw_request(uint8_t channel);
  * which case the return value will be UDMA_CHCTL_XFERMODE_STOP
  */
 uint8_t udma_channel_get_mode(uint8_t channel);
+
+
+/**
+ * \brief Retrieve the remaining number of transfert for a channel
+ * \param channel The channel as a value in [0 , UDMA_CONF_MAX_CHANNEL]
+ * \return The channel's remaining number of transfert
+ *
+ * The return value will be the XFERSIZE stored in the control word.
+ */
+uint16_t udma_channel_get_xfer_size(uint8_t channel);
+
 
 /**
  * \brief Calculate the value of the xfersize field in the control structure

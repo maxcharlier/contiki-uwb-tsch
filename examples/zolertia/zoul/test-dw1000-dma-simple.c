@@ -22,7 +22,7 @@
 // #define DEBUG 1
 
 /* DW_REG_TX_BUFFER | DW_REG_RX_BUFFER | DW_REG_USR_SFD */
-#define WRITE_BUFFER        DW_REG_RX_BUFFER 
+#define WRITE_BUFFER        DW_REG_TX_BUFFER 
 
 /*---------------------------------------------------------------------------*/
 PROCESS(dw1000_dma, "Frame master");
@@ -67,7 +67,7 @@ PROCESS_THREAD(dw1000_dma, ev, data)
   printf("     [0, n] write n random byte in the RX buffer\n");
   printf("     [1, n] read n byte in the RX buffer\n");
 
-  dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
+  // dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
 
   for(;;) {
     PROCESS_YIELD();

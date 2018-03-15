@@ -369,21 +369,42 @@ spix_cs_init(uint8_t port, uint8_t pin)
 }
 /*---------------------------------------------------------------------------*/
 void
-spix_enbale_dma(uint8_t spi, uint8_t mode){  
+spix_enbale_dma(uint8_t spi, uint8_t mode)
+{  
   if(spi >= SSI_INSTANCE_COUNT) {
     return;
   }
 
   REG(SSI_BASE(spi) + SSI_DMACTL) |= mode;
 }
-
 /*---------------------------------------------------------------------------*/
 void
-spix_disable_dma(uint8_t spi, uint8_t mode){
+spix_disable_dma(uint8_t spi, uint8_t mode)
+{
   if(spi >= SSI_INSTANCE_COUNT) {
     return;
   }
 
   REG(SSI_BASE(spi) + SSI_DMACTL) &= ~(SSI_DMACTL_TXDMAE_M);
+}
+/*---------------------------------------------------------------------------*/
+uint8_t
+spix_transmit_fifo_is_empty(uint8_t spi)
+{
+  if(spi >= SSI_INSTANCE_COUNT) {
+    return 0;
+  }
+
+  return (REG(SSI_BASE(spi) + SSI_SR) & SSI_SR_TFE) > 0;
+}
+/*---------------------------------------------------------------------------*/
+uint8_t
+spix_is_busy(uint8_t spi)
+{
+  if(spi >= SSI_INSTANCE_COUNT) {
+    return 0;
+  }
+
+  return (REG(SSI_BASE(spi) + SSI_SR) & SSI_SR_BSY) > 0;
 }
 /** @} */

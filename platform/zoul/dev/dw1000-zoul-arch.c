@@ -76,8 +76,9 @@
 #ifndef DW1000_ARCH_CONF_DMA
 #define DW1000_ARCH_CONF_DMA      1
 #endif
-#define UDMA_SIZE_THRESHOLD       5
+#define UDMA_SIZE_THRESHOLD       8
 
+#define SSI_FIFO_SIZE             8
 // #undef DW1000_ARCH_CONF_DMA
 // #define DW1000_ARCH_CONF_DMA 0
 /* Channel choose according to the Table 10-1. μDMA Channel Assignments of the 
@@ -111,7 +112,6 @@
   See "SSI_DR" in the CC2538 user manual */
 #define CC2538_DW1000_SPI_FIFO_REG (SSI_BASE(DWM1000_SPI_INSTANCE) + SSI_DR)
 #define CC2538_DW1000_SPI_DMA_REG  (SSI_BASE(DWM1000_SPI_INSTANCE) + SSI_DMACTL)
-
 /*---------------------------------------------------------------------------*/
 
 #define DEBUG 1
@@ -165,12 +165,11 @@ dw1000_arch_spi_deselect(void)
 int
 dw1000_arch_spi_rw_byte(uint8_t c)
 {
-  SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
+  SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* wait transmit FIFO not full */
   SPIX_BUF(DWM1000_SPI_INSTANCE) = c;
-  SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
-  SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
-  c = SPIX_BUF(DWM1000_SPI_INSTANCE);
+  SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
 
+  c = SPIX_BUF(DWM1000_SPI_INSTANCE);
   return c;
 }/*---------------------------------------------------------------------------*/
 int
@@ -180,18 +179,45 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
     return 1;
   } 
   else{
-    if(DW1000_ARCH_CONF_DMA && len > UDMA_SIZE_THRESHOLD)
-    // if(0 && len > 0)
-    { /* We will do a uDMA transfert */
+    if(DW1000_ARCH_CONF_DMA && len > SSI_FIFO_SIZE)
+    { /* We will do a uDMA transfer */
 
       /* Enable uDMA for the SSI module */
       REG(CC2538_DW1000_SPI_DMA_REG) |= SSI_DMACTL_TXDMAE_M | 
                                         SSI_DMACTL_RXDMAE_M;
 
+      if(write_buf == NULL){
+        /* We will do a DMA receive only, we need to write dummy byte (0) in 
+          the SPI TX FIFO */
+        spi_dummy_buffer = 0;
+        for(int i = 0; i < SSI_FIFO_SIZE; i++) {
+          SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
+        }
+        udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
+                           (uint32_t)(&spi_dummy_buffer));
+
+        udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
+                          DW1000_TX_FOR_RX_CRTL_WORD | 
+                          udma_xfer_size(len - SSI_FIFO_SIZE) |
+                          UDMA_CHCTL_ARBSIZE_4);
+      }
+      else
+      {
+        for(int i = 0; i < SSI_FIFO_SIZE; i++) {
+          SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
+        }
+        udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
+                          (uint32_t)(write_buf) + len - 1);
+
+        udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
+                          DW1000_TX_CRTL_WORD | 
+                          udma_xfer_size(len - SSI_FIFO_SIZE) |
+                          UDMA_CHCTL_ARBSIZE_4);
+      }
       if(inbuf == NULL){
         /* We don't need the reeded value: we put these value in a dummy buffer.
-          Thank's to the DMA reception, we don't need to flush the SPI buffer 
-          at the end of the SPI transfert. */
+          Thanks to the DMA reception, we don't need to flush the SPI buffer 
+          at the end of the SPI transfer. */
         udma_set_channel_dst(DW1000_CONF_RX_DMA_SPI_CHAN,
                            (uint32_t)(&spi_dummy_buffer));
 
@@ -208,26 +234,6 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
                           DW1000_RX_CRTL_WORD | udma_xfer_size(len) |
                           UDMA_CHCTL_ARBSIZE_4);
       }
-      if(write_buf == NULL){
-        /* We will do a DMA receive only, we need to write dummy byte (0) in 
-          the SPI TX FIFO */
-        spi_dummy_buffer = 0;
-        udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
-                           (uint32_t)(&spi_dummy_buffer));
-
-        udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
-                          DW1000_TX_FOR_RX_CRTL_WORD | udma_xfer_size(len) |
-                          UDMA_CHCTL_ARBSIZE_4);
-      }
-      else
-      {
-        udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
-                          (uint32_t)(write_buf) + len - 1);
-
-        udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
-                          DW1000_TX_CRTL_WORD | udma_xfer_size(len) |
-                          UDMA_CHCTL_ARBSIZE_4);
-      }
       /* Enable the UDMA channel's */
       udma_channel_enable(DW1000_CONF_RX_DMA_SPI_CHAN);
       udma_channel_enable(DW1000_CONF_TX_DMA_SPI_CHAN);
@@ -236,45 +242,46 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len)
       while(udma_channel_get_mode(DW1000_CONF_RX_DMA_SPI_CHAN)
              != UDMA_CHCTL_XFERMODE_STOP);
 
-      /* Wait for the UDMA transfer to complete. */
-      // while(udma_channel_get_mode(DW1000_CONF_TX_DMA_SPI_CHAN)
-             // != UDMA_CHCTL_XFERMODE_STOP);
-      
-      /* Wait for the SPI FIFO to be empty */
-      // while(spix_transmit_fifo_is_empty(DWM1000_SPI_INSTANCE));
-
-      /* We empty the receive SPI FIFO */
-      // SPIX_FLUSH(DWM1000_SPI_INSTANCE);
-
-      /* Disable uDMA for the receive SSI FIFO */
+      /* Disable uDMA for the SSI FIFO */
       REG(CC2538_DW1000_SPI_DMA_REG) &= ~(SSI_DMACTL_RXDMAE_M | SSI_DMACTL_TXDMAE_M);
     }
     else if(inbuf == NULL) {
+      /* only write on the SPI */
+      /* The SPI FIFO have a size of 8 */
+      SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is empty */
+
       for(int i = 0; i < len; i++) {
-        SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
         SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
-        SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
-        SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
+      }
+      for(int i = 0; i < len; i++) {
+        SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
         /* read the receive FIFO to clear it*/
         SPIX_BUF(DWM1000_SPI_INSTANCE);
       }
     }
     else if(write_buf == NULL) {
-      /* read on the SPI */
+      /* only read on the SPI */
+      /* The SPI FIFO have a size of 8 */
+      SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is empty */
       for(int i = 0; i < len; i++) {
-        SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
         SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
-        SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
-        SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
+      }
+      for(int i = 0; i < len; i++) {
+        SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
+        /* read the receive FIFO to clear it*/
         inbuf[i] = SPIX_BUF(DWM1000_SPI_INSTANCE);
       }
     }
     else {
+      /* The SPI FIFO have a size of 8 */
+      SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is empty */
+
       for(int i = 0; i < len; i++) {
-        SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE);
         SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
-        SPIX_WAITFOREOTx(DWM1000_SPI_INSTANCE);
-        SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);
+      }
+      for(int i = 0; i < len; i++) {
+        SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
+        /* read the receive FIFO to clear it*/
         inbuf[i] = SPIX_BUF(DWM1000_SPI_INSTANCE);
       }
     }
@@ -350,14 +357,7 @@ void dw1000_arch_init()
   //   (GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0),
   //   RTIMER_SECOND / 10);
 
-  if(DW1000_ARCH_CONF_DMA) {  
-  /* According 8.3.3 DMA Flash Write, "High priority should also be ensured for
-    the DMA channel, so it is not interrupted in the write process. If 
-    interrupted for more than 20 μs, the write operation may time out, 
-    and the write bit, FCTL.WRITE, is set to 0." */
-  // udma_channel_prio_set_high(DW1000_CONF_RX_DMA_SPI_CHAN);
-  // udma_channel_prio_set_high(DW1000_CONF_TX_DMA_SPI_CHAN);
-
+  if(DW1000_ARCH_CONF_DMA) {
   /* Set the channel to the assignment 1 according to the Table 10-1. 
     "μDMA Channel Assignments" */
   udma_set_channel_assignment(DW1000_CONF_RX_DMA_SPI_CHAN, 
@@ -373,6 +373,7 @@ void dw1000_arch_init()
   udma_set_channel_dst(DW1000_CONF_TX_DMA_SPI_CHAN, 
                             CC2538_DW1000_SPI_FIFO_REG);
 
+  /* Enable peripheral triggers */
   udma_channel_mask_clr(DW1000_CONF_RX_DMA_SPI_CHAN);
   udma_channel_mask_clr(DW1000_CONF_TX_DMA_SPI_CHAN);
 
@@ -388,7 +389,7 @@ void dw1000_us_delay(int us){
 }
 /**
  * Change the SPI frequency to freq.
- * If freq is bigger than the maximum SPI frequency value of the embedeed 
+ * If freq is bigger than the maximum SPI frequency value of the embedded 
  * system set this maximum value.
  **/
 void dw1000_arch_spi_set_clock_freq(uint32_t freq){

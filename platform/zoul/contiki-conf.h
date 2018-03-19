@@ -396,20 +396,20 @@ typedef uint32_t rtimer_clock_t;
 #endif /* REMOTE_DUAL_RF_ENABLED */
 
 #if RADIO_DRIVER_UWB
-  /* 336us from calling transmit() until the SFD byte has been sent 
+  /* 331us from calling transmit() until the SFD byte has been sent 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
   in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
   Dependant of the configuration (DATA_RATE, PREAMBLE_LENGHT)*/
   #undef RADIO_DELAY_BEFORE_TX
-  #define RADIO_DELAY_BEFORE_TX     ((unsigned) US_TO_RTIMERTICKS(336))
+  #define RADIO_DELAY_BEFORE_TX     ((unsigned) US_TO_RTIMERTICKS(331))
   // #define RADIO_DELAY_BEFORE_TX     0
-  /* the call of NETSTACK_CONF_RADIO.on take until 122us, not dependant of the configuration.
-  The radio is ready to receive after this call (we wait inside of the function). 
+  /* the call of NETSTACK_CONF_RADIO.on take 68us, not dependant of the configuration.
+  The radio is ready to receive 16 µs after this call. 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
   in the radio driver and be calling NETSTACK_CONF_RADIO.off() and after 
   NETSTACK_CONF_RADIO.on()*/
   #undef RADIO_DELAY_BEFORE_RX
-  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(122))
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(77))
   // #define RADIO_DELAY_BEFORE_RX     0
 
   #undef RADIO_DELAY_BEFORE_DETECT

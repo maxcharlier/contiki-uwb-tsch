@@ -68,8 +68,8 @@
  * -----------------------------+---+---+--------------------------------------
  * PIN_NAME                     |JP3|JP2|   PIN_NAME
  * -----------------------------+---+---+--------------------------------------
- * PB5/CC1200.CS                |-01|15-|   PD2/SPI1.MISO/DW1000.MISO
- * PB2/SPI0.SCLK/CC1200.SCLK    |-02|16-|   PD0/SPI1.SCLK/DW1000.SCLK
+ * PB5/CC1200.CS                |-01|15-|   PD2
+ * PB2/SPI0.SCLK/CC1200.SCLK    |-02|16-|   PD0
  * PB1/SPIO0.MOSI/CC1200.MOSI   |-03|17-|   ADC5/AIN7/PA7/DW1000.RST
  * PB3/SPIO0.MISO/CC1200.MISO   |-04|18-|   ADC4/AIN6/PA6/DW1000.WAKEUP
  * PB4/CC1200.GPIO0             |-05|19-|   DGND/DW1000.GND
@@ -79,9 +79,9 @@
  * PC3/I2C.SCL                  |-09|23-|   BUTTON.USER/ADC6/AIN3/PA3
  * DGND                         |-10|24-|   ADC3/AIN2/PA2
  * +VDD/DW1000.D+3.3            |-11|25-|   PC0/UART1.TX
- * PC6/SPI1.MOSI/DW1000.MOSI    |-12|26-|   PC1/UART1.RX
- * USB.D+                       |-13|27-|   PC4
- * USB.D-                       |-14|28-|   PC5
+ * PC6/SPI1.MISO/DW1000.MISO    |-12|26-|   PC1/UART1.RX
+ * USB.D+                       |-13|27-|   PC4/SPI1.SCLK/DW1000.SCLK
+ * USB.D-                       |-14|28-|   PC5/SPI1.MOSI/DW1000.MOSI
  * ---------------------------+-+---+---+-+------------------------------------
  */
 /*---------------------------------------------------------------------------*/
@@ -309,12 +309,12 @@
  * TX -> MOSI, RX -> MISO
  * @{
  */
-#define SPI1_CLK_PORT            GPIO_D_NUM
-#define SPI1_CLK_PIN             0
+#define SPI1_CLK_PORT            GPIO_C_NUM
+#define SPI1_CLK_PIN             4
 #define SPI1_TX_PORT             GPIO_C_NUM
-#define SPI1_TX_PIN              6
-#define SPI1_RX_PORT             GPIO_D_NUM
-#define SPI1_RX_PIN              2
+#define SPI1_TX_PIN              5
+#define SPI1_RX_PORT             GPIO_C_NUM
+#define SPI1_RX_PIN              6
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**

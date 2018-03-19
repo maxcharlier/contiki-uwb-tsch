@@ -108,13 +108,16 @@
 #endif
 /*---------------------------------------------------------------------------*/
 /* New API macros */
+/* Wait until the transmit FIFO is not full */
 #define SPIX_WAITFORTxREADY(spi) do { \
     while(!(REG(SSI_BASE(spi) + SSI_SR) & SSI_SR_TNF)) ; \
 } while(0)
 #define SPIX_BUF(spi)                   REG(SSI_BASE(spi) + SSI_DR)
+/* Wait until the SPI is in IDLE (TX and RX FIFO empty) */
 #define SPIX_WAITFOREOTx(spi) do { \
     while(REG(SSI_BASE(spi) + SSI_SR) & SSI_SR_BSY) ; \
 } while(0)
+/* Wait until the SPI RX FIFO is not empty */
 #define SPIX_WAITFOREORx(spi) do { \
     while(!(REG(SSI_BASE(spi) + SSI_SR) & SSI_SR_RNE)) ; \
 } while(0)
@@ -232,23 +235,6 @@ void spix_enbale_dma(uint8_t spi, uint8_t mode);
  *      mode = SSI_DMACTL_TXDMAE_M | SSI_DMACTL_RXDMAE_M
  */
 void spix_disable_dma(uint8_t spi, uint8_t mode);
-
-/**
- * \brief Retrieve if the transmit SPI FIFO is empty. 
- *      Could be used to detect the end of a DMA transmission.
- *
- * \param spi SSI instance 
- */
-uint8_t spix_transmit_fifo_is_empty(uint8_t spi);
-
-/**
- * \brief Retrieve if the SPI is busy. I.E. SSI is currently transmitting 
- *          and/or receiving a frame or the transmit FIFO is not empty.
- *      Could be used to detect the end of a DMA transmission.
- *
- * \param spi SSI instance 
- */
-uint8_t spix_is_busy(uint8_t spi);
 
 /** @} */
 

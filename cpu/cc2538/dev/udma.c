@@ -43,9 +43,6 @@
 #include <stdint.h>
 #include <string.h>
 
-
-#include <stdio.h>
-
 /*---------------------------------------------------------------------------*/
 struct channel_ctrl {
   uint32_t src_end_ptr;
@@ -119,7 +116,6 @@ udma_set_channel_assignment(uint8_t channel, uint8_t enc)
   if(channel > UDMA_CONF_MAX_CHANNEL) {
     return;
   }
-  printf("channel %d, enc %d\n", channel, enc);
 
   /* Calculate the address of the relevant CHMAP register */
   base_chmap += (channel >> 3) * 4;
@@ -136,11 +132,6 @@ udma_set_channel_assignment(uint8_t channel, uint8_t enc)
     REG(UDMA_CHASGN) |= 1 << channel;
   else
     REG(UDMA_CHASGN) &= ~(1 << channel);
-
-  printf("UDMA_CHASGN addr 0X%08lx\n", UDMA_CHASGN);
-  printf("UDMA_CHASGN      0X%08lx\n", REG(UDMA_CHASGN));
-  printf("base_chmap addr  0X%08lx\n", (base_chmap));
-  printf("base_chmap       0X%08lx\n", REG(base_chmap));
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -284,7 +275,6 @@ udma_isr()
 {
   /* Simply clear Channel interrupt status for now */
   REG(UDMA_CHIS) = UDMA_CHIS_CHIS;
-  printf("udma_isr\n");
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -292,7 +282,6 @@ udma_err_isr()
 {
   /* Stub Implementation, just clear the error flag */
   REG(UDMA_ERRCLR) = 1;
-  printf("udma_err_isr\n");
 }
 /*---------------------------------------------------------------------------*/
 

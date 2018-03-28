@@ -350,12 +350,24 @@ spix_set_clock_freq(uint8_t spi, uint32_t freq)
   }
   REG(regs->base + SSI_CR0) = (REG(regs->base + SSI_CR0) & ~SSI_CR0_SCR_M) |
                               scr << SSI_CR0_SCR_S;
-// printf("ssi_cprs_cpsdvsr %ld\n", regs->ssi_cprs_cpsdvsr);
-// printf("SSI_SYS_CLOCK %ld\n", SSI_SYS_CLOCK);
-  printf("requested clock  %ld\n", freq);
-  printf("Effective clock  %ld\n", SSI_SYS_CLOCK / (regs->ssi_cprs_cpsdvsr *(1+scr)));
   /* Re-enable the SSI */
   REG(regs->base + SSI_CR1) |= SSI_CR1_SSE;
+}
+/*---------------------------------------------------------------------------*/
+uint32_t
+spix_get_clock_freq(uint8_t spi)
+{
+  const spi_regs_t *regs;
+  uint32_t scr;
+
+  if(spi >= SSI_INSTANCE_COUNT) {
+    return 0;
+  }
+
+  regs = &spi_regs[spi];
+
+  scr = REG(regs->base + SSI_CR0) & SSI_CR0_SCR_M;
+  return SSI_SYS_CLOCK / (regs->ssi_cprs_cpsdvsr *(1+scr));
 }
 /*---------------------------------------------------------------------------*/
 void

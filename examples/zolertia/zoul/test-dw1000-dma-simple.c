@@ -47,6 +47,7 @@ void gpio_down(void);
 
 PROCESS_THREAD(dw1000_dma, ev, data)
 {
+  static uint16_t offset = 0;
   PROCESS_BEGIN();
 
   // init_gpio();
@@ -81,7 +82,7 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 
       if(mode == 0x0 ){ 
         uint16_t nb_bytes = strtol(str, &str, 10);
-        nb_bytes--;
+        // nb_bytes--;
         /* generate the random bytes tab */
         uint8_t random_bytes[1025];
 
@@ -96,20 +97,23 @@ PROCESS_THREAD(dw1000_dma, ev, data)
         printf("\n");
 
         gpio_down();
-        dw_write_reg(WRITE_BUFFER, nb_bytes, (uint8_t *) &random_bytes[0]);
+        // dw_access_subreg(DW_WRITE, WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &random_bytes[0]);
+        dw_write_subreg(WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &random_bytes[0]);
         gpio_up();
       }
       else if(mode == 0x01){ 
         uint16_t nb_bytes = strtol(str, &str, 10);
-        nb_bytes--;
+        // nb_bytes--;
         /* generate the random bytes tab */
         uint8_t random_bytes[1023];
 
         gpio_down();
-        dw_read_reg(WRITE_BUFFER, nb_bytes, (uint8_t *) &random_bytes[0]);
+        dw_read_subreg(WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &random_bytes[0]);
+        // dw_access_subreg(DW_READ, WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &random_bytes[0]);
+
         gpio_up();
 
-        printf("WRITE_BUFFER %04u : ", nb_bytes);
+        printf("READ_BUFFER  %04u : ", nb_bytes);
         for(int i = 0; i < nb_bytes; i++){
           printf("%u ", random_bytes[i]);
           watchdog_periodic();
@@ -118,7 +122,7 @@ PROCESS_THREAD(dw1000_dma, ev, data)
       }
       else if(mode == 0x02){ 
         uint16_t nb_bytes = strtol(str, &str, 10);
-        nb_bytes--;
+        // nb_bytes--;
         nb_bytes = MIN(nb_bytes, 512);
         /* generate the random bytes tab */
         uint8_t random_bytes[512];
@@ -138,16 +142,19 @@ PROCESS_THREAD(dw1000_dma, ev, data)
         printf("\n");
 
         gpio_down();
-        dw_write_reg(WRITE_BUFFER, nb_bytes, (uint8_t *) &random_bytes[0]);
+        dw_write_subreg(WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &random_bytes[0]);
+        // dw_access_subreg(DW_WRITE, WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &random_bytes[0]);
+
         gpio_up();
 
         watchdog_periodic();
-
         gpio_down();
-        dw_read_reg(WRITE_BUFFER, nb_bytes, (uint8_t *) &read_bytes[0]);
+        dw_read_subreg(WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &read_bytes[0]);
+        // dw_access_subreg(DW_READ, WRITE_BUFFER, offset, nb_bytes, (uint8_t *) &read_bytes[0]);
+
         gpio_up();
 
-        printf("WRITE_BUFFER %04u : ", nb_bytes);
+        printf("READ_BUFFER  %04u : ", nb_bytes);
         for(int i = 0; i < nb_bytes; i++){
           if(read_bytes[i] != random_bytes[i]){
             if (nb_error == 0){
@@ -161,6 +168,10 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 
         printf("\n");
         printf("Nb error : %d, first error : %d \n", nb_error, first_error);
+      }
+      else if(mode == 0x03){ 
+        offset = strtol(str, &str, 16);
+        printf("Offset  %04X \n ", offset);
       }
     }
   }

@@ -57,6 +57,7 @@
 #include "dev/cc2538-rf.h"
 #include "dw1000-driver.h"
 #include "dev/udma.h"
+#include "spi-arch.h"
 #include "dev/crypto.h"
 #include "dev/rtcc.h"
 #include "usb/usb-serial.h"
@@ -283,6 +284,9 @@ main(void)
   PRINTF("%s\n", NETSTACK_MAC.name);
   PRINTF(" RDC: ");
   PRINTF("%s\n", NETSTACK_RDC.name);
+
+  PRINTF(" SPI Clock: ");
+  PRINTF("SPI: %lu Hz, SPI1: %lu Hz\n", spix_get_clock_freq(0), spix_get_clock_freq(1));
 
 #if NETSTACK_CONF_WITH_IPV6
   memcpy(&uip_lladdr.addr, &linkaddr_node_addr, sizeof(uip_lladdr.addr));

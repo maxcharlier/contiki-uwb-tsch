@@ -75,6 +75,7 @@ void dw1000_arch_spi_deselect(void);
  * Write a single byte via SPI, return response. 
  **/
 int dw1000_arch_spi_rw_byte(uint8_t c);
+void dw1000_arch_spi_w_byte(uint8_t c);
 /*---------------------------------------------------------------------------*/
 /** 
  * Write a sequence of bytes while reading back the response.
@@ -82,7 +83,13 @@ int dw1000_arch_spi_rw_byte(uint8_t c);
  **/
 int dw1000_arch_spi_rw(uint8_t *read_buf, 
                         const uint8_t *write_buf, 
-                        uint16_t len);
+                        uint16_t len,
+                        uint8_t spi_cmd_len);
+/*---------------------------------------------------------------------------*/
+void dw1000_arch_spi_write(uint8_t *spi_control, uint8_t spi_control_len,
+          uint8_t *write_buf, uint16_t len);
+void dw1000_arch_spi_read(uint8_t *spi_control, uint8_t spi_control_len,
+          uint8_t *write_buf, uint16_t len);
 /*---------------------------------------------------------------------------*/
 /**
  * Configure port IRQ for GPIO8.

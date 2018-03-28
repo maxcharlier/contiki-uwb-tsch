@@ -2703,6 +2703,7 @@ void
 dw_read_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *pData)
 {
   dw_read_subreg(reg_addr, 0x0, reg_len, pData);
+  // dw_access_subreg(DW_READ, reg_addr, 0x0, reg_len, pData);
 }
 /**
  * \brief       Reads the value from a register on the dw1000 as
@@ -2796,6 +2797,8 @@ void
 dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data)
 {
   dw_write_subreg(reg_addr, 0x0, reg_len, p_data);
+  // dw_access_subreg(DW_WRITE, reg_addr, 0x0, reg_len, p_data);
+
 }
 /**
  * \brief                 Reads the value from a sub-register on the DW1000 as 
@@ -2813,32 +2816,79 @@ dw_write_reg(uint32_t reg_addr, uint16_t reg_len, uint8_t *p_data)
 void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
                     uint16_t subreg_len, uint8_t * p_data)
 {
-
-  /* SPI communications */ 
-
-  /* Disable interrupt */
-  // dint();
+  uint8_t spi_cmd_len = 0;
 
   dw1000_arch_spi_select(); 
   /* write bit = 1, sub-reg present bit = 1 */
-  dw1000_arch_spi_rw_byte((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
+  dw1000_arch_spi_w_byte((subreg_addr > 0?0x40:0x00) | (reg_addr & 0x3F));
   if (subreg_addr > 0) {
     if (subreg_addr > 0x7F) {
       /* extended address bit = 1 */
-      dw1000_arch_spi_rw_byte(0x80 | (subreg_addr & 0x7F));
-      dw1000_arch_spi_rw_byte((subreg_addr >> 7) & 0xFF);
+      dw1000_arch_spi_w_byte(0x80 | (subreg_addr & 0x7F));
+      dw1000_arch_spi_w_byte((subreg_addr >> 7) & 0xFF);
+      spi_cmd_len = 3;
     } else {
       /* extended address bit = 0 */
-      dw1000_arch_spi_rw_byte(subreg_addr & 0x7F);
+      dw1000_arch_spi_w_byte(subreg_addr & 0x7F);
+      spi_cmd_len = 2;
     }
   }
-  // SPIX_FLUSH(DWM1000_SPI_INSTANCE); /* discard data read during previous write */
-  dw1000_arch_spi_rw(p_data, NULL, subreg_len);
+
+  dw1000_arch_spi_rw(p_data, NULL, subreg_len, spi_cmd_len);
   dw1000_arch_spi_deselect();
+}
+/**
+ * \brief                 Access a sub-register on the DW1000 as a byte stream.
+ *
+ * \param[in] access      Access type: READ or WRITE
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to read. Should not be longer than
+ *                        the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[out] p_data     Data read from the device.
+ */
+void dw_access_subreg(dw1000_spi_access access, uint8_t reg_addr, uint16_t subreg_addr, 
+                    uint8_t subreg_len, uint8_t * p_data)
+{
+  /* SPI buffer for data. max 8 data bytes, 3 bytes for the SPI control 
+    and 1 byte for the buffer_size */
+  static uint8_t spi_cmd[3];
+  static uint8_t spi_cmd_len = 1;
+  /* SPI communications */ 
 
 
-  /* Re enable interrupt */
-  // eint();
+  /* SPI write bit = 1 */
+  /* sub-reg present bit = 1 */
+  spi_cmd[0] = (access == DW_WRITE?0x80:0X00) | (subreg_addr > 0?0x40:0x00) | 
+              (reg_addr & 0x3F);
+
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      /* extended address bit = 1 */
+      spi_cmd[1] = (0x80 | (subreg_addr & 0x7F));
+      spi_cmd[2] = ((subreg_addr >> 7) & 0xFF);
+      spi_cmd_len = 3;
+    } else {
+      /* extended address bit = 0 */
+      spi_cmd[1] = subreg_addr & 0x7F;
+      spi_cmd_len = 2;
+    }
+  }
+
+  if(access == DW_WRITE){
+    // dw1000_arch_spi_select(); 
+    dw1000_arch_spi_write(&spi_cmd[0], spi_cmd_len, p_data, subreg_len);
+    // dw1000_arch_spi_deselect();
+
+  }
+  else{
+    // dw1000_arch_spi_select(); 
+    dw1000_arch_spi_read(&spi_cmd[0], spi_cmd_len, p_data, subreg_len);
+    // dw1000_arch_spi_deselect();
+  }
 
 }
 
@@ -2858,26 +2908,26 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr,
 void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
                       uint16_t subreg_len, const uint8_t *p_data)
 {
-  /* SPI communications */
 
-  /* Disable interrupt */
-  // dint();
+  uint8_t spi_cmd_len = 1;
 
   dw1000_arch_spi_select(); 
   /* write bit = 1, sub-reg present bit = 1 */
-  dw1000_arch_spi_rw_byte(0x80 | (subreg_addr > 0 ?0x40:0x00) | (reg_addr & 0x3F));
+  dw1000_arch_spi_w_byte(0x80 | (subreg_addr > 0 ?0x40:0x00) | (reg_addr & 0x3F));
   if (subreg_addr > 0) {
     if (subreg_addr > 0x7F) {
       /* extended address bit = 1 */
-      dw1000_arch_spi_rw_byte(0x80 | (subreg_addr & 0x7F));
-      dw1000_arch_spi_rw_byte((subreg_addr >> 7) & 0xFF);
+      dw1000_arch_spi_w_byte(0x80 | (subreg_addr & 0x7F));
+      dw1000_arch_spi_w_byte((subreg_addr >> 7) & 0xFF);
+      spi_cmd_len = 3;
     } else {
       /* extended address bit = 0 */
-      dw1000_arch_spi_rw_byte(subreg_addr & 0x7F);
+      dw1000_arch_spi_w_byte(subreg_addr & 0x7F);
+      spi_cmd_len = 2;
     }
   }
   
-  dw1000_arch_spi_rw(NULL, p_data, subreg_len);
+  dw1000_arch_spi_rw(NULL, p_data, subreg_len, spi_cmd_len);
   dw1000_arch_spi_deselect();
 
   /* Re enable interrupt */

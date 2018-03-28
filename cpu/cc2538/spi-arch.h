@@ -209,6 +209,14 @@ void spix_set_mode(uint8_t spi, uint32_t frame_format,
 void spix_set_clock_freq(uint8_t spi, uint32_t freq);
 
 /**
+ * \brief Retrieve the SPI clock frequency of the given SSI instance.
+ *
+ * \param spi SSI instance
+ * \return The SPI Frequency (Hz)
+ */
+uint32_t spix_get_clock_freq(uint8_t spi);
+
+/**
  * \brief Configure a GPIO to be the chip select pin.
  *
  * Even if this function does not depend on the SPI instance used, we rename

@@ -94,6 +94,10 @@
 #define DW1000_TSCH     1
 #endif /* DW1000_TSCH */
 
+#ifndef RADIO_DELAY_MEASUREMENT
+#define RADIO_DELAY_MEASUREMENT 0
+#endif /* RADIO_DELAY_MEASUREMENT */
+
 /* You should disable the ranging bias in case of antenna delay calibration */
 #define DW1000_ENABLE_RANGING_BIAS_CORRECTION 1
 #if DW1000_ENABLE_RANGING_BIAS_CORRECTION
@@ -239,7 +243,7 @@ static dw1000_frame_quality last_packet_quality;
 #define RADIO_TO_RTIMER(X) ((uint32_t)((uint64_t) ((X) / DW_TIMESTAMP_CLOCK_INCREMENT) \
                       * (RTIMER_ARCH_SECOND /1024) / (DW_TIMESTAMP_CLOCK/1024)))
 /*---------------------------------------------------------------------------*/
-// #define RADIO_DELAY_MEASUREMENT 1
+
 
 volatile uint8_t dw1000_driver_sfd_counter = 0;
 volatile uint16_t dw1000_driver_sfd_start_time = 0;

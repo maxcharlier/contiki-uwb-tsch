@@ -61,10 +61,37 @@
  **/
 void dw1000_arch_init();
 /*---------------------------------------------------------------------------*/
+/**
+ * \brief                 Reads the value from a sub-register on the DW1000 as 
+ *                        a byte stream.
+
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to read. Should not be longer than
+ *                        the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[out] p_data     Data read from the device.
+ */
 void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-            uint16_t subreg_len, uint8_t *p_data);
+            uint16_t subreg_len, uint8_t *read_buf);
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief                 Writes a value to a sub-register on the DW1000 as a 
+ *                        byte stream.
+ *
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to write. Should not be longer
+ *                        than the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[in] p_data      A stream of bytes to write to device.
+ */
 void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-            uint16_t subreg_len, const uint8_t *data);
+            uint16_t subreg_len, const uint8_t *write_buf);
 /*---------------------------------------------------------------------------*/
 /**
  * Configure port IRQ for GPIO8.

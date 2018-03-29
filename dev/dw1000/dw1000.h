@@ -690,13 +690,6 @@ uint32_t dw_read_subreg_32(uint32_t reg_addr, uint16_t subreg_addr,
                            uint16_t subreg_len);
 uint64_t dw_read_subreg_64(uint32_t reg_addr, uint16_t subreg_addr, 
                            uint16_t subreg_len);
-void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-            uint16_t subreg_len, uint8_t *p_data);
-void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
-            uint16_t subreg_len, const uint8_t *data);
-
-void dw_access_subreg(dw1000_spi_access access, uint8_t reg_addr, uint16_t subreg_addr, 
-                    uint8_t subreg_len, uint8_t * p_data);
 /* OTP */
 uint32_t dw_read_otp_32(uint16_t otp_addr);
 

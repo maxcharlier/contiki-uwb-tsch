@@ -71,9 +71,24 @@
 #define DWM1000_SPI_MISO_PIN_MASK   GPIO_PIN_MASK(DWM1000_MISO_PIN)
 #define DWM1000_SPI_CSN_PORT_BASE   GPIO_PORT_TO_BASE(DWM1000_SPI_CSN_PORT)
 #define DWM1000_SPI_CSN_PIN_MASK    GPIO_PIN_MASK(DWM1000_SPI_CSN_PIN)
-#define DWM1000_INT_PORT_BASE      GPIO_PORT_TO_BASE(DWM1000_INT_PORT)
-#define DWM1000_INT_PIN_MASK       GPIO_PIN_MASK(DWM1000_INT_PIN)
+#define DWM1000_INT_PORT_BASE       GPIO_PORT_TO_BASE(DWM1000_INT_PORT)
+#define DWM1000_INT_PIN_MASK        GPIO_PIN_MASK(DWM1000_INT_PIN)
 /*---------------------------------------------------------------------------*/
+#define DW1000_SPI_RX_FLUSH(n)    do { \
+    for(int i = 0; i < n; i++) { \
+      /* RX FIFO is not empty */  \
+      SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE);  \
+      /* read the receive FIFO to clear it*/ \
+      SPIX_BUF(DWM1000_SPI_INSTANCE); \
+      } \
+  } while(0)
+
+#define DW1000_SELECT()      SPIX_CS_CLR(DWM1000_SPI_CSN_PORT, \
+                                      DWM1000_SPI_CSN_PIN)
+#define DW1000_DESELECT()    SPIX_CS_SET(DWM1000_SPI_CSN_PORT, \
+                                      DWM1000_SPI_CSN_PIN)
+/*---------------------------------------------------------------------------*/
+/* DMA configuration */
 #ifndef DW1000_ARCH_CONF_DMA
 #define DW1000_ARCH_CONF_DMA      1
 #endif
@@ -135,6 +150,21 @@
 #endif
 /*---------------------------------------------------------------------------*/
 extern int dw1000_driver_interrupt(void); /* declare in dw1000-driver.h */
+
+/*---------------------------------------------------------------------------*/
+
+void dw1000_arch_spi_read(uint8_t *spi_cmd, 
+                          uint8_t spi_cmd_len,
+                          uint8_t *read_buf, 
+                          uint16_t read_len);
+void dw1000_arch_spi_write(uint8_t *spi_cmd, 
+                          uint8_t spi_cmd_len,
+                          uint8_t *write_buf, 
+                          uint16_t write_len);
+int dw1000_arch_spi_rw(uint8_t *read_buf,
+                        const uint8_t *write_buf, 
+                        uint16_t len,
+                        uint8_t spi_cmd_len);
 void dw1000_arch_spi_dma(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len);
 /*---------------------------------------------------------------------------*/
 /* Dummy buffer for the SPI transaction */
@@ -145,24 +175,6 @@ dw1000_int_handler(uint8_t port, uint8_t pin)
 {
   /* To keep the gpio_register_callback happy */
   dw1000_driver_interrupt();
-}
-/*---------------------------------------------------------------------------*/
-void
-dw1000_arch_spi_select(void)
-{
-  /* Set CSn to low (0) */
-  GPIO_CLR_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
-  //  /* The MISO pin should go low before chip is fully enabled. */
-  // BUSYWAIT_UNTIL(
-  //   GPIO_READ_PIN(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK) == 0,
-  //   RTIMER_SECOND / 100);
-}
-/*---------------------------------------------------------------------------*/
-void
-dw1000_arch_spi_deselect(void)
-{  
-  /* Set CSn to high (1) */
-  GPIO_SET_PIN(DWM1000_SPI_CSN_PORT_BASE, DWM1000_SPI_CSN_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -402,94 +414,14 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len,
 {
   uint16_t i;
   if((inbuf == NULL && write_buf == NULL) || len <= 0) {
-    /* SPI RX FIFO FLUSH */
-    for(i = 0; i < spi_cmd_len; i++) {
-      SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-      /* read the receive FIFO to clear it*/
-      SPIX_BUF(DWM1000_SPI_INSTANCE);
-    }
+    DW1000_SPI_RX_FLUSH(spi_cmd_len);
     return 1;
   } 
   else{
     if(DW1000_ARCH_CONF_DMA && len > SSI_FIFO_SIZE)
     { /* We will do a uDMA transfer */
-
-      /* Enable uDMA for the SSI module */
-      REG(CC2538_DW1000_SPI_DMA_REG) |= SSI_DMACTL_TXDMAE_M | 
-                                        SSI_DMACTL_RXDMAE_M;
-
-      if(write_buf == NULL){
-        /* We will do a DMA receive only, we need to write dummy byte (0) in 
-          the SPI TX FIFO */
-        spi_dummy_buffer = 0;
-        for(i = 0; i < SSI_FIFO_SIZE-spi_cmd_len; i++) {
-          SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
-        }
-
-        /* FLUSH SPI commands */
-        for(i = 0; i < spi_cmd_len; i++) {
-          SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-          /* read the receive FIFO to clear it*/
-          SPIX_BUF(DWM1000_SPI_INSTANCE);
-        }
-        udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
-                           (uint32_t)(&spi_dummy_buffer));
-
-        udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
-                          DW1000_TX_FOR_RX_CRTL_WORD | 
-                          udma_xfer_size(len - (SSI_FIFO_SIZE - spi_cmd_len)) |
-                          UDMA_CHCTL_ARBSIZE_4);
-      }
-      else
-      {
-        for(i = 0; i < SSI_FIFO_SIZE-spi_cmd_len; i++) {
-          SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
-        }
-
-        /* FLUSH SPI commands */
-        for(i = 0; i < spi_cmd_len; i++) {
-          SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-          /* read the receive FIFO to clear it*/
-          SPIX_BUF(DWM1000_SPI_INSTANCE);
-        }
-        udma_set_channel_src(DW1000_CONF_TX_DMA_SPI_CHAN,
-                          (uint32_t)(write_buf) + len - 1);
-
-        udma_set_channel_control_word(DW1000_CONF_TX_DMA_SPI_CHAN,
-                          DW1000_TX_CRTL_WORD | 
-                          udma_xfer_size(len - (SSI_FIFO_SIZE-spi_cmd_len)) |
-                          UDMA_CHCTL_ARBSIZE_4);
-      }
-      if(inbuf == NULL){
-        /* We don't need the reeded value: we put these value in a dummy buffer.
-          Thanks to the DMA reception, we don't need to flush the SPI buffer 
-          at the end of the SPI transfer. */
-        udma_set_channel_dst(DW1000_CONF_RX_DMA_SPI_CHAN,
-                           (uint32_t)(&spi_dummy_buffer));
-
-        udma_set_channel_control_word(DW1000_CONF_RX_DMA_SPI_CHAN,
-                          DW1000_RX_FOR_TX_CRTL_WORD | udma_xfer_size(len) |
-                          UDMA_CHCTL_ARBSIZE_4);
-      }
-      else
-      {
-        udma_set_channel_dst(DW1000_CONF_RX_DMA_SPI_CHAN,
-                          (uint32_t)(inbuf) + len - 1);
-
-        udma_set_channel_control_word(DW1000_CONF_RX_DMA_SPI_CHAN,
-                          DW1000_RX_CRTL_WORD | udma_xfer_size(len) |
-                          UDMA_CHCTL_ARBSIZE_4);
-      }
-      /* Enable the UDMA channel's */
-      udma_channel_enable(DW1000_CONF_RX_DMA_SPI_CHAN);
-      udma_channel_enable(DW1000_CONF_TX_DMA_SPI_CHAN);
-
-      /* Wait for the transfer to complete. */
-      while(udma_channel_get_mode(DW1000_CONF_RX_DMA_SPI_CHAN)
-             != UDMA_CHCTL_XFERMODE_STOP);
-
-      /* Disable uDMA for the SSI FIFO */
-      REG(CC2538_DW1000_SPI_DMA_REG) &= ~(SSI_DMACTL_RXDMAE_M | SSI_DMACTL_TXDMAE_M);
+      DW1000_SPI_RX_FLUSH(spi_cmd_len);
+      dw1000_arch_spi_dma(inbuf, write_buf, len);
     }
     else if(inbuf == NULL) 
     {
@@ -500,20 +432,13 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len,
           // SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is not full */
           SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
         }
-        for(i = 0; i < SPI_FIFO_SIZE/2; i++) {
-          SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-          /* read the receive FIFO to clear it*/
-          SPIX_BUF(DWM1000_SPI_INSTANCE);
-        }
+
+        DW1000_SPI_RX_FLUSH(SPI_FIFO_SIZE/2);
         for(i = len-spi_cmd_len; i < len; i++) {
           // SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is not full */
           SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
         }
-        for(i = 0; i < len+spi_cmd_len-(SPI_FIFO_SIZE/2); i++) {
-          SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-          /* read the receive FIFO to clear it*/
-          SPIX_BUF(DWM1000_SPI_INSTANCE);
-        }
+        DW1000_SPI_RX_FLUSH(len+spi_cmd_len-(SPI_FIFO_SIZE/2));
       }
       else{
         /* only write on the SPI */
@@ -522,11 +447,7 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len,
           // SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is not full */
           SPIX_BUF(DWM1000_SPI_INSTANCE) = write_buf[i];
         }
-        for(i = 0; i < len+spi_cmd_len; i++) {
-          SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-          /* read the receive FIFO to clear it*/
-          SPIX_BUF(DWM1000_SPI_INSTANCE);
-        }
+        DW1000_SPI_RX_FLUSH(len+spi_cmd_len);
       }
     }
     else if(write_buf == NULL) {
@@ -561,11 +482,7 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len,
           SPIX_WAITFORTxREADY(DWM1000_SPI_INSTANCE); /* TX FIFO is not full */
           SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
         }
-        for(i = 0; i < spi_cmd_len; i++) {
-          SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
-          /* read the receive FIFO to clear it*/
-          SPIX_BUF(DWM1000_SPI_INSTANCE);
-        }
+        DW1000_SPI_RX_FLUSH(spi_cmd_len);
         for(i = 0; i < len; i++) {
           SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
           /* read the receive FIFO to clear it*/
@@ -575,6 +492,85 @@ dw1000_arch_spi_rw(uint8_t *inbuf, const uint8_t *write_buf, uint16_t len,
     }
   }
   return 0;
+}
+/**
+ * \brief                 Reads the value from a sub-register on the DW1000 as 
+ *                        a byte stream.
+
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to read. Should not be longer than
+ *                        the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[out] p_data     Data read from the device.
+ */
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                    uint16_t subreg_len, uint8_t * p_data)
+{
+  uint8_t spi_cmd_len = 1;
+
+  DW1000_SELECT();
+  /* write bit = 1, sub-reg present bit = 1 */
+  SPIX_BUF(DWM1000_SPI_INSTANCE) = ((subreg_addr > 0?0x40:0x00) | 
+                        (reg_addr & 0x3F));
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      /* extended address bit = 1 */
+      SPIX_BUF(DWM1000_SPI_INSTANCE) = (0x80 | (subreg_addr & 0x7F));
+      SPIX_BUF(DWM1000_SPI_INSTANCE) = ((subreg_addr >> 7) & 0xFF);
+      spi_cmd_len = 3;
+    } else {
+      /* extended address bit = 0 */
+      SPIX_BUF(DWM1000_SPI_INSTANCE) = (subreg_addr & 0x7F);
+      spi_cmd_len = 2;
+    }
+  }
+
+  dw1000_arch_spi_rw(p_data, NULL, subreg_len, spi_cmd_len);
+  DW1000_DESELECT();
+}
+
+
+/**
+ * \brief                 Writes a value to a sub-register on the DW1000 as a 
+ *                        byte stream.
+ *
+ * \param[in] reg_addr    Register address as specified in the manual and by
+ *                        the DW_REG_* defines.
+ * \param[in] subreg_addr Sub-register address as specified in the manual and
+ *                        by the DW_SUBREG_* defines.
+ * \param[in] subreg_len  Number of bytes to write. Should not be longer
+ *                        than the length specified in the manual or the
+ *                        DW_SUBLEN_* defines.
+ * \param[in] p_data      A stream of bytes to write to device.
+ */
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+                      uint16_t subreg_len, const uint8_t *p_data)
+{
+
+  uint8_t spi_cmd_len = 1;
+
+  DW1000_SELECT(); 
+  /* write bit = 1, sub-reg present bit = 1 */
+  SPIX_BUF(DWM1000_SPI_INSTANCE) = (0x80 | (subreg_addr > 0 ?0x40:0x00) |
+                       (reg_addr & 0x3F));
+  if (subreg_addr > 0) {
+    if (subreg_addr > 0x7F) {
+      /* extended address bit = 1 */
+      SPIX_BUF(DWM1000_SPI_INSTANCE) = (0x80 | (subreg_addr & 0x7F));
+      SPIX_BUF(DWM1000_SPI_INSTANCE) = ((subreg_addr >> 7) & 0xFF);
+      spi_cmd_len = 3;
+    } else {
+      /* extended address bit = 0 */
+      SPIX_BUF(DWM1000_SPI_INSTANCE) = (subreg_addr & 0x7F);
+      spi_cmd_len = 2;
+    }
+  }
+  
+  dw1000_arch_spi_rw(NULL, p_data, subreg_len, spi_cmd_len);
+  DW1000_DESELECT();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -638,7 +634,7 @@ void dw1000_arch_init()
   spix_set_mode(DWM1000_SPI_INSTANCE, SSI_CR0_FRF_MOTOROLA, 0, 0, 8);
 
   /* Leave CSn as default */
-  dw1000_arch_spi_deselect();
+  DW1000_DESELECT();
 
   /* Ensure MISO is low */
   // BUSYWAIT_UNTIL(

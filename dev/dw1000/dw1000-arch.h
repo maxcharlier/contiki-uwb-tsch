@@ -61,35 +61,10 @@
  **/
 void dw1000_arch_init();
 /*---------------------------------------------------------------------------*/
-/** 
- * Select DW1000 (pull down CSn pin). 
- **/
-void dw1000_arch_spi_select(void);
-/*---------------------------------------------------------------------------*/
-/** 
- * De-select DW1000 (pull up CSn pin). 
- **/
-void dw1000_arch_spi_deselect(void);
-/*---------------------------------------------------------------------------*/
-/** 
- * Write a single byte via SPI, return response. 
- **/
-int dw1000_arch_spi_rw_byte(uint8_t c);
-void dw1000_arch_spi_w_byte(uint8_t c);
-/*---------------------------------------------------------------------------*/
-/** 
- * Write a sequence of bytes while reading back the response.
- * Either read_buf or write_buf can be NULL.
- **/
-int dw1000_arch_spi_rw(uint8_t *read_buf, 
-                        const uint8_t *write_buf, 
-                        uint16_t len,
-                        uint8_t spi_cmd_len);
-/*---------------------------------------------------------------------------*/
-void dw1000_arch_spi_write(uint8_t *spi_control, uint8_t spi_control_len,
-          uint8_t *write_buf, uint16_t len);
-void dw1000_arch_spi_read(uint8_t *spi_control, uint8_t spi_control_len,
-          uint8_t *write_buf, uint16_t len);
+void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+            uint16_t subreg_len, uint8_t *p_data);
+void dw_write_subreg(uint32_t reg_addr, uint16_t subreg_addr, 
+            uint16_t subreg_len, const uint8_t *data);
 /*---------------------------------------------------------------------------*/
 /**
  * Configure port IRQ for GPIO8.

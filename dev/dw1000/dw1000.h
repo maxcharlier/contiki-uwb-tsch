@@ -86,6 +86,7 @@
 #define DW_TIMESTAMP_CLOCK  124800000
 #define DW_TIMESTAMP_CLOCK_OFFSET 9
 #define DW_TIMESTAMP_CLOCK_INCREMENT 512
+#define DW_TIMESTAMP_CLOCK_DIVIDER_TO_US 125
 
 /**
  * \brief Used to align delayed timestamps.

@@ -166,6 +166,7 @@
 #else
 #define RANGING_STATE(...) do {} while(0)
 #endif
+
 // #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
@@ -235,14 +236,6 @@ static dw1000_frame_quality last_packet_quality;
       update; \
     } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), timeout)); \
   } while(0)
-
-/*---------------------------------------------------------------------------
- * MAC timer
- *---------------------------------------------------------------------------*/
-/* Timer conversion */
-#define RADIO_TO_RTIMER(X) ((uint32_t)((uint64_t) ((X) / DW_TIMESTAMP_CLOCK_INCREMENT) \
-                      * (RTIMER_ARCH_SECOND /1024) / (DW_TIMESTAMP_CLOCK/1024)))
-/*---------------------------------------------------------------------------*/
 
 
 volatile uint8_t dw1000_driver_sfd_counter = 0;
@@ -608,6 +601,8 @@ dw1000_driver_transmit(unsigned short payload_len)
             RADIO_TO_RTIMER(transmission_sfd-transmission_call));
   printf("RADIO_DELAY_BEFORE_TX US %lu\n", \
             RTIMERTICKS_TO_US(RADIO_TO_RTIMER(transmission_sfd-transmission_call)));
+  printf("RADIO_DELAY_BEFORE_TX US %lu (based on dw1000 time)\n", \
+            RADIO_TO_US(transmission_sfd-transmission_call));
   printf("RADIO_DELAY_BEFORE_TX DW1000 %llu\n", transmission_sfd - transmission_call);
 #endif /* RADIO_DELAY_MEASUREMENT */
 
@@ -1113,6 +1108,8 @@ dw1000_driver_on(void)
             RADIO_TO_RTIMER(receive_begin-receive_call));
   printf("RADIO_DELAY_BEFORE_RX US %lu\n", \
             RTIMERTICKS_TO_US(RADIO_TO_RTIMER(receive_begin-receive_call)));
+  printf("RADIO_DELAY_BEFORE_RX US (based on DW100 time)%lu\n", \
+            RADIO_TO_US(receive_begin-receive_call));
   printf("RADIO_DELAY_BEFORE_RX DW1000 %llu\n", receive_begin-receive_call);
 #endif /* RADIO_DELAY_MEASUREMENT */
 
@@ -2217,7 +2214,7 @@ get_sfd_timestamp(void)
     RTIMERTICKS_TO_US(RADIO_TO_RTIMER(sfd_delay)));
 #endif /*  DEBUG_VERBOSE */
 
-  return current_mcu_time - RADIO_TO_RTIMER(sfd_delay)-1;
+  return current_mcu_time - RADIO_TO_RTIMER(sfd_delay);
 }
 /*===========================================================================*/
 /* Ranging                                                                   */

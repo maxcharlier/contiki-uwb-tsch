@@ -75,3 +75,13 @@ dw1000_frame_quality dw1000_driver_get_packet_quality(void);
 /** The NETSTACK data structure for the cc2538 RF driver */
 extern const struct radio_driver dw1000_driver;
 /*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------
+ * MAC timer
+ *---------------------------------------------------------------------------*/
+/* Timer conversion */
+#define RADIO_TO_RTIMER(X) ((uint32_t)((uint64_t) ((X) / DW_TIMESTAMP_CLOCK_INCREMENT) \
+                      * (RTIMER_ARCH_SECOND /1024) / (DW_TIMESTAMP_CLOCK/1024)))
+#define RADIO_TO_US(X) ((uint32_t)((uint64_t) ((X) / DW_TIMESTAMP_CLOCK_INCREMENT) \
+                     / DW_TIMESTAMP_CLOCK_DIVIDER_TO_US))
+/*---------------------------------------------------------------------------*/

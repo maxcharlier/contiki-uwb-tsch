@@ -61,6 +61,11 @@
  */
 #define CLOCK_CONF_SECOND 128
 
+
+/* CPU clock Speed */
+//#define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ
+
+
 /* Compiler configurations */
 #define CCIF
 #define CLIF
@@ -396,50 +401,42 @@ typedef uint32_t rtimer_clock_t;
 #endif /* REMOTE_DUAL_RF_ENABLED */
 
 #if RADIO_DRIVER_UWB
-  /* 331us from calling transmit() until the SFD byte has been sent 
+
+
+  #define UWB_T_SHR                          82
+
+
+  /* time from calling transmit() until the SFD byte has been sent 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
   in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
   Dependant of the configuration (DATA_RATE, PREAMBLE_LENGHT)*/
   #undef RADIO_DELAY_BEFORE_TX
-  #define RADIO_DELAY_BEFORE_TX     ((unsigned) US_TO_RTIMERTICKS(331))
+  #define RADIO_DELAY_BEFORE_TX     ((unsigned) US_TO_RTIMERTICKS(UWB_T_SHR+35))
   // #define RADIO_DELAY_BEFORE_TX     0
-  /* the call of NETSTACK_CONF_RADIO.on take 68us, not dependant of the configuration.
+  /* the call of NETSTACK_CONF_RADIO.on take 53us, not dependant of the configuration.
   The radio is ready to receive 16 µs after this call. 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
-  in the radio driver and be calling NETSTACK_CONF_RADIO.off() and after 
+  in the radio driver. You need to call NETSTACK_CONF_RADIO.off() and after 
   NETSTACK_CONF_RADIO.on()*/
   #undef RADIO_DELAY_BEFORE_RX
-  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(77))
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(53+16))
   // #define RADIO_DELAY_BEFORE_RX     0
 
+  /* The delay between the reception of the SFD and the trigger by the radio */
   #undef RADIO_DELAY_BEFORE_DETECT
-  #define RADIO_DELAY_BEFORE_DETECT 0
+  #define RADIO_DELAY_BEFORE_DETECT          1 /* 1 tick */
+
 
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
   #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 0, 1, 2, 3, 4, 5 }
-  #define TSCH_CONF_JOIN_HOPPING_SEQUENCE  (uint8_t[]){ 0 }
-  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH 5000
+  #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     (uint8_t[]){ 0 }
+  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  6
+  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   5000
 
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
 
-  #define TSCH_CONF_RX_WAIT 1000
-  // #define TSCH_CONF_RX_WAIT 3000
-  // #define DW1000_CONF_CHECKSUM 0
-  /* Radio delay to change the channel */
-  // #define RADIO_DELAY_CHANNEL_HOPPING ((unsigned) US_TO_RTIMERTICKS(920))
-
-  /* Calculate packet tx/rx duration in rtimer ticks based on sent
-   * packet len in bytes with 802.15.4 UWB 150:850 or 6800 kbps data rate.
-   * One byte = 32us at 250 kbps.
-   * One byte = 53.3us at 110 kbps.
-   * One byte = 9.4us at 850 kbps.
-   * One byte = 1.1us at 850 kbps.
-   * Add two bytes for CRC and one for PHR field */
-  #undef TSCH_PACKET_DURATION
-  #define TSCH_PACKET_DURATION(len) US_TO_RTIMERTICKS(1 * ((len) + 3))
-  #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1
 
   /* configuration of the DW1000 radio driver */
   #undef NETSTACK_CONF_RADIO
@@ -452,11 +449,27 @@ typedef uint32_t rtimer_clock_t;
 
   #define DW1000_CHANNEL              0
   #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
-  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_64
   #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
+// #define RADIO_DELAY_MEASUREMENT 1
+
 
   #define DW1000_ARCH_CONF_DMA        1
+
+
+  /* Calculate packet tx/rx duration in rtimer ticks based on sent
+   * packet len in bytes with 802.15.4 UWB 110, 850 or 6810 kbps data rate.
+   * One byte = 32us at 250 kbps.
+   * One byte = 53.3us at 110 kbps.
+   * One byte = 9.4us at 850 kbps.
+   * One byte = 1.1us at 6810 kbps.
+   * Add two bytes for CRC and one for PHR field 
+   * do not take into acount the SHR */
+  #undef TSCH_PACKET_DURATION
+  #define TSCH_PACKET_DURATION(len) US_TO_RTIMERTICKS((11 * (len + 3))/10)
+  #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1
+
 #endif /* RADIO_DRIVER_UWB */
 
 /** @} */

@@ -286,7 +286,7 @@ main(void)
   PRINTF("%s\n", NETSTACK_RDC.name);
 
   PRINTF(" SPI Clock: ");
-  PRINTF("SPI: %lu Hz, SPI1: %lu Hz\n", spix_get_clock_freq(0), spix_get_clock_freq(1));
+  PRINTF("SPI0: %lu Hz, SPI1: %lu Hz\n", spix_get_clock_freq(0), spix_get_clock_freq(1));
 
 #if NETSTACK_CONF_WITH_IPV6
   memcpy(&uip_lladdr.addr, &linkaddr_node_addr, sizeof(uip_lladdr.addr));

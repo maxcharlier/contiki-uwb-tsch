@@ -68,8 +68,8 @@
  * -----------------------------+---+---+--------------------------------------
  * PIN_NAME                     |JP3|JP2|   PIN_NAME
  * -----------------------------+---+---+--------------------------------------
- * PB5/CC1200.CS                |-01|15-|   PD2
- * PB2/SPI0.SCLK/CC1200.SCLK    |-02|16-|   PD0
+ * PB5/CC1200.CS                |-01|15-|   PD2 (DW1000 - LISTEN)
+ * PB2/SPI0.SCLK/CC1200.SCLK    |-02|16-|   PD0 (DW1000 - SEND)
  * PB1/SPIO0.MOSI/CC1200.MOSI   |-03|17-|   ADC5/AIN7/PA7/DW1000.RST
  * PB3/SPIO0.MISO/CC1200.MISO   |-04|18-|   ADC4/AIN6/PA6/DW1000.WAKEUP
  * PB4/CC1200.GPIO0             |-05|19-|   DGND/DW1000.GND

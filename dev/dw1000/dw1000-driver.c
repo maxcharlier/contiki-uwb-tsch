@@ -167,6 +167,45 @@
 #define RANGING_STATE(...) do {} while(0)
 #endif
 
+
+/* Just for the debugging of TSCH */
+#define DEBUG_GPIO_TSCH 1
+#ifdef DEBUG_GPIO_TSCH
+  #include "dev/gpio.h"
+
+  #define DWM1000_LISTEN_PORT           GPIO_D_NUM
+  #define DWM1000_LISTEN_PIN            2
+  #define LISTEN_CLR() do { \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
+  } while(0)
+  #define LISTEN_SET() do { \
+      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
+  } while(0)
+  #define DWM1000_SEND_PORT             GPIO_D_NUM
+  #define DWM1000_SEND_PIN              0
+  #define SEND_CLR() do { \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
+  } while(0)
+  #define SEND_SET() do { \
+      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
+  } while(0)
+  #define INIT_GPIO_DEBUG() do {\
+    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
+    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
+  } while (0)
+#else
+  #define LISTEN_CLR() do {} while(0)
+  #define LISTEN_SET() do {} while(0)
+  #define SEND_CLR() do {} while(0)
+  #define SEND_SET() do {} while(0)
+  #define INIT_GPIO_DEBUG() do {} while(0)
+#endif /* DEBUG_GPIO_TSCH */
+/* END : Just for the debugging of TSCH */
+
 // #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
@@ -255,7 +294,7 @@ uint8_t ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp,
 uint16_t convert_payload_len(uint16_t payload_len);
 dw1000_preamble_code_t
 dw1000_get_preamble_code(dw1000_channel_t channel, dw1000_prf_t prf);
-void dw1000_set_tsch_channel(uint8_t tsch_channel);
+void dw1000_set_tsch_channel(uint8_t channel);
 /* end private function */
 
 static int dw1000_driver_prepare(const void *data, unsigned short payload_len);
@@ -412,6 +451,7 @@ dw1000_driver_init(void)
 
   dw1000_driver_init_down = 1;
   dw1000_arch_gpio8_setup_irq();
+  INIT_GPIO_DEBUG();
   return 1;
 }
 /**
@@ -548,7 +588,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* if we are in ranging, the size change. */
   payload_len = convert_payload_len(payload_len);
 
-
+  SEND_SET();
   if(!(dw1000_driver_sstwr || dw1000_driver_sdstwr)){
     /* Initialize a no delayed transmission 
       and wait for an ACK if an ACK request is triggered */
@@ -887,7 +927,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     printf("TX result %d\n", tx_return);
   }
 #endif
-
+  SEND_CLR();
   // rtimer_clock_t t1 = RTIMER_NOW();
   // printf("tx time %ld (ms)\n", RTIMERTICKS_TO_US(t1-t0) );
   return tx_return;
@@ -1101,6 +1141,8 @@ dw1000_driver_on(void)
   }
 
   dw1000_on();
+  LISTEN_SET();
+
 
 #if RADIO_DELAY_MEASUREMENT
   receive_begin = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME);
@@ -1176,8 +1218,10 @@ dw1000_driver_off(void)
   if(((status & DW_RXSFDD_MASK) > 0) 
     && ((status & (DW_RXDFR_MASK | DW_RXPHE_MASK)) == 0)) {
     lock_off = 1;
+    return 0;
   } else {
     dw1000_off();
+    LISTEN_CLR();
   }
   return 1;
 }
@@ -1410,6 +1454,15 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
     }
     /* The extended addr (64 bit) is store in the Extended Unique ID register */
     dw_read_reg(DW_REG_EID, DW_LEN_EID, (uint8_t *) dest);
+
+    return RADIO_RESULT_OK;
+  }
+
+  if(param == RADIO_PARAM_PAN_ID) {
+    if(size != 2 || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    *(uint16_t *) dest = dw_get_pan_id();
 
     return RADIO_RESULT_OK;
   }
@@ -2096,8 +2149,8 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
  * \Brief Configure the transceiver according a given TSCH channel.
  **/
 void
-dw1000_set_tsch_channel(uint8_t tsch_channel){
-  switch(tsch_channel){
+dw1000_set_tsch_channel(uint8_t channel){
+  switch(channel){
     case 0:
       dw1000_conf.channel = DW_CHANNEL_1;
       dw1000_conf.prf = DW_PRF_16_MHZ;
@@ -2123,6 +2176,7 @@ dw1000_set_tsch_channel(uint8_t tsch_channel){
       dw1000_conf.prf = DW_PRF_64_MHZ;
       break;
   }
+  tsch_channel = channel;
   dw1000_conf.preamble_code = dw1000_get_preamble_code(dw1000_conf.channel, dw1000_conf.prf);
 
   dw_set_prf(dw1000_conf.prf);

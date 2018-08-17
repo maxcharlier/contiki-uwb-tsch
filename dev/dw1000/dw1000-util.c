@@ -823,7 +823,7 @@ print_sys_status(uint64_t sys_status)
  * \param data_lenght        The data length in bytes.
  *
  * \return An approximation of the theoretical time of a transmission 
- *         in millisecond.
+ *         in microsecond.
  */
 unsigned long
 theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate, 

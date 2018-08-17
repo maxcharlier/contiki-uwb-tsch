@@ -625,8 +625,8 @@ dw1000_driver_transmit(unsigned short payload_len)
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, &sys_status_lo); 
                   count_send++; watchdog_periodic();,
                   ((sys_status_lo & DW_TXFRS_MASK) != 0),
-                  (theorical_transmission_approx(dw1000_conf.preamble_length, 
-                  dw1000_conf.data_rate, dw1000_conf.prf, payload_len) << 1 )+ 
+                  theorical_transmission_approx(dw1000_conf.preamble_length, 
+                  dw1000_conf.data_rate, dw1000_conf.prf, payload_len)+ 
                   DW1000_SPI_DELAY);
 
   PRINTF("Number of loop waiting IDLE: %d\n", count_idle);
@@ -1373,17 +1373,17 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     return RADIO_RESULT_INVALID_VALUE;
   case RADIO_PARAM_CHANNEL:
 #if DW1000_TSCH
-    if(value < 0 || value > 5) {
+    if(value < 0 || value > 7) {
       /* channel 6 is not supported by the DW1000*/
       return RADIO_RESULT_INVALID_VALUE;
     }
     uint8_t receive_state = receive_on;
-    if(receive_on){
-        dw1000_driver_off();
+    if(receive_state){
+      dw1000_driver_off();
     }
     dw1000_set_tsch_channel(value);
     if(receive_state){
-        dw1000_driver_on();
+      dw1000_driver_on();
     }
     return RADIO_RESULT_OK;
 #else /* !DW1000_TSCH */
@@ -2156,22 +2156,30 @@ dw1000_set_tsch_channel(uint8_t channel){
       dw1000_conf.prf = DW_PRF_16_MHZ;
       break;
     case 1:
-      dw1000_conf.channel = DW_CHANNEL_3;
+      dw1000_conf.channel = DW_CHANNEL_2;
       dw1000_conf.prf = DW_PRF_16_MHZ;
       break;
     case 2:
-      dw1000_conf.channel = DW_CHANNEL_5;
+      dw1000_conf.channel = DW_CHANNEL_3;
       dw1000_conf.prf = DW_PRF_16_MHZ;
       break;
     case 3:
+      dw1000_conf.channel = DW_CHANNEL_5;
+      dw1000_conf.prf = DW_PRF_16_MHZ;
+      break;
+    case 4:
       dw1000_conf.channel = DW_CHANNEL_1;
       dw1000_conf.prf = DW_PRF_64_MHZ;
       break;
-    case 4:
+    case 5:
+      dw1000_conf.channel = DW_CHANNEL_2;
+      dw1000_conf.prf = DW_PRF_64_MHZ;
+      break;
+    case 6:
       dw1000_conf.channel = DW_CHANNEL_3;
       dw1000_conf.prf = DW_PRF_64_MHZ;
       break;
-    case 5:
+    case 7:
       dw1000_conf.channel = DW_CHANNEL_5;
       dw1000_conf.prf = DW_PRF_64_MHZ;
       break;

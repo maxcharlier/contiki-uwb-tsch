@@ -98,15 +98,21 @@ static uint8_t seq_num = 0;
 static uint8_t data[32] = {0, 0x0B, 0x92, 0, 0, 0x02, 0xFF, 0xFF, 0x48, 0X65, 0x6C, 0X6C, 0X6F, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t mode;
 
+static char * packetbuf;
+
 /* used when a message is received */
 static void recv_callback(struct unicast_conn *c, const linkaddr_t *from)
 {
-  if(packetbuf_datalen() >= 1){ 
+  if(packetbuf_datalen() == 5){ 
     PRINTF("Node receive message from 0x%02X%02X\n", 
                       from->u8[1], 
                       from->u8[0]);
-
-    message_received +=1;
+    
+         
+    packetbuf =(char *)packetbuf_dataptr();
+    if(packetbuf[4] == linkaddr_node_addr.u8[1] && packetbuf[5] == linkaddr_node_addr.u8[0]){
+      message_received +=1;
+    }
   }
 }
 
@@ -114,7 +120,7 @@ void
 com_simult_int_handler(uint8_t port, uint8_t pin)
 {
   // dw_enable_gpio_led();
-  // printf("interupt\n");
+  PRINTF("interupt\n");
   /* To keep the gpio_register_callback happy */
   interrupt_detected++;
   process_poll(&interrupt_process);
@@ -125,15 +131,20 @@ PROCESS_THREAD(frame_master_process, ev, data)
   PROCESS_EXITHANDLER(unicast_close(&uc);)
   PROCESS_BEGIN();
 
-  printf("Node addr 0x%02X%02X\n", 
+  PRINTF("Node addr 0x%02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
-  printf("     1 Configure the channel (0X1 CHANNEL)\n");
-  printf("     2 Get the channel (0X2)\n");
-  printf("     3 Config the distination (0X3 DEST_ADDR)\n");
-  printf("     4 Trigger the GPIO\n");
-  printf("     5 Show number of received messages\n");
-  printf("     6 Reset number of received message\n");
+  PRINTF("     1 Configure the channel (0X1 CHANNEL)\n");
+  PRINTF("     2 Get the channel (0X2)\n");
+  PRINTF("     3 Config the distination (0X3 DEST_ADDR)\n");
+  PRINTF("     3 Get the distination (0X4)\n");
+  PRINTF("     5 Show number of received messages\n");
+  PRINTF("     6 Reset number of received message\n");
+  PRINTF("     7  Trigger the GPIO\n");
+  PRINTF("     8 Identify node (led blink)\n");
+  PRINTF("     9 Radio ON\n");
+  PRINTF("     A Radio OFF\n");
+  PRINTF("     B Trigger sending process\n");
 
   unicast_open(&uc, RIME_CHANNEL, &uc_cb);
 
@@ -171,28 +182,51 @@ PROCESS_THREAD(frame_master_process, ev, data)
       if(mode == 0x01 ){ /* ranging request */
         uint8_t channel = strtol(str, &str, 10);
       
-        if(channel >= 0 && channel < 6){
+        if(channel >= 0 && channel <= 7){
           NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, (radio_value_t) channel);
-          printf("Set the adio to the channel, %u\n", channel);
-        NETSTACK_RADIO.get_value(RADIO_PARAM_CHANNEL, (radio_value_t*) &channel);
-        printf("Radio is set to the channel, %u\n", channel);
+          PRINTF("Set the node to the channel, %u\n", channel);
+          NETSTACK_RADIO.get_value(RADIO_PARAM_CHANNEL, (radio_value_t*) &channel);
+          PRINTF("Radio is set to the channel, %u\n", channel);
         }
         else{
-          printf("Invalide channel value.\n");
+          PRINTF("Invalide channel value.\n");
         }
       }
       else if(mode == 0x02){ 
 
         uint8_t channel = 0;
         NETSTACK_RADIO.get_value(RADIO_PARAM_CHANNEL, (radio_value_t*) &channel);
-        printf("Radio is set to the channel, %u\n", channel);
+        PRINTF("Radio is set to the channel, %u\n", channel);
+        #if !DEBUG
+          printf("%d\n", channel);
+        #endif
       }
       else if(mode == 0x03){ 
         dest_addr = strtol(str, &str, 16);
-        printf("Destination address set to %d\n", dest_addr);
+        PRINTF("Destination address set to %d\n", dest_addr);
 
       }
       else if(mode == 0x04){ 
+        PRINTF("The destination address is %d\n", dest_addr);
+        #if !DEBUG
+          printf("%d\n", dest_addr);
+        #endif
+
+      }
+      else if(mode == 0x5){
+        PRINTF("Received messages %d\n", message_received);
+        PRINTF("Number of interrupt detected %d\n", interrupt_detected);
+        #if !DEBUG
+          printf("%d %d\n", message_received, interrupt_detected);
+        #endif
+      }
+      else if(mode == 0x6){
+        PRINTF("Reset received messages\n");
+        message_received = 0;
+        PRINTF("Reset number of interrupt detected\n");
+        interrupt_detected = 0;
+      }
+      else if(mode == 0x07){ 
 
         uint16_t n = strtol(str, &str, 10);
         if (n == 0){
@@ -204,24 +238,11 @@ PROCESS_THREAD(frame_master_process, ev, data)
           clock_delay_usec(10);
           TRIGGER_OUT_CLR();
           clock_delay_usec(1500);
-          printf("Trigger interrupt\n");
-
-          /* Reset watchdog and handle polls and events */
-          watchdog_periodic();
+          PRINTF("Trigger interrupt\n");
         }
       }
-      else if(mode == 0x5){
-        printf("Received messages %d\n", message_received);
-        printf("Number of interrupt detected %d\n", interrupt_detected);
-      }
-      else if(mode == 0x6){
-        printf("Reset received messages\n");
-        message_received = 0;
-        printf("Reset number of interrupt detected\n");
-        interrupt_detected = 0;
-      }
-      else if(mode == 0x7){
-        printf("Identify node\n");
+      else if(mode == 0x8){
+        PRINTF("Identify node\n");
         leds_on(LEDS_GREEN);
         clock_delay_usec(1000);
         leds_off(LEDS_GREEN);
@@ -229,6 +250,23 @@ PROCESS_THREAD(frame_master_process, ev, data)
         clock_delay_usec(1000);
         leds_off(LEDS_BLUE);
       }
+      else if(mode == 0x9){
+        PRINTF("Radio on\n");
+        NETSTACK_RADIO.on();
+      }
+      else if(mode == 0xA){
+        PRINTF("Radio off\n");
+        NETSTACK_RADIO.off();
+      }
+      else if(mode == 0xB){
+
+          PRINTF("Trigger send\n");
+
+          interrupt_detected++;
+          process_poll(&interrupt_process);
+      }
+      /* Reset watchdog */
+      watchdog_periodic();
     }
   }
   PROCESS_END();
@@ -246,8 +284,11 @@ PROCESS_THREAD(interrupt_process, ev, data2){
     data[5] = dest_addr & 0xFF;
     data[6] = linkaddr_node_addr.u8[0];
     data[7] = linkaddr_node_addr.u8[1];
+    /* replace the end of "HELLO" by the dest addr */
+    data[11] = (dest_addr >> 8) & 0xFF;
+    data[12] = dest_addr & 0xFF;
 
-    uint8_t frame_len = make_frame(1 /* request ACK */,
+    uint8_t frame_len = make_frame(0 /* don't request ACK */,
               seq_num,
               panid,
               IEEE_SHORT_ADDR,
@@ -272,7 +313,7 @@ PROCESS_THREAD(interrupt_process, ev, data2){
     // if(!linkaddr_cmp(&addr, &linkaddr_node_addr)) {
     //   unicast_send(&uc, &addr);
     // }
-    
+
 
     /* Reset watchdog and handle polls and events */
     watchdog_periodic();

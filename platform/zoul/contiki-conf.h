@@ -403,9 +403,6 @@ typedef uint32_t rtimer_clock_t;
 #if RADIO_DRIVER_UWB
 
 
-  #define UWB_T_SHR                          82
-
-
   /* time from calling transmit() until the SFD byte has been sent 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
   in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
@@ -449,9 +446,11 @@ typedef uint32_t rtimer_clock_t;
 
   #define DW1000_CHANNEL              0
   #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
-  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_64
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_128
   #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
+  #define UWB_T_SHR                   82+64
+
 // #define RADIO_DELAY_MEASUREMENT 1
 
 
@@ -527,7 +526,7 @@ typedef uint32_t rtimer_clock_t;
  * 1 => Use the secondary address location
  */
 #ifndef IEEE_ADDR_CONF_USE_SECONDARY_LOCATION
-#define IEEE_ADDR_CONF_USE_SECONDARY_LOCATION 0
+#define IEEE_ADDR_CONF_USE_SECONDARY_LOCATION 1
 #endif
 /** @} */
 /*---------------------------------------------------------------------------*/

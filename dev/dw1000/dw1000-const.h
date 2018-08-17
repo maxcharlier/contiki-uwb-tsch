@@ -193,7 +193,7 @@
 #define DW_SUBREG_RF_RXCTRLH 0x0B       /* \brief dummy */
 #define DW_SUBLEN_RF_RXCTRLH 1          /* \brief dummy */
 #define DW_SUBREG_RF_TXCTRL  0x0C       /* \brief dummy */
-#define DW_SUBLEN_RF_TXCTRL  4          /* \brief dummy */
+#define DW_SUBLEN_RF_TXCTRL  3          /* \brief dummy */
 #define DW_SUBREG_LDOTUNE    0x30       /* \brief dummy */
 #define DW_SUBLEN_LDOTUNE    5          /* \brief dummy */
 

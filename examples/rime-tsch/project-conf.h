@@ -67,7 +67,7 @@
 /* TSCH logging. 0: disabled. 1: basic log. 2: with delayed
  * log messages from interrupt */
 #undef TSCH_LOG_CONF_LEVEL
-#define TSCH_LOG_CONF_LEVEL 2
+#define TSCH_LOG_CONF_LEVEL 1
 
 /* IEEE802.15.4 PANID */
 #undef IEEE802154_CONF_PANID
@@ -80,7 +80,7 @@
 /* 6TiSCH minimal schedule length.
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 3
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 6
 
 #undef TSCH_LOG_CONF_ID_FROM_LINKADDR
 #define TSCH_LOG_CONF_ID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[LINKADDR_SIZE - 2] : 0)
@@ -89,5 +89,10 @@
 #define COOJA_CONF_SIMULATE_TURNAROUND 0
 #endif /* CONTIKI_TARGET_COOJA */
 
+#if CONTIKI_TARGET_CC2538DK || CONTIKI_TARGET_ZOUL || \
+  CONTIKI_TARGET_OPENMOTE_CC2538
+#define TSCH_CONF_HW_FRAME_FILTERING    0
+#endif /* CONTIKI_TARGET_CC2538DK || CONTIKI_TARGET_ZOUL \
+       || CONTIKI_TARGET_OPENMOTE_CC2538 */
 
 #endif /* __PROJECT_CONF_H__ */

@@ -165,7 +165,7 @@
 #define TSCH_DEFAULT_TS_CCA_OFFSET         500     /* not relevant */
 #define TSCH_DEFAULT_TS_CCA                128      /* not relevant */
 
-#define UWB_T_SHR                          82
+/* /!\ Make sure to have correctlyd efined the MACRO UWB_T_SHR */
 
 #define TSCH_RX_GUARD                      500
 #undef TSCH_CONF_RX_WAIT

@@ -38,9 +38,13 @@
 #include "contiki-conf.h"
 #include "net/linkaddr.h"
 #include "ieee-addr.h"
+#include "flash-driver.h"
 
 #include <stdint.h>
 #include <string.h>
+
+#include <stdio.h>
+
 /*---------------------------------------------------------------------------*/
 void
 ieee_addr_cpy_to(uint8_t *dst, uint8_t len)
@@ -68,8 +72,8 @@ ieee_addr_cpy_to(uint8_t *dst, uint8_t len)
     int i;
     uint8_t oui_ti[3] = IEEE_ADDR_OUI_TI;
     if(((uint8_t *)IEEE_ADDR_LOCATION)[3] == oui_ti[0]
-       && ((uint8_t *)IEEE_ADDR_LOCATION)[2] == oui_ti[1]
-       && ((uint8_t *)IEEE_ADDR_LOCATION)[1] == oui_ti[2]) {
+      && ((uint8_t *)IEEE_ADDR_LOCATION)[2] == oui_ti[1]
+      && ((uint8_t *)IEEE_ADDR_LOCATION)[1] == oui_ti[2]) {
       for(i = 0; i < len / 2; i++) {
         dst[i] = ((uint8_t *)IEEE_ADDR_LOCATION)[len / 2 - 1 - i];
       }
@@ -88,5 +92,63 @@ ieee_addr_cpy_to(uint8_t *dst, uint8_t len)
   dst[len - 2] = IEEE_ADDR_NODE_ID >> 8;
 #endif
 }
+/*---------------------------------------------------------------------------*/
+void
+secondary_ieee_addr_write(uint8_t *src, uint8_t len)
+{
+    /*
+     * By default, we assume that the IEEE address is stored on flash using
+     * little-endian byte order.
+     *
+     * However, some SoCs ship with a different byte order, whereby the first
+     * four bytes are flipped with the four last ones.
+     *
+     *     Using this address as an example: 00 12 4B 00 01 02 03 04
+     *               We expect it stored as: 04 03 02 01 00 4B 12 00
+     * But it is also possible to encounter: 00 4B 12 00 04 03 02 01
+     *
+     * Thus: read locations [3, 2, 1] and if we encounter the TI OUI, flip the
+     * order of the two 4-byte sequences. Each of the 4-byte sequences is still
+     * little-endian.
+     *
+     * A write on a CC2538 need to be done on 4 bytes at the same time.
+     */
+    int i;
+    uint8_t oui_ti[3] = IEEE_ADDR_OUI_TI;
+    uint32_t write_value = 0;
+    if(len == 8){
+      if(src[3] == oui_ti[0]
+        && src[2] == oui_ti[1]
+        && src[1] == oui_ti[2]) {
+        write_value = 0;
+        for(i = 0; i < 4; i++) {
+         write_value |= src[i] << ((3 - i) * 8);
+        }
+        // Write Procedure
+        flash_write(IEEE_ADDR_LOCATION_SECONDARY,  write_value);
 
+        write_value = 0;
+        for(i = 0; i < 4; i++) {
+         write_value |= src[4 + i] << ((3 - i) * 8);
+        }
+        // Write Procedure
+        flash_write(IEEE_ADDR_LOCATION_SECONDARY+4,  write_value);
+
+      } else {
+        write_value = 0;
+        for(i = 0; i < 4; i++) {
+         write_value |= src[7-i]  << (i * 8);
+        }
+        // Write procedure
+        flash_write(IEEE_ADDR_LOCATION_SECONDARY+4,  write_value);
+
+        write_value = 0;
+        for(i = 0; i < 4; i++) {
+         write_value |= src[3-i] << (i * 8);
+        }
+        // Write Procedure
+        flash_write(IEEE_ADDR_LOCATION_SECONDARY,  write_value);
+      }
+    }
+}
 /** @} */

@@ -59,7 +59,7 @@
 #include <limits.h>
 #include <string.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #include "net/ip/uip-debug.h"
 
@@ -337,14 +337,18 @@ dio_input(void)
   PRINTF(", %u)\n", dio.preference);
 
   // printf(" dio from15  0x%02X",((uint8_t*) &from)[15]);
-  // printf(" dio nodeaddr0  0x%02X",linkaddr_node_addr.u8[1]);
+  // printf(" dio nodeaddr0  0x%02X", linkaddr_node_addr.u8[1]);
 
   /* Discard DIO if the faster don't have our nodeid -1 */
-  if(((uint8_t*) &from)[15] != linkaddr_node_addr.u8[1]-1){
+  if(((uint8_t*) &from)[15] != linkaddr_node_addr.u8[7]-1){
+    PRINTF("RPL: Discard DIO %x %x\n", ((uint8_t*) &from)[15], linkaddr_node_addr.u8[7]);
+    PRINTF("DIO from %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x \n",  ((uint8_t*) &from)[0], ((uint8_t*) &from)[1],  ((uint8_t*) &from)[2],  
+      ((uint8_t*) &from)[3],  ((uint8_t*) &from)[4],  ((uint8_t*) &from)[5],  ((uint8_t*) &from)[14], ((uint8_t*) &from)[15]);
+    
+    PRINT6ADDR(&from);
     goto discard;
   }
 
-  
   /* Check if there are any DIO suboptions. */
   for(; i < buffer_length; i += len) {
     subopt_type = buffer[i];

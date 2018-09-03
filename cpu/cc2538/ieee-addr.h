@@ -82,24 +82,6 @@
 #define IEEE_ADDR_LOCATION IEEE_ADDR_LOCATION_PRIMARY
 #endif
 /** @} */
-/*---------------------------------------------------------------------------*//**
- * \brief We define some registers addresses to enable a flash write.
- * @{
- */
-#define FLASH_CTRL_FADDR        0x400D300C  /**< Flash address */
-#define FLASH_CTRL_FADDR_MASK   0x1FFFF     /**< Flash address mask */
-#define FLASH_CTRL_FCTL         0x400D3008  /**< Flash control */
-#define FLASH_CTRL_FCTL_WRITE_MASK 0X00000002  /**< Flash control Write bit */
-#define FLASH_CTRL_FCTL_WRITE_OFFSET 0X1  /**< Flash control Write bit */
-#define FLASH_CTRL_FCTL_ABORD_MASK  0X00000020  /**< Abort status bit */
-#define FLASH_CTRL_FCTL_ABORD_OFFSET 0X5  /**< Abort status bit */
-#define FLASH_CTRL_FCTL_FULL_MASK  0X00000040  /**< Write buffer full bit */
-#define FLASH_CTRL_FCTL_FULL_OFFSET 0X6  /**< Write buffer full bit */
-#define FLASH_CTRL_FCTL_BUSY_MASK  0X00000080  /**< Controller is busy bit */
-#define FLASH_CTRL_FCTL_BUSY_OFFSET 0X7  /**< Controller is busy bit */
-#define FLASH_CTRL_FWDATA         0x400D3010  /**< Flash control */
-
-/** @} */
 /*---------------------------------------------------------------------------*/
 /*
  * \brief Copy the node's IEEE address to a destination memory area
@@ -117,17 +99,6 @@
  * dst[len - 1] holding the LSB
  */
 void ieee_addr_cpy_to(uint8_t *dst, uint8_t len);
-/*---------------------------------------------------------------------------*/
-/*
- * \brief Write the node secondary IEEE address 
- * \param src A pointer to the destination area where the IEEE address is to be
- *            written
- * \param len The number of bytes to write to destination area (must be 8)
- * 
- *  The primary address is placed in a reserved area and can not be changed.
- *
- */
-void secondary_ieee_addr_write(uint8_t *src, uint8_t len);
 
 #endif /* IEEE_ADDR_H_ */
 

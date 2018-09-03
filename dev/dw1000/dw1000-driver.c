@@ -206,6 +206,10 @@
 #endif /* DEBUG_GPIO_TSCH */
 /* END : Just for the debugging of TSCH */
 
+/* Time to read the current time on the DW1000 using SPI in microsecond */
+#ifndef DW1000_SFD_READOUT_OFFSET
+  #define DW1000_SFD_READOUT_OFFSET 18 
+#endif
 // #define DOUBLE_BUFFERING
 
 /* Used to fix an error with an possible interruption before
@@ -319,7 +323,7 @@ static radio_result_t dw1000_driver_get_object(radio_param_t param,
                                                void *dest, size_t size);
 static radio_result_t dw1000_driver_set_object(radio_param_t param,
                                                const void *src, size_t size);
-static uint32_t get_sfd_timestamp(void);
+static uint32_t get_sfd_timestamp(uint32_t reg_addr);
 static void set_frame_filtering(uint8_t enable);
 static void set_auto_ack(uint8_t enable);
 static void set_poll_mode(uint8_t enable);
@@ -556,6 +560,7 @@ dw1000_driver_prepare(const void *payload,
 static int
 dw1000_driver_transmit(unsigned short payload_len)
 {
+
 #if RADIO_DELAY_MEASUREMENT
   uint64_t transmission_call, transmission_sfd;
   transmission_call = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME);
@@ -588,7 +593,6 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* if we are in ranging, the size change. */
   payload_len = convert_payload_len(payload_len);
 
-  SEND_SET();
   if(!(dw1000_driver_sstwr || dw1000_driver_sdstwr)){
     /* Initialize a no delayed transmission 
       and wait for an ACK if an ACK request is triggered */
@@ -599,7 +603,7 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* if we hare in SS TWR we re enable the transceiver manually */
     dw_init_tx(dw1000_driver_sdstwr, 0);
   }
-
+  SEND_SET();
 #if DEBUG
   uint8_t tr_value;
   /* TR bit is the 15nd bit */
@@ -909,6 +913,7 @@ dw1000_driver_transmit(unsigned short payload_len)
 
   ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
 
+  SEND_CLR();
 #if DEBUG_VERBOSE
   print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
@@ -927,7 +932,6 @@ dw1000_driver_transmit(unsigned short payload_len)
     printf("TX result %d\n", tx_return);
   }
 #endif
-  SEND_CLR();
   // rtimer_clock_t t1 = RTIMER_NOW();
   // printf("tx time %ld (ms)\n", RTIMERTICKS_TO_US(t1-t0) );
   return tx_return;
@@ -1141,8 +1145,10 @@ dw1000_driver_on(void)
   }
 
   dw1000_on();
-  LISTEN_SET();
 
+  LISTEN_SET();
+  // uint32_t rx_time = RTIMER_NOW();
+  // printf("rx time %u\n", rx_time);
 
 #if RADIO_DELAY_MEASUREMENT
   receive_begin = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME);
@@ -1214,15 +1220,15 @@ dw1000_driver_off(void)
      we don't actually switch the radio off now, but signal that the
      driver should switch off the radio once the packet has been
      received and processed, by setting the 'lock_off' variable. */
-  uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
-  if(((status & DW_RXSFDD_MASK) > 0) 
-    && ((status & (DW_RXDFR_MASK | DW_RXPHE_MASK)) == 0)) {
-    lock_off = 1;
-    return 0;
-  } else {
-    dw1000_off();
+  // uint64_t status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+  // if(((status & DW_RXSFDD_MASK) > 0) 
+  //   && ((status & (DW_RXDFR_MASK | DW_RXPHE_MASK)) == 0)) {
+  //   lock_off = 1;
+  //   return 0;
+  // } else {
     LISTEN_CLR();
-  }
+    dw1000_off();
+  // }
   return 1;
 }
 /**
@@ -1471,7 +1477,15 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
     if(size != sizeof(rtimer_clock_t) || !dest) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    *(rtimer_clock_t *)dest = get_sfd_timestamp();
+    *(rtimer_clock_t *)dest = get_sfd_timestamp(DW_REG_RX_TIME);
+    return RADIO_RESULT_OK;
+  }
+
+  if(param == RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP) {
+    if(size != sizeof(rtimer_clock_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    *(rtimer_clock_t *)dest = get_sfd_timestamp(DW_REG_TX_TIME);
     return RADIO_RESULT_OK;
   }
 
@@ -2235,40 +2249,54 @@ dw1000_get_preamble_code(dw1000_channel_t channel, dw1000_prf_t prf){
 }
 /*---------------------------------------------------------------------------*/
 /**
- * \brief Return the time of the last receive SFD detection.
+ * \brief Return the time of the last SFD detection.
+ *
+ * \param sfd_register Specified if we return the last received SFD
+ *                  or the last transmitted SFD
+ *        Possible values : DW_REG_RX_TIME or DW_REG_TX_TIME
  **/
 uint32_t
-get_sfd_timestamp(void)
+get_sfd_timestamp(uint32_t reg_addr)
 {
-  uint64_t sys_time = 0, rx_time = 0, sfd_delay;
+  uint64_t sys_time = 0, sfd_time = 0, sfd_delay;
   uint32_t current_mcu_time;
 
   current_mcu_time = RTIMER_NOW();
+  
+  // SEND_SET();
   /* we use the DW1000 clock, We don't clean the 9 low bit because 
     RADIO_TO_RTIMER do this job. */
   sys_time = dw_read_reg_64(DW_REG_SYS_TIME, DW_LEN_SYS_TIME);
+  // SEND_CLR();
 
-  dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
-                  (uint8_t *) &rx_time);
+  if(reg_addr == DW_REG_RX_TIME){
+    dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
+                    (uint8_t *) &sfd_time);
+  }
+  else{
+    dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
+                    (uint8_t *) &sfd_time);
+  }
+
 
   sys_time &= DW_TIMESTAMP_MAX_VALUE;
-  rx_time &= DW_TIMESTAMP_MAX_VALUE;
+  sfd_time &= DW_TIMESTAMP_MAX_VALUE;
 
-  if(sys_time > rx_time){
-    sfd_delay = sys_time - rx_time;
+  if(sys_time > sfd_time){
+    sfd_delay = sys_time - sfd_time;
   }
   else {
     /* we have an overflow. To compute the delay we have to take the maximum 
     timestamps value into account (because this is a 40 bits number and 
     we use 64 bits number). */
-    sfd_delay = sys_time + DW_TIMESTAMP_MAX_VALUE - rx_time;
+    sfd_delay = sys_time + DW_TIMESTAMP_MAX_VALUE - sfd_time;
   }
 
 #if DEBUG_VERBOSE
   printf("get_sfd_timestamp(void)\n");
   printf("current_time %lu\n", current_mcu_time);
   printf("SYS_TIME %llu\n", sys_time);
-  printf("RX_TIME %llu\n", rx_time);
+  printf("RX_TIME %llu\n", sfd_time);
   printf("sfd_delay %llu\n", sfd_delay);
   printf("RTIMER_ARCH_SECOND / DW_TIMESTAMP_CLOCK %d %d\n", 
                             RTIMER_ARCH_SECOND,  DW_TIMESTAMP_CLOCK);
@@ -2276,7 +2304,7 @@ get_sfd_timestamp(void)
     RTIMERTICKS_TO_US(RADIO_TO_RTIMER(sfd_delay)));
 #endif /*  DEBUG_VERBOSE */
 
-  return current_mcu_time - RADIO_TO_RTIMER(sfd_delay);
+  return current_mcu_time - US_TO_RTIMERTICKS(RADIO_TO_US(sfd_delay-DW1000_SFD_READOUT_OFFSET));
 }
 /*===========================================================================*/
 /* Ranging                                                                   */

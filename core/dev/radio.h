@@ -165,10 +165,16 @@ enum {
    */
   RADIO_PARAM_64BIT_ADDR,
 
-  /* Last packet timestamp, of type rtimer_clock_t.
+  /* Last received packet timestamp, of type rtimer_clock_t.
    * Because this parameter value mat be larger than what fits in radio_value_t,
    * it needs to be used with radio.get_object()/set_object(). */
   RADIO_PARAM_LAST_PACKET_TIMESTAMP,
+
+
+  /* Last transmitted packet timestamp, of type rtimer_clock_t.
+   * Because this parameter value mat be larger than what fits in radio_value_t,
+   * it needs to be used with radio.get_object()/set_object(). */
+  RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP,
 
   /* Constants (read only) */
 

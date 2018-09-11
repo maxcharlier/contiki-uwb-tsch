@@ -167,11 +167,11 @@
 
 /* /!\ Make sure to have correctly defined the MACRO UWB_T_SHR */
 
-#define TSCH_RX_GUARD                      500
+#define TSCH_RX_GUARD                      600
 
 /* TSCH implementation requierd to PAWN a new protothread at the start 
     of the RX and TX slot, one a 8MHz MCU it take more than 750µs*/
-#define TSCH_MIN_START_SLOT                880
+#define TSCH_MIN_START_SLOT                1000
 #define TSCH_RX_OFFSET                     MAX(TSCH_RX_GUARD, TSCH_MIN_START_SLOT)
 
 #undef TSCH_CONF_RX_WAIT
@@ -181,7 +181,7 @@
 #define TSCH_DEFAULT_TS_RX_OFFSET          TSCH_RX_OFFSET
 
 #define TSCH_ACK_GUARD                     120
-#define TSCH_ACK_DELAY                     500
+#define TSCH_ACK_DELAY                     800
 
 #define TSCH_DEFAULT_TS_RX_ACK_DELAY       (TSCH_ACK_DELAY-TSCH_ACK_GUARD)
 #define TSCH_DEFAULT_TS_TX_ACK_DELAY       (TSCH_ACK_DELAY+UWB_T_SHR)
@@ -191,6 +191,8 @@
 #define TSCH_DEFAULT_TS_MAX_ACK            82
 #define TSCH_DEFAULT_TS_MAX_TX             151
 #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    4000
+
+// #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 
 #else
 #error "TSCH: Unsupported default timeslot length"

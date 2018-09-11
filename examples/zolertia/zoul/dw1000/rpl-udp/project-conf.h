@@ -104,10 +104,11 @@
 /******************* Configure TSCH ********************/
 /*******************************************************/
 
+
 /* TSCH logging. 0: disabled. 1: basic log. 2: with delayed
  * log messages from interrupt */
 #undef TSCH_LOG_CONF_LEVEL
-#define TSCH_LOG_CONF_LEVEL 0
+#define TSCH_LOG_CONF_LEVEL 2
 
 /* IEEE802.15.4 PANID */
 #undef IEEE802154_CONF_PANID
@@ -121,7 +122,7 @@
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 /* by default 3 */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 10
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 8
 
 #if WITH_SECURITY
 

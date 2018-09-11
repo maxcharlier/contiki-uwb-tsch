@@ -600,10 +600,12 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 
               ack_start_time = RTIMER_NOW() - RADIO_DELAY_BEFORE_DETECT;
 
-              /* Wait for ACK to finish */
-              BUSYWAIT_UNTIL_ABS(!NETSTACK_RADIO.receiving_packet(),
-                                 ack_start_time, tsch_timing[tsch_ts_max_ack]);
-              TSCH_DEBUG_TX_EVENT();
+              if(NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()){
+                /* Wait for ACK to finish */
+                BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
+                    tx_start_time, tx_duration + tsch_timing[tsch_ts_rx_ack_delay] + tsch_timing[tsch_ts_ack_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
+                TSCH_DEBUG_TX_EVENT();
+              }
               tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
 
 #if TSCH_HW_FRAME_FILTERING
@@ -779,7 +781,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
       rx_start_time = RTIMER_NOW() - RADIO_DELAY_BEFORE_DETECT;
 
       /* Wait until packet is received, turn radio off */
-      BUSYWAIT_UNTIL_ABS(!NETSTACK_RADIO.receiving_packet(),
+      BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
           current_slot_start, tsch_timing[tsch_ts_rx_offset] + tsch_timing[tsch_ts_rx_wait] + tsch_timing[tsch_ts_max_tx]);
       TSCH_DEBUG_RX_EVENT();
       tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);

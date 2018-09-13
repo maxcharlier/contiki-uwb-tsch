@@ -59,6 +59,32 @@
 #include "sys/cooja_mt.h"
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
 
+
+/* Just for the debugging of TSCH */
+#define DEBUG_GPIO_TSCH 1
+#ifdef DEBUG_GPIO_TSCH
+  #include "sys/clock.h"
+  #include "dev/gpio.h"
+
+  #define DWM1000_SLOT_END_PORT           GPIO_A_NUM
+  #define DWM1000_SLOT_END_PIN            7
+  #define SLOT_END_TRIGGER() do { \
+      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+      clock_delay_usec(1); \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+  } while(0)
+  #define INIT_GPIO_DEBUG() do {\
+    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+  } while (0)
+#else
+  #define SLOT_END_TRIGGER() do {} while(0)
+  #define INIT_GPIO_DEBUG() do {} while(0)
+#endif /* DEBUG_GPIO_TSCH */
+/* END : Just for the debugging of TSCH */
+
+
 #if TSCH_LOG_LEVEL >= 1
 #define DEBUG DEBUG_PRINT
 #else /* TSCH_LOG_LEVEL */
@@ -715,6 +741,9 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
   }
 
   TSCH_DEBUG_TX_EVENT();
+  
+  TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+  SLOT_END_TRIGGER();
 
   PT_END(pt);
 }
@@ -931,6 +960,9 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
   TSCH_DEBUG_RX_EVENT();
 
+  TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+  SLOT_END_TRIGGER();
+
   PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
@@ -1062,6 +1094,9 @@ tsch_slot_operation_start(void)
   rtimer_clock_t time_to_next_active_slot;
   rtimer_clock_t prev_slot_start;
   TSCH_DEBUG_INIT();
+
+  INIT_GPIO_DEBUG();
+
   do {
     uint16_t timeslot_diff;
     /* Get next active link */

@@ -614,10 +614,16 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               NETSTACK_RADIO.get_value(RADIO_PARAM_RX_MODE, &radio_rx_mode);
               NETSTACK_RADIO.set_value(RADIO_PARAM_RX_MODE, radio_rx_mode & (~RADIO_RX_MODE_ADDRESS_FILTER));
 #endif /* TSCH_HW_FRAME_FILTERING */
+
+#if TSCH_RESYNC_WITH_SFD_TIMESTAMPS
+        /* At the end of the transmission, get an more accurate estimate of SFD sending time */
+        NETSTACK_RADIO.get_object(RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP, &tx_start_time, sizeof(rtimer_clock_t));
+#endif
               /* Unicast: wait for ack after tx: sleep until ack time */
-              TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start,
-                  tsch_timing[tsch_ts_tx_offset] + tx_duration + tsch_timing[tsch_ts_rx_ack_delay] - RADIO_DELAY_BEFORE_RX, "TxBeforeAck");
+              TSCH_SCHEDULE_AND_YIELD(pt, t, tx_start_time,
+                  tx_duration + tsch_timing[tsch_ts_rx_ack_delay] - RADIO_DELAY_BEFORE_RX, "TxBeforeAck");
               TSCH_DEBUG_TX_EVENT();
+
               tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
               /* Wait for ACK to come */
               BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),

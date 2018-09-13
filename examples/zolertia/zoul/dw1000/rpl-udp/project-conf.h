@@ -121,8 +121,9 @@
 /* 6TiSCH minimal schedule length.
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 /* by default 3 */
+/* (7 * 15) / 2.472 = 42 */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 8
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 42
 
 #if WITH_SECURITY
 

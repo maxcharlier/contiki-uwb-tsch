@@ -444,7 +444,7 @@ typedef uint32_t rtimer_clock_t;
   in the radio driver. You need to call NETSTACK_CONF_RADIO.off() and after 
   NETSTACK_CONF_RADIO.on()*/
   #undef RADIO_DELAY_BEFORE_RX
-  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(53+16+50))
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(16))
   // #define RADIO_DELAY_BEFORE_RX     0
 
   /* The delay between the reception of the SFD and the trigger by the radio */
@@ -490,7 +490,7 @@ typedef uint32_t rtimer_clock_t;
   #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
 
   /* Used to start the slot in advance to avoid miss deadline because of the slow processing speed */
-  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(450))
+  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(150))
 
   /* change the clock of the CPU 32 MHZ in place of 16 */
   // #define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ

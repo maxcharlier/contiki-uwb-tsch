@@ -426,7 +426,8 @@ typedef uint32_t rtimer_clock_t;
   /* Preamble transmission + SFD symbols
     1 µs by preamble symbols and 1 µs by sfd symbols
     The length of the SFD is 64 symbols at 110 kbps and 
-    16 symbols for all other bitrates*/
+    16 symbols for all other bitrates 
+    (according to the transceiver configuration)*/
   #define UWB_T_SHR                  ((uint16_t) (128+16))
 
   /* time from calling transmit() until the SFD byte has been sent 
@@ -462,24 +463,34 @@ typedef uint32_t rtimer_clock_t;
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
 
 
-  /* Calculate packet tx/rx duration in rtimer ticks based on sent
-   * packet len in bytes with 802.15.4 UWB 110, 850 or 6810 kbps data rate.
+  /* Calculate packet tx/rx duration in RTIMER ticks based on sent
+   * packet length in bytes with 802.15.4 UWB 110, 850 or 6810 kbps data rate.
    * One byte = 32us at 250 kbps.
    * One byte = 53.3us at 110 kbps.
    * One byte = 9.4us at 850 kbps.
    * One byte = 1.17us at 6810 kbps.
-   * Add two bytes for CRC and one for PHR field 
-   * do not take into acount the SHR */
+   * Add two bytes for CRC
+   * Add 172 for the PHR transmission at 110 kbps
+   * Add 22 for the PHR transmission at 850 kpbs or more
+   * The SHR is not take into account here (see UWB_T_SHR)
+   * The value do not need to be perfectly correct because
+   * the value will by round in RTIMER tick*/
   #undef TSCH_PACKET_DURATION
-  #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS((117 * (len + 3))/100))
+  #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (117 * (len + 2))/100))
+  
+  /* We use the SFD timestamp gived by the DW1000 transceiver to do the synchronization */
   #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1
 
-  #define TSCH_CONF_EB_PERIOD (4 * CLOCK_SECOND)
+  /* EB period is 3.42 seconds */
+  #define TSCH_CONF_EB_PERIOD ((342*CLOCK_SECOND)/100)
 
   /*Time to desynch assuming a drift of 40 PPM (80 PPM between two nodes) and guard time of +/-0.5ms: 6.25s. */
   #define TSCH_CONF_KEEPALIVE_TIMEOUT (10*CLOCK_SECOND)
-  #define TSCH_CONF_MAX_EB_PERIOD (30*CLOCK_SECOND)
-  #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (40*CLOCK_SECOND)
+  #define TSCH_CONF_MAX_EB_PERIOD (10*CLOCK_SECOND)
+  #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
+
+  /* Used to start the slot in advance to avoid miss deadline because of the slow processing speed */
+  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(450))
 
   /* change the clock of the CPU 32 MHZ in place of 16 */
   // #define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ

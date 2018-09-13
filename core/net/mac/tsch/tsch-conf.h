@@ -167,11 +167,11 @@
 
 /* /!\ Make sure to have correctly defined the MACRO UWB_T_SHR */
 
-#define TSCH_RX_GUARD                      600
+#define TSCH_RX_GUARD                      500
 
 /* TSCH implementation requierd to PAWN a new protothread at the start 
     of the RX and TX slot, one a 8MHz MCU it take more than 750µs*/
-#define TSCH_MIN_START_SLOT                1000
+#define TSCH_MIN_START_SLOT                400
 #define TSCH_RX_OFFSET                     MAX(TSCH_RX_GUARD, TSCH_MIN_START_SLOT)
 
 #undef TSCH_CONF_RX_WAIT
@@ -181,16 +181,16 @@
 #define TSCH_DEFAULT_TS_RX_OFFSET          TSCH_RX_OFFSET
 
 #define TSCH_ACK_GUARD                     120
-#define TSCH_ACK_DELAY                     800
+#define TSCH_ACK_DELAY                     700
 
 #define TSCH_DEFAULT_TS_RX_ACK_DELAY       (TSCH_ACK_DELAY-TSCH_ACK_GUARD)
 #define TSCH_DEFAULT_TS_TX_ACK_DELAY       (TSCH_ACK_DELAY+UWB_T_SHR)
 #define TSCH_DEFAULT_TS_RX_WAIT            TSCH_CONF_RX_WAIT
 #define TSCH_DEFAULT_TS_ACK_WAIT           (TSCH_ACK_GUARD + TSCH_ACK_GUARD + UWB_T_SHR)
 #define TSCH_DEFAULT_TS_RX_TX              70      /* not used */
-#define TSCH_DEFAULT_TS_MAX_ACK            82
-#define TSCH_DEFAULT_TS_MAX_TX             151
-#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    4000
+#define TSCH_DEFAULT_TS_MAX_ACK            78
+#define TSCH_DEFAULT_TS_MAX_TX             177
+#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    2868
 
 // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 
@@ -232,6 +232,14 @@
 #define TSCH_CHANNEL_SCAN_DURATION TSCH_CONF_CHANNEL_SCAN_DURATION
 #else
 #define TSCH_CHANNEL_SCAN_DURATION CLOCK_SECOND
+#endif
+
+/* Used to start the slot in advance to avoid miss deadline because 
+    of the slow processing speed, usefull when you reduce the RX_OFFSET value*/
+#ifdef TSCH_CONF_SLOT_START_BEFOREHAND
+#define TSCH_SLOT_START_BEFOREHAND TSCH_CONF_SLOT_START_BEFOREHAND
+#else
+#define TSCH_SLOT_START_BEFOREHAND 0
 #endif
 
 #endif /* __TSCH_CONF_H__ */

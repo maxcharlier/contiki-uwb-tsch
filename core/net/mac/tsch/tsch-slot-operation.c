@@ -1043,7 +1043,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         prev_slot_start = current_slot_start;
         current_slot_start += time_to_next_active_slot;
         current_slot_start += tsch_timesync_adaptive_compensate(time_to_next_active_slot);
-      } while(!tsch_schedule_slot_operation(t, prev_slot_start, time_to_next_active_slot, "main"));
+      } while(!tsch_schedule_slot_operation(t, prev_slot_start, time_to_next_active_slot-TSCH_SLOT_START_BEFOREHAND, "main"));
     }
 
     tsch_in_slot_operation = 0;

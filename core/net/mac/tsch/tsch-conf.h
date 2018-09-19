@@ -167,7 +167,7 @@
 
 /* /!\ Make sure to have correctly defined the MACRO UWB_T_SHR */
 
-#define TSCH_RX_GUARD                      700
+#define TSCH_RX_GUARD                      610
 
 /* TSCH implementation requierd to PAWN a new protothread at the start 
     of the RX and TX slot, one a 8MHz MCU it take more than 750µs*/
@@ -180,8 +180,8 @@
 #define TSCH_DEFAULT_TS_TX_OFFSET          (TSCH_RX_OFFSET + TSCH_RX_GUARD + UWB_T_SHR)
 #define TSCH_DEFAULT_TS_RX_OFFSET          TSCH_RX_OFFSET
 
-#define TSCH_ACK_GUARD                     120
-#define TSCH_ACK_DELAY                     700
+#define TSCH_ACK_GUARD                     122
+#define TSCH_ACK_DELAY                     610
 
 #define TSCH_DEFAULT_TS_RX_ACK_DELAY       (TSCH_ACK_DELAY-TSCH_ACK_GUARD)
 #define TSCH_DEFAULT_TS_TX_ACK_DELAY       (TSCH_ACK_DELAY+UWB_T_SHR)
@@ -190,7 +190,7 @@
 #define TSCH_DEFAULT_TS_RX_TX              70      /* not used */
 #define TSCH_DEFAULT_TS_MAX_ACK            78
 #define TSCH_DEFAULT_TS_MAX_TX             177
-#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    2472
+#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    2380
 
 // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 

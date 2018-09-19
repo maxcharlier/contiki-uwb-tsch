@@ -339,9 +339,9 @@ tsch_schedule_slot_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
  * ahead of time and then busy wait to exactly hit the target. */
 #define TSCH_SCHEDULE_AND_YIELD(pt, tm, ref_time, offset, str) \
   do { \
-    if(tsch_schedule_slot_operation(tm, ref_time, offset - RTIMER_GUARD, str)) { \
-      PT_YIELD(pt); \
-    } \
+    /* if(tsch_schedule_slot_operation(tm, ref_time, offset - RTIMER_GUARD, str)) { \
+       PT_YIELD(pt); \
+     } */ \
     BUSYWAIT_UNTIL_ABS(0, ref_time, offset); \
   } while(0);
 /*---------------------------------------------------------------------------*/

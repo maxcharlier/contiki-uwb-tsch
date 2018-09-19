@@ -435,7 +435,7 @@ typedef uint32_t rtimer_clock_t;
   in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
   Dependant of the configuration (DATA_RATE, PREAMBLE_LENGHT)*/
   #undef RADIO_DELAY_BEFORE_TX
-  #define RADIO_DELAY_BEFORE_TX     ((uint16_t) US_TO_RTIMERTICKS(UWB_T_SHR+25+90))
+  #define RADIO_DELAY_BEFORE_TX     ((uint16_t) US_TO_RTIMERTICKS(UWB_T_SHR+10))
   // #define RADIO_DELAY_BEFORE_TX     0
 
   /* the call of NETSTACK_CONF_RADIO.on take 53us, not dependant of the configuration.
@@ -444,13 +444,14 @@ typedef uint32_t rtimer_clock_t;
   in the radio driver. You need to call NETSTACK_CONF_RADIO.off() and after 
   NETSTACK_CONF_RADIO.on()*/
   #undef RADIO_DELAY_BEFORE_RX
-  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(16))
+  #define RADIO_DELAY_BEFORE_RX     ((unsigned) US_TO_RTIMERTICKS(10))
   // #define RADIO_DELAY_BEFORE_RX     0
 
   /* The delay between the reception of the SFD and the trigger by the radio */
   #undef RADIO_DELAY_BEFORE_DETECT
-  #define RADIO_DELAY_BEFORE_DETECT          1 /* one tick, used for the ack reception */
+  #define RADIO_DELAY_BEFORE_DETECT          0
 
+  // #define RADIO_DELAY_BEFORE_DETECT          ((unsigned)US_TO_RTIMERTICKS(122))
 
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE

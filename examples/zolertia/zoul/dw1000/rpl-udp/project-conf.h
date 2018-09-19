@@ -108,7 +108,7 @@
 /* TSCH logging. 0: disabled. 1: basic log. 2: with delayed
  * log messages from interrupt */
 #undef TSCH_LOG_CONF_LEVEL
-#define TSCH_LOG_CONF_LEVEL 2
+#define TSCH_LOG_CONF_LEVEL 0
 
 /* IEEE802.15.4 PANID */
 #undef IEEE802154_CONF_PANID
@@ -123,7 +123,7 @@
 /* by default 3 */
 /* (7 * 15) / 2.472 = 42 */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 42
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 44
 
 #if WITH_SECURITY
 

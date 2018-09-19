@@ -1226,8 +1226,8 @@ dw1000_driver_off(void)
   //   lock_off = 1;
   //   return 0;
   // } else {
-    dw1000_off();
     LISTEN_CLR();
+    dw1000_off();
   // }
   return 1;
 }

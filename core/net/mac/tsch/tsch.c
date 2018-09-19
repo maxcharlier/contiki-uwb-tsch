@@ -205,7 +205,13 @@ tsch_reset(void)
   TSCH_ASN_INIT(tsch_current_asn, 0, 0);
   current_link = NULL;
   /* Reset timeslot timing to defaults */
+  printf("TSCH UWB_T_SHR %u\n", UWB_T_SHR);
+  printf("TSCH RADIO_DELAY_BEFORE_TX %u\n", RADIO_DELAY_BEFORE_TX);
+  printf("TSCH RADIO_DELAY_BEFORE_RX %u\n", RADIO_DELAY_BEFORE_RX);
+  printf("TSCH RADIO_DELAY_BEFORE_DETECT %u\n", RADIO_DELAY_BEFORE_DETECT);
+  printf("TSCH slot parameter\n");
   for(i = 0; i < tsch_ts_elements_count; i++) {
+    printf("us %u, ticks %ld\n",  tsch_default_timing_us[i], US_TO_RTIMERTICKS(tsch_default_timing_us[i]));
     tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i]);
   }
 #ifdef TSCH_CALLBACK_LEAVING_NETWORK
@@ -475,6 +481,14 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
     return 0;
   }
 #endif /* TSCH_JOIN_MY_PANID_ONLY */
+
+  /* Discard EB if the EB not comes from the addr we expect */
+  if(((uint8_t*) frame.src_addr)[7] != linkaddr_node_addr.u8[7]-1) {
+    PRINTF("TSCH:! parse_eb: discard EB ADDR not match 0x%x  expected 0x%x | ", ((uint8_t*) frame.src_addr)[7], linkaddr_node_addr.u8[7]-1);
+    PRINTLLADDR((const uip_lladdr_t *) frame.src_addr);
+    PRINTF("\n");
+    return 0;
+  }
 
   /* There was no join priority (or 0xff) in the EB, do not join */
   if(ies.ie_join_priority == 0xff) {

@@ -424,9 +424,9 @@ typedef uint32_t rtimer_clock_t;
 
 
   /* Preamble transmission + SFD symbols
-    1 µs by preamble symbols and 1 µs by sfd symbols
+    1 µs by preamble symbols and 1 µs by SFD symbols
     The length of the SFD is 64 symbols at 110 kbps and 
-    16 symbols for all other bitrates 
+    16 symbols for all other bit rates 
     (according to the transceiver configuration)*/
   #define UWB_T_SHR                  ((uint16_t) (128+16))
 
@@ -438,7 +438,7 @@ typedef uint32_t rtimer_clock_t;
   #define RADIO_DELAY_BEFORE_TX     ((uint16_t) US_TO_RTIMERTICKS(UWB_T_SHR+10))
   // #define RADIO_DELAY_BEFORE_TX     0
 
-  /* the call of NETSTACK_CONF_RADIO.on take 53us, not dependant of the configuration.
+  /* the call of NETSTACK_CONF_RADIO.on take 53us, not dependent of the configuration.
   The radio is ready to receive 16 µs after this call. 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
   in the radio driver. You need to call NETSTACK_CONF_RADIO.off() and after 
@@ -483,15 +483,15 @@ typedef uint32_t rtimer_clock_t;
   #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1
 
   /* EB period is 3.42 seconds */
-  #define TSCH_CONF_EB_PERIOD ((342*CLOCK_SECOND)/100)
+  // #define TSCH_CONF_EB_PERIOD ((342*CLOCK_SECOND)/100)
 
   /*Time to desynch assuming a drift of 40 PPM (80 PPM between two nodes) and guard time of +/-0.5ms: 6.25s. */
-  #define TSCH_CONF_KEEPALIVE_TIMEOUT (10*CLOCK_SECOND)
-  #define TSCH_CONF_MAX_EB_PERIOD (10*CLOCK_SECOND)
-  #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
+  // #define TSCH_CONF_KEEPALIVE_TIMEOUT (10*CLOCK_SECOND)
+  // #define TSCH_CONF_MAX_EB_PERIOD (10*CLOCK_SECOND)
+  // #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
 
   /* Used to start the slot in advance to avoid miss deadline because of the slow processing speed */
-  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(150))
+  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(250))
 
   /* change the clock of the CPU 32 MHZ in place of 16 */
   // #define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ

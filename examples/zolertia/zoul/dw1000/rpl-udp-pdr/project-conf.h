@@ -121,9 +121,12 @@
 /* 6TiSCH minimal schedule length.
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 /* by default 3 */
-/* (7 * 15) / 2.472 = 42 */
+/* 4 * 2.5ms = 10 ms */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 44
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 39
+
+/* Max retransmission define to 0 */
+// #define TSCH_CONF_MAC_MAX_FRAME_RETRIES 0
 
 #if WITH_SECURITY
 

@@ -51,11 +51,10 @@
 #define UDP_EXAMPLE_ID  6
 
 static struct uip_udp_conn *server_conn;
-#define MAX_CHILD      5
-static uint32_t last_messages[MAX_CHILD] = {0, 0, 0, 0, 0};
-static uint16_t first_messages[MAX_CHILD] = {0, 0, 0, 0, 0};
-static uint32_t received_messages[MAX_CHILD] = {0, 0, 0, 0, 0};
-static uint32_t lost_messages[MAX_CHILD] = {0, 0, 0, 0, 0};
+static uint32_t last_messages[MAX_CHILD] = {0, 0, 0, 0};
+static uint16_t first_messages[MAX_CHILD] = {0, 0, 0, 0};
+static uint32_t received_messages[MAX_CHILD] = {0, 0, 0, 0};
+static uint32_t lost_messages[MAX_CHILD] = {0, 0, 0, 0};
 
 #define DEBUG_PERIOD  60 * CLOCK_SECOND
 
@@ -78,8 +77,8 @@ tcpip_handler(void)
            UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
     PRINTF("\n");
     int message_number = -1;
-    int index_id = (UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1])-7;
-    // int index_id = 0;
+    // int index_id = (UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1])-2;
+    int index_id = 0;
     message_number = atoi(appdata);
     if(received_messages[index_id] == 0){
       first_messages[index_id] = message_number;
@@ -223,15 +222,14 @@ PROCESS_THREAD(udp_periodic_process, ev, data)
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
 
-    printf("last %lu %lu %lu %lu %lu, total %lu %lu %lu %lu %lu, lost %lu %lu %lu %lu  %lu, lost2 %lu %lu %lu %lu  %lu\n ", 
-      last_messages[0], last_messages[1], last_messages[2], last_messages[3], last_messages[4],
-      received_messages[0], received_messages[1], received_messages[2], received_messages[3], received_messages[4],
-      lost_messages[0], lost_messages[1], lost_messages[2], lost_messages[3], lost_messages[4],
+    printf("last %lu %lu %lu %lu, total %lu %lu %lu %lu, lost %lu %lu %lu %lu , lost2 %lu %lu %lu %lu \n ", 
+      last_messages[0], last_messages[1], last_messages[2], last_messages[3],
+      received_messages[0], received_messages[1], received_messages[2], received_messages[3],
+      lost_messages[0], lost_messages[1], lost_messages[2], lost_messages[3],
       (last_messages[0] - first_messages[0]) -  received_messages[0],
       (last_messages[1] - first_messages[1]) -  received_messages[1],
       (last_messages[2] - first_messages[2]) -  received_messages[2],
-      (last_messages[3] - first_messages[3]) -  received_messages[3],
-      (last_messages[4] - first_messages[4]) -  received_messages[4]);
+      (last_messages[3] - first_messages[3]) -  received_messages[3]);
     etimer_reset(&periodic);
   }
 

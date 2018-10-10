@@ -1185,9 +1185,8 @@ dw1000_on(void)
   }
   
   /* The receiver has a delay of 16μs after issuing the enable receiver command,
-   *  after which it will start receiving preamble symbols. 
-    dw1000_us_delay(16);
-    */
+   *  after which it will start receiving preamble symbols. */ 
+  /* dw1000_us_delay(16); */
 
   ENERGEST_ON(ENERGEST_TYPE_LISTEN);
   receive_on = 1;

@@ -455,13 +455,15 @@ typedef uint32_t rtimer_clock_t;
 
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
-  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 0, 1, 2, 3, 4, 5 }
-  #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     (uint8_t[]){ 0 }
+  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 5, 1, 4, 0, 2, 3}
+  #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
   #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  6
   #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   5000
 
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
+
+  // #define TSCH_CONF_MAX_INCOMING_PACKETS      8
 
 
   /* Calculate packet tx/rx duration in RTIMER ticks based on sent

@@ -747,9 +747,10 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
   }
 
   TSCH_DEBUG_TX_EVENT();
-  
+#ifdef DEBUG_GPIO_TSCH
   TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   SLOT_END_TRIGGER();
+#endif /* DEBUG_GPIO_TSCH */
 
   PT_END(pt);
 }
@@ -966,8 +967,10 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
   TSCH_DEBUG_RX_EVENT();
 
+#ifdef DEBUG_GPIO_TSCH
   TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   SLOT_END_TRIGGER();
+#endif /* DEBUG_GPIO_TSCH */
 
   PT_END(pt);
 }

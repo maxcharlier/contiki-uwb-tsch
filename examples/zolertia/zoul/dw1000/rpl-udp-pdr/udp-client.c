@@ -34,6 +34,9 @@
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-udp-packet.h"
 #include "sys/ctimer.h"
+
+#include "net/mac/tsch/tsch.h"
+
 #ifdef WITH_COMPOWER
 #include "powertrace.h"
 #endif
@@ -46,17 +49,17 @@
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 
-#define UDP_EXAMPLE_ID  1
+#define UDP_EXAMPLE_ID  6
 
 #define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
 
 #ifndef PERIOD
-#define PERIOD 10 /* one messages each second */
+#define PERIOD 5 /* 10 messages each second */
 #endif
 
-#define START_INTERVAL		(90 * CLOCK_SECOND)
-#define SEND_INTERVAL		(PERIOD * CLOCK_SECOND)
+#define START_INTERVAL		(210 * CLOCK_SECOND)
+#define SEND_INTERVAL		(CLOCK_SECOND/PERIOD)
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 #define MAX_PAYLOAD_LEN		30
 
@@ -105,8 +108,8 @@ send_packet(void *ptr)
 #endif /* SERVER_REPLY */
 
   seq_id++;
-  PRINTF("DATA send to %d 'Hello %d'\n",
-         server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
+  // PRINTF("DATA send to %d 'Hello %d'\n",
+  //        server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
   sprintf(buf, "%d", seq_id);
   uip_udp_packet_sendto(client_conn, buf, strlen(buf),
                         &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
@@ -177,6 +180,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 #if WITH_COMPOWER
   static int print = 0;
 #endif
+  static int initialize = 0;
 
   PROCESS_BEGIN();
 
@@ -208,7 +212,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   NETSTACK_MAC.on();
   
-  etimer_set(&periodic, SEND_INTERVAL);
+  etimer_set(&periodic, START_INTERVAL);
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
@@ -250,8 +254,17 @@ PROCESS_THREAD(udp_client_process, ev, data)
     }
 
     if(etimer_expired(&periodic)) {
+      if (initialize){
       etimer_reset(&periodic);
-      ctimer_set(&backoff_timer, SEND_TIME, send_packet, NULL);
+      /* send message only if we are the node 5 */
+      // if(linkaddr_node_addr.u8[7] == 0x0B  && tsch_is_associated)
+        ctimer_set(&backoff_timer, SEND_TIME, send_packet, NULL);
+      }
+      else{
+        etimer_stop(&periodic);
+        etimer_set(&periodic, SEND_INTERVAL);
+        initialize = 1;
+      }
 
 #if WITH_COMPOWER
       if (print == 0) {

@@ -2813,19 +2813,19 @@ uint32_t
 dw_read_otp_32(uint16_t otp_addr)
 {
   static const uint8_t cmd[] = {
-    DW_OTPRDEN_MASK | DW_OTPREAD_MASK, /* Enable manual read */
-    DW_OTPREAD_MASK, /* Do the actual read */
+    DW_OTPRDEN_MASK | DW_OTPREAD_MASK, /* Enable manual read on specified ADDR*/
     0x00 /* Reset otp_ctrl */
   };
 
   uint32_t read_data = 0UL;
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_ADDR, DW_SUBLEN_OTP_ADDR, 
                   (uint8_t *)&otp_addr);
+  /* Enable manual read on a specified ADDR */
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[0]);
+  /* Reset the Control register (OTPRDEN is not self clearing) */
   dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[1]);
   read_data = dw_read_subreg_32(DW_REG_OTP_IF, DW_SUBREG_OTP_RDAT, 
-                                DW_SUBLEN_OTP_RDAT);
-  dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_CTRL, 1, (uint8_t *)&cmd[2]);
+                                    DW_SUBLEN_OTP_RDAT);
 
   return read_data;
 }

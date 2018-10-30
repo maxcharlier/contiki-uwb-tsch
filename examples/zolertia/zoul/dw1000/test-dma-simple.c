@@ -38,7 +38,7 @@ AUTOSTART_PROCESSES(&dw1000_dma);
 #endif
 
 #define TIME_PORT     GPIO_A_NUM
-#define TIME_PIN      2
+#define TIME_PIN      7
 
 void init_gpio(void);
 void gpio_up(void);
@@ -50,7 +50,7 @@ PROCESS_THREAD(dw1000_dma, ev, data)
   static uint16_t offset = 0;
   PROCESS_BEGIN();
 
-  // init_gpio();
+  init_gpio();
 
   random_init(2018);
 

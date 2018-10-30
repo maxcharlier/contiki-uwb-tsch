@@ -205,6 +205,9 @@ tsch_reset(void)
   TSCH_ASN_INIT(tsch_current_asn, 0, 0);
   current_link = NULL;
   /* Reset timeslot timing to defaults */
+
+  printf("TSCH TSCH_CONF_SLOT_START_BEFOREHAND %u\n", TSCH_CONF_SLOT_START_BEFOREHAND);
+  printf("TSCH TSCH_SLOT_START_BEFOREHAND %u\n", TSCH_SLOT_START_BEFOREHAND);
   printf("TSCH UWB_T_SHR %u\n", UWB_T_SHR);
   printf("TSCH RADIO_DELAY_BEFORE_TX %u\n", RADIO_DELAY_BEFORE_TX);
   printf("TSCH RADIO_DELAY_BEFORE_RX %u\n", RADIO_DELAY_BEFORE_RX);

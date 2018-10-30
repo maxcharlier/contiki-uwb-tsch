@@ -251,6 +251,7 @@ static int32_t dw1000_driver_last_prop_time = 0UL;
 /* store the current DW1000 configuration */
 static dw1000_base_conf_t dw1000_conf;
 static dw1000_frame_quality last_packet_quality;
+static uint8_t sleep_mode = RADIO_IDLE;
 
 /**
  * \brief Define a loop to wait until the success of "cond" or the expiration 
@@ -403,10 +404,10 @@ dw1000_driver_init(void)
 #endif
 
 #if DW1000_TSCH
-  /* we configure the bitrate and the preamble lenght */
+  /* we configure the bitrate and the preamble length */
   dw1000_driver_config(DW_CHANNEL_1, DW1000_DATA_RATE, DW1000_PREAMBLE, 
                         DW1000_PRF);
-  /* we change the cannal according the default configuration */
+  /* we change the channel according the default configuration */
   dw1000_driver_set_value(RADIO_PARAM_CHANNEL, (radio_value_t) DW1000_CHANNEL);
   printf("TSCH Channel %d, ", DW1000_CHANNEL);
 #else
@@ -449,6 +450,9 @@ dw1000_driver_init(void)
 
   set_auto_ack(DW1000_CONF_AUTOACK); /* configure auto ACK */
 
+  /* If LDO tuning available then load this value */ 
+  dw_load_ldotune();
+
   process_start(&dw1000_driver_process, NULL);
   process_start(&dw1000_driver_process_ss_twr, NULL);
   process_start(&dw1000_driver_process_sds_twr, NULL);
@@ -456,6 +460,7 @@ dw1000_driver_init(void)
   dw1000_driver_init_down = 1;
   dw1000_arch_gpio8_setup_irq();
   INIT_GPIO_DEBUG();
+
   return 1;
 }
 /**
@@ -1346,6 +1351,9 @@ dw1000_driver_get_value(radio_param_t param,
     return RADIO_RESULT_NOT_SUPPORTED;
   case RADIO_CONST_TXPOWER_MAX:
     return RADIO_RESULT_NOT_SUPPORTED;
+  case RADIO_SLEEP_STATE:
+    *value =  sleep_mode;
+    return RADIO_RESULT_OK;
   default:
     return RADIO_RESULT_NOT_SUPPORTED;
   }
@@ -1428,6 +1436,55 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
   
   case RADIO_PARAM_16BIT_ADDR:
     dw_set_short_addr(value & 0xFFFF);
+    return RADIO_RESULT_OK;
+  
+  case RADIO_SLEEP_STATE:
+    LISTEN_SET();
+    SEND_SET();
+    if(value == RADIO_SLEEP) {
+            dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID);
+      // printf("put radio in sleep\n");
+        assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+        // dw_conf_print();
+      dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
+      set_in_deep_sleep();
+      dw1000_arch_init_deepsleep();
+    }
+    else if(value == RADIO_REQUEST_WAKEUP) {
+      dw1000_arch_wake_up(DW1000_PIN_SELECT);
+      dw1000_us_delay(550);
+      dw1000_arch_wake_up(DW1000_PIN_DESELECT);
+      // printf("radio wake-up\n");
+    }
+    else if(value == RADIO_IDLE) {
+      dw1000_arch_restore_idle_state();
+      // printf("radio-idle\n");
+              // dw_conf_print();
+      /* Check if SPI communication works by reading device ID */
+      // assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+
+      set_poll_mode(poll_mode);
+
+      dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_IDLE_STATE);
+      dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID);
+      dw_clear_pending_interrupt(DW_MCPLOCK_MASK|DW_MSLP2INIT_MASK);
+
+      /* restore AGC_TUNE 2 value */
+      const uint32_t agc_tune2_val = 0X2502A907UL;  /* Always use this */
+      dw_write_subreg(DW_REG_AGC_CTRL, DW_SUBREG_AGC_TUNE2, DW_SUBLEN_AGC_TUNE2,
+                      (uint8_t *) &agc_tune2_val);
+      
+      #if DEBUG_LED
+      dw_enable_gpio_led_from_deepsleep(); /* /!\ Increase the power consumption. */
+      #endif /* DEBUG_LED */
+      // dw_enable_gpio_led();
+    }
+    else{
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    LISTEN_CLR();
+    SEND_CLR();
+    sleep_mode = value;
     return RADIO_RESULT_OK;
 
   default:
@@ -1683,7 +1740,6 @@ dw1000_driver_interrupt(void)
 
 return 1;
 }
-
 /*---------------------------------------------------------------------------*/
 /* We receive a data frame (not a ranging frame) or we have an error */
 PROCESS_THREAD(dw1000_driver_process, ev, data){

@@ -217,18 +217,18 @@
 #define DW_SUBREG_FS_XTALT   0x0E       /* \brief dummy */
 #define DW_SUBLEN_FS_XTALT   1          /* \brief dummy */
 
-#define DW_REG_AON_WCFG      0x2C       /* \brief dummy */
+#define DW_REG_AON           0x2C       /* \brief dummy */
 #define DW_SUBREG_AON_WCFG   0x00       /* \brief dummy */
 #define DW_SUBLEN_AON_WCFG   2          /* \brief dummy */
-#define DW_SUBREG_AON_CTRL   0x0B       /* \brief dummy */
+#define DW_SUBREG_AON_CTRL   0x02       /* \brief dummy */
 #define DW_SUBLEN_AON_CTRL   1          /* \brief dummy */
-#define DW_SUBREG_AON_RDAT   0x0B       /* \brief dummy */
+#define DW_SUBREG_AON_RDAT   0x03       /* \brief dummy */
 #define DW_SUBLEN_AON_RDAT   1          /* \brief dummy */
-#define DW_SUBREG_AON_ADDR   0x0B       /* \brief dummy */
+#define DW_SUBREG_AON_ADDR   0x04       /* \brief dummy */
 #define DW_SUBLEN_AON_ADDR   1          /* \brief dummy */
-#define DW_SUBREG_AON_CFG0   0x0B       /* \brief dummy */
+#define DW_SUBREG_AON_CFG0   0x06       /* \brief dummy */
 #define DW_SUBLEN_AON_CFG0   4          /* \brief dummy */
-#define DW_SUBREG_AON_CFG1   0x0B       /* \brief dummy */
+#define DW_SUBREG_AON_CFG1   0x0A       /* \brief dummy */
 #define DW_SUBLEN_AON_CFG1   2          /* \brief dummy */
 
 #define DW_REG_OTP_IF       0x2D        /* \brief dummy */
@@ -372,6 +372,8 @@
 #define DW_HRBPT_MASK     (0x1UL << 24) /* \brief dummy */
 
 /* DW_REG_SYS_MASK 0x0E */
+#define DW_MCPLOCK        1              /* \brief dummy */
+#define DW_MCPLOCK_MASK   (0x1UL << 1)   /* \brief dummy */
 #define DW_MTXFRB        4              /* \brief dummy */
 #define DW_MTXFRB_MASK   (0x1UL << 4)   /* \brief dummy */
 #define DW_MTXPRS        5              /* \brief dummy */
@@ -406,6 +408,8 @@
 #define DW_MRXOVRR_MASK  (0x1UL << 20)  /* \brief dummy */
 #define DW_MRXPTO        21             /* \brief dummy */
 #define DW_MRXPTO_MASK   (0x1UL << 21)  /* \brief dummy */
+#define DW_MSLP2INIT      23            /* \brief dummy */
+#define DW_MSLP2INIT_MASK (0x1UL << 23) /* \brief dummy */
 #define DW_MRXSFDTO      26             /* \brief dummy */
 #define DW_MRXSFDTO_MASK (0x1UL << 26)  /* \brief dummy */
 #define DW_MHPDWARN      27             /* \brief dummy */
@@ -676,16 +680,51 @@
 #define DW_XTALT          0             /* \brief dummy */
 #define DW_XTALT_MASK     (0x1FUL << 0) /* \brief dummy */
 
-/* DW_REG_AON_WCFG      0x2C */
+/* DW_REG_AON           0x2C */
 /* DW_SUBREG_AON_WCFG   0x2C:00 */
+#define DW_ONW_RADC      0              /* \brief dummy */
+#define DW_ONW_RADC_MASK (0x1UL << 0)   /* \brief dummy */
+#define DW_ONW_RX        1             /* \brief dummy */
+#define DW_ONW_RX_MASK   (0x1UL << 1)  /* \brief dummy */
+#define DW_ONW_LEUI      3             /* \brief dummy */
+#define DW_ONW_LEUI_MASK (0x1UL << 3)  /* \brief dummy */
+#define DW_ONW_LDC       6             /* \brief dummy */
+#define DW_ONW_LDC_MASK  (0x1UL << 6)  /* \brief dummy */
+#define DW_ONW_L64P      7             /* \brief dummy */
+#define DW_ONW_L64P_MASK (0x1UL << 7)  /* \brief dummy */
+#define DW_PRES_SLEEP       8             /* \brief dummy */
+#define DW_PRES_SLEEP_MASK  (0x1UL << 8)  /* \brief dummy */
 #define DW_ONW_LLDE      11             /* \brief dummy */
 #define DW_ONW_LLDE_MASK (0x1UL << 11)  /* \brief dummy */
-/* DW_REG_AON_WCFG 0x2C */
-/* DW_SUBREG_AON_WCFG  0x2C:02 */
+#define DW_ONW_LLDO      12             /* \brief dummy */
+#define DW_ONW_LLDO_MASK (0x1UL << 12)  /* \brief dummy */
+/* DW_REG_AON           0x2C */
+/* DW_SUBREG_AON_CTRL   0x2C:02 */
+#define DW_RESTORE       0              /* \brief dummy */
+#define DW_RESTORE_MASK  (0x1UL << 0)   /* \brief dummy */
+#define DW_SAVE          1              /* \brief dummy */
+#define DW_SAVE_MASK     (0x1UL << 1)   /* \brief dummy */
+#define DW_UPL_CFG       2              /* \brief dummy */
+#define DW_UPL_CFG_MASK  (0x1UL << 2)   /* \brief dummy */
 #define DW_DCA_READ      3              /* \brief dummy */
 #define DW_DCA_READ_MASK (0x1UL << 3)   /* \brief dummy */
 #define DW_DCA_ENAB      7              /* \brief dummy */
 #define DW_DCA_ENAB_MASK (0x1UL << 7)   /* \brief dummy */
+/* DW_REG_AON           0x2C */
+/* DW_SUBREG_AON_CFG0   0x2C:06 */
+#define DW_SLEEP_EN       0              /* \brief dummy */
+#define DW_SLEEP_EN_MASK  (0x1UL << 0)   /* \brief dummy */
+#define DW_WAKE_PIN       1              /* \brief dummy */
+#define DW_WAKE_PIN_MASK  (0x1UL << 1)   /* \brief dummy */
+#define DW_WAKE_SPI       2              /* \brief dummy */
+#define DW_WAKE_SPI_MASK  (0x1UL << 2)   /* \brief dummy */
+#define DW_LPDIV_EN       4              /* \brief dummy */
+#define DW_LPDIV_EN_MASK  (0x1UL << 4)   /* \brief dummy */
+#define DW_LPCLKDIVA      5              /* \brief dummy */
+#define DW_LPCLKDIVA_MASK (0x7FFUL << 5) /* \brief dummy */
+#define DW_SLEEP_TIM      16                /* \brief dummy */
+#define DW_SLEEP_TIM_MASK (0xFFFFUL << 16)  /* \brief dummy */
+
 
 /* DW_REG_OTP_IF 0x2D */
 /* DW_SUBREG_OTP_WDAT  0x2D:00 */
@@ -715,6 +754,8 @@
 /* DW_SUBREG_OTP_SF    0x2D:12 */
 #define DW_OPS_KICK      0              /* \brief dummy */
 #define DW_OPS_KICK_MASK (0x1UL << 0)   /* \brief dummy */
+#define DW_LDO_KICK      1              /* \brief dummy */
+#define DW_LDO_KICK_MASK (0x1UL << 1)   /* \brief dummy */
 #define DW_OPS_SEL       5              /* \brief dummy */
 #define DW_OPS_SEL_MASK  (0x3UL << 5)   /* \brief dummy */
 

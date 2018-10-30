@@ -396,89 +396,6 @@ tsch_schedule_get_next_active_link(struct tsch_asn_t *asn, uint16_t *time_offset
   return curr_best;
 }
 
-/* Returns the next active link after a given ASN, and a backup link (for the same ASN, with Rx flag) */
-struct tsch_link *
-tsch_schedule_get_next_active_link2(struct tsch_asn_t *asn, uint16_t *time_offset,
-    struct tsch_link **backup_link)
-{
-  uint16_t time_to_curr_best = 0;
-  struct tsch_link *curr_best = NULL;
-  struct tsch_link *curr_backup = NULL; /* Keep a back link in case the current link
-  turns out useless when the time comes. For instance, for a Tx-only link, if there is
-  no outgoing packet in queue. In that case, run the backup link instead. The backup link
-  must have Rx flag set. */
-  if(!tsch_is_locked()) {
-    struct tsch_slotframe *sf = list_head(slotframe_list);
-    /* For each slotframe, look for the earliest occurring link */
-    while(sf != NULL) {
-      /* Get timeslot from ASN, given the slotframe length */
-      uint16_t timeslot = TSCH_ASN_MOD(*asn, sf->size);
-      struct tsch_link *l = list_head(sf->links_list);
-      while(l != NULL) {
-        /* First we check the link address: should be the node adress or the boradcast address */
-        if(linkaddr_cmp(&(l->addr), &tsch_broadcast_address) || linkaddr_cmp(&(l->addr), &linkaddr_node_addr)){
-
-        uint16_t time_to_timeslot =
-            l->timeslot > timeslot ?
-            l->timeslot - timeslot :
-            sf->size.val + l->timeslot - timeslot;
-          if(curr_best == NULL || time_to_timeslot < time_to_curr_best) {
-            time_to_curr_best = time_to_timeslot;
-            curr_best = l;
-            curr_backup = NULL;
-          } else if(time_to_timeslot == time_to_curr_best) {
-            struct tsch_link *new_best = NULL;
-            /* Two links are overlapping, we need to select one of them.
-             * By standard: prioritize Tx links first, second by lowest handle */
-            if((curr_best->link_options & LINK_OPTION_TX) == (l->link_options & LINK_OPTION_TX)) {
-              /* Both or neither links have Tx, select the one with lowest handle */
-              if(l->slotframe_handle < curr_best->slotframe_handle) {
-                new_best = l;
-              }
-            } else {
-              /* Select the link that has the Tx option */
-              if(l->link_options & LINK_OPTION_TX) {
-                new_best = l;
-              }
-            }
-
-            /* Maintain backup_link */
-            if(curr_backup == NULL) {
-              /* Check if 'l' best can be used as backup */
-              if(new_best != l && (l->link_options & LINK_OPTION_RX)) { /* Does 'l' have Rx flag? */
-                curr_backup = l;
-              }
-              /* Check if curr_best can be used as backup */
-              if(new_best != curr_best && (curr_best->link_options & LINK_OPTION_RX)) { /* Does curr_best have Rx flag? */
-                curr_backup = curr_best;
-              }
-            }
-
-            /* Maintain curr_best */
-            if(new_best != NULL) {
-              curr_best = new_best;
-            }
-          }
-          // printf("Accepted Link addr %u\n", l->addr.u8[7]);
-        }
-
-
-        l = list_item_next(l);
-      }
-      sf = list_item_next(sf);
-    }
-    if(time_offset != NULL) {
-      *time_offset = time_to_curr_best;
-    }
-  }
-  if(backup_link != NULL) {
-    *backup_link = curr_backup;
-  }
-  // if(linkaddr_node_addr.u8[7] == 0x5)
-  // printf("[Link] Options %02x, type %u, timeslot %u, channel offset %u, address %u\n",
-  //        curr_best->link_options, curr_best->link_type, curr_best->timeslot, curr_best->channel_offset, curr_best->addr.u8[7]);
-  return curr_best;
-}
 /*---------------------------------------------------------------------------*/
 /* Module initialization, call only once at startup. Returns 1 is success, 0 if failure. */
 int
@@ -497,7 +414,7 @@ tsch_schedule_init(void)
 /*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH minimal schedule */
 void
-tsch_schedule_create_minimal2(void)
+tsch_schedule_create_minimal(void)
 {
   struct tsch_slotframe *sf_min;
   /* First, empty current schedule */
@@ -650,7 +567,7 @@ tsch_schedule_create_minimal5(void)
 /*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH linear schedule with concurrent communications*/
 void
-tsch_schedule_create_minimal(void)
+tsch_schedule_create_minimal6(void)
 {
   struct tsch_slotframe *sf_custom;
   /* First, empty current schedule */

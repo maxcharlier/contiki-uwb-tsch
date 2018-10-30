@@ -60,6 +60,7 @@
 #include "dev/gpio.h"
 #include "dev/udma.h"
 #include "assert.h"
+#include "dev/ioc.h"
 
 #include <stdio.h>
 /*---------------------------------------------------------------------------*/
@@ -443,9 +444,9 @@ void dw1000_arch_init()
   /* Configure SPI (CPOL = 1, CPHA = 0) */
   spix_init(DWM1000_SPI_INSTANCE);
 
-  /* Change the SPI configuration to CPOL = 0, CPHA = 1 
+  /* Change the SPI configuration to CPOL = 0, CPHA = 0 
     clock_polarity = 0 : low when IDLE 
-    clock_phase = 0 data send on the second edge of the clock*/
+    clock_phase = 0 data is valid on the clock leading edge*/
   spix_set_mode(DWM1000_SPI_INSTANCE, SSI_CR0_FRF_MOTOROLA, 0, 0, 8);
 
   /* Leave CSn as default */
@@ -474,6 +475,7 @@ void dw1000_arch_init()
     udma_channel_mask_clr(DW1000_CONF_RX_DMA_SPI_CHAN);
     udma_channel_mask_clr(DW1000_CONF_TX_DMA_SPI_CHAN);
   }
+  ioc_init(); /* Needed to disable pull up  in deepsleep*/
 }
 /**
  * \brief     Wait a delay in microsecond.
@@ -491,5 +493,68 @@ void dw1000_us_delay(int us){
 void dw1000_arch_spi_set_clock_freq(uint32_t freq){
   spix_set_clock_freq(DWM1000_SPI_INSTANCE, freq);
 }
+/**
+ * Configure the embedeed system to allow the transceiver to go in 
+ * DEEPSLEEP state. 
+ * Disable SPICLK and SPIMISO to avoid leakeage current.
+ **/
+void dw1000_arch_init_deepsleep(void){
+  /* drive CSn HIGH */
+  // DW1000_DESELECT();
 
+  /* disable SPI clock */
+  // spix_disable(DWM1000_SPI_INSTANCE);
+
+  GPIO_SOFTWARE_CONTROL(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
+  GPIO_SOFTWARE_CONTROL(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
+  GPIO_SOFTWARE_CONTROL(DWM1000_INT_PORT_BASE, DWM1000_INT_PORT_BASE);
+
+  /* set in input */
+  GPIO_SET_INPUT(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
+  GPIO_SET_INPUT(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
+  GPIO_SET_INPUT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
+
+  /* disable Pull up resistance and enable pull down*/
+  ioc_set_over(DWM1000_CLK_PORT, DWM1000_CLK_PIN, IOC_OVERRIDE_DIS);
+  ioc_set_over(DWM1000_MISO_PORT, DWM1000_MISO_PIN, IOC_OVERRIDE_DIS);
+  ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_DIS);
+
+}
+/**
+ * Used in DEEPSLEEP state. 
+ * You need to drive HIGH the port for min 500µs to wakeup the transceiver.
+ * You can check if thew transceiver have wakeup by reading the GPIO8 state 
+ * GPIO8 is drive HIGH when the transceiver comes in the IDLE state 
+ * It take approx 3ms to go out of the deepsleep state.
+ **/
+void dw1000_arch_wake_up(dw1000_pin_state state){
+  if(state == DW1000_PIN_SELECT)
+    DW1000_SELECT();
+  else
+    DW1000_DESELECT();
+}
+/**
+ * Configure the embedeed system to interact with the transceiver. 
+ * Enable SPICLK and SPIMISO.
+ **/
+void dw1000_arch_restore_idle_state(void){
+
+  /* Enable Pull up restitance (default state) */
+  ioc_set_over(DWM1000_CLK_PORT, DWM1000_CLK_PIN, IOC_OVERRIDE_PUE);
+  ioc_set_over(DWM1000_MISO_PORT, DWM1000_MISO_PIN, IOC_OVERRIDE_PUE);
+  ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
+
+  /* set pin in output */
+  GPIO_SET_OUTPUT(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
+  GPIO_SET_OUTPUT(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
+  
+  GPIO_PERIPHERAL_CONTROL(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
+  GPIO_PERIPHERAL_CONTROL(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
+  /* drive CSn Low */
+  // DW1000_DESELECT();
+
+  /* reenable SPI clock */
+  // spix_enable(DWM1000_SPI_INSTANCE);
+  dw1000_arch_init();
+}
 

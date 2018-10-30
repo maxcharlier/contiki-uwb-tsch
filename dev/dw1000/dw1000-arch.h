@@ -125,5 +125,57 @@ void dw1000_arch_spi_set_clock_freq(uint32_t freq);
  * Wait a delay in microsecond.
  **/
 void dw1000_us_delay(int us);
+/*---------------------------------------------------------------------------*/
+/**
+ * Configure the embedeed system to allow the transceiver to go in 
+ * DEEPSLEEP state. 
+ * Disable SPICLK and SPIMISO to avoid leakeage current.
+ * Configure SPICLK and SPIMISO in input without pull up resistance or
+ * in output in tristate or Hi-Z
+ * Configure SPICSn High (default state)
+ * Configure WAKEUP port (output and low state) if used to go out
+ * of the deepsleep.
+ * 
+ * WAKEUP is optional (you can use SPICSn), 
+ * Do not use SPICSn AND WAKEUP to wakeup the transceiver.
+ **/
+void dw1000_arch_init_deepsleep(void);
+/*---------------------------------------------------------------------------*/
+/* DW1000 Pin state */
+typedef enum {
+  DW1000_PIN_SELECT,
+  DW1000_PIN_DESELECT
+} dw1000_pin_state;
+
+/**
+ * Used in DEEPSLEEP state. 
+ * You need to drive HIGH the WAKEUP port or drive LOW the SPICSn port 
+ * for at least 500µs to wakeup the transceiver.
+ *
+ * You can check if the transceiver have wakeup by reading the GPIO8 state 
+ * GPIO8 is drive HIGH when the transceiver comes in the IDLE state 
+ * It take up to 3ms to go out of the deepsleep state.
+ *
+ * Use DW1000_PIN_ACTIVE to Wakeup the transceiver (WAKEUP high or SPICSn low)
+ * DW1000_PIN_SLEEP is the defautl state (WAKEUP low, SPICSn high).
+ *
+ * 
+ * WAKEUP is optional (you can use SPICSn), 
+ * do not use SPICSn AND WAKEUP to wakeup the transceiver.
+ **/
+void dw1000_arch_wake_up(dw1000_pin_state state);
+/*---------------------------------------------------------------------------*/
+/**
+ * Configure the embedeed system to interact with the transceiver. 
+ * Enable SPICLK and SPIMISO.
+ * Configure WAKEUP port (output and low state).
+ * Configure SPICSn port (output and high state).
+ * 
+ * 
+ * WAKEUP is optional (you can use SPICSn), 
+ * do not use SPICSn AND WAKEUP to wakeup the transceiver.
+ **/
+void dw1000_arch_restore_idle_state(void);
+/*---------------------------------------------------------------------------*/
 
 #endif /* __DW1000_ARCH_H__ */

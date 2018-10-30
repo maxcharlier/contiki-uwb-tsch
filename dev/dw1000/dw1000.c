@@ -304,7 +304,7 @@ dw_turn_frame_filtering_off(void)
 uint8_t dw_is_frame_filtering_on(void){
   uint8_t frameFilteringData = 0;
   /* we only read the first byte */
-  dw_read_subreg(DW_REG_SYS_CFG, 0, 0, (uint8_t *)&frameFilteringData);
+  dw_read_subreg(DW_REG_SYS_CFG, 0, 1, (uint8_t *)&frameFilteringData);
   return frameFilteringData & DW_FFEN_MASK; /* Frame Filtering Enable bit */
 }
 
@@ -335,6 +335,27 @@ dw_disable_extended_frame(void)
   uint32_t sys_cfg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   sys_cfg &= ~DW_PHR_MODE_MASK;
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&sys_cfg);
+}
+/**
+ * Re-enable LED blink mode after deepsleep.
+ *
+ */
+void
+dw_enable_gpio_led_from_deepsleep(void)
+{
+  uint16_t data = 0UL;
+  /* PMSC_CTRL0 bit DW_GPDCE is not saved */
+  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0+2, 1, (uint8_t *) &data);
+
+  data |= (1UL << (DW_GPDCE - 16)) & (DW_GPDCE_MASK >> 16); /* GPIO De-bounce Clock Enable. */
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0+2, 1, (uint8_t *) &data);
+
+  /* active blinking mode */
+  /* BLINK_TIM fiedl is 16 bits long */
+  data = (0xF << DW_BLINK_TIM) & DW_BLINK_TIM_MASK; /* blink time to 20 ms 
+                                                        (default 400 ms) */
+
+  // dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, 2, (uint8_t *) &data);
 }
 /**
  * Configure GPIO mode:
@@ -502,9 +523,9 @@ void
 dw_active_lde_on_wakeup(void){
   uint16_t value = 0;
   /* active load lde wake up */
-  dw_read_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
+  dw_read_subreg(DW_REG_AON, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
   value |= (0x1 << DW_ONW_LLDE) & DW_ONW_LLDE_MASK;
-  dw_write_subreg(DW_REG_AON_WCFG, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_WCFG, 2, (uint8_t *)&value);
 }
 /**
  * \brief Apply a soft reset
@@ -1118,6 +1139,92 @@ dw_configure_lde(dw1000_prf_t prf)
                   (uint8_t *) &lde_cfg2);
 }
 /**
+ * \brief return if the Internal Low Drop Out (LDO) Regulators voltage has 
+ been configured by DecaWave during the DecaWave Test */
+int
+dw_is_ldotune(void){
+  /* The 40 bit LDOTUNE_CAL start at 0x04, if the first byte is != 0 
+  then LDOTUNE is calibrated */
+  // printf("LDOTUNE CAL value %08lX\n", dw_read_otp_32(0X04));
+  return dw_read_otp_32(0X04) > 0;
+}
+/**
+ * \brief Initialize the loading of the LDOTUNE_CAL value 
+ parameter from OTP to LDOTUNE register if it is calibrated.
+ */
+void
+dw_load_ldotune(void){
+  uint8_t opt_sf = DW_LDO_KICK;
+  if(dw_is_ldotune()){
+    dw_write_subreg(DW_REG_OTP_IF, DW_SUBREG_OTP_SF, DW_SUBLEN_OTP_SF,
+                    &opt_sf);
+  }
+}
+/**
+ * Put the transceiver in DEEP SLEEP state.
+ * /!\ Warning the transceiver need 3 ms to wake up.
+ */
+void
+set_in_deep_sleep(void){
+  /* Configure the Always ON system control */
+  uint16_t aon_wcfg = 0; /* AON Wake-up Configuration */
+  uint8_t aon_ctrl = 0; /* AON Control */
+  uint8_t aon_cfg0 = 0; /* AON Configuration Register 0 */
+  uint8_t aon_cfg1 = 0; /* AON Configuration Register 1 */
+
+  /* AON Control */
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
+                  &aon_ctrl);
+
+  /* On wake-up run the temperature and voltage ADC */
+  aon_wcfg |= DW_ONW_RADC_MASK; 
+  /* On wake-up upload the configuration from the AON memory */
+  aon_wcfg |= DW_ONW_LDC_MASK;
+  /* On wake-up load the LDE code 
+  (useful for correct timestamps and RSSI value) */
+  aon_wcfg |= DW_ONW_LLDE_MASK;
+
+  /* On wake-up load the LDO tune value */
+  if(dw_is_ldotune()){
+    aon_wcfg |= DW_ONW_LLDO_MASK;
+  }
+  /* Save the user configuration into the AON memory */
+  // aon_ctrl |= DW_SAVE_MASK;
+
+  /* Sleep enable configuration bit. In order to put the DW1000 into the 
+  SLEEP state this bit needs to be set and then the configuration needs 
+  to be uploaded to the AON using the UPL_CFG bit in AON_CTRL */
+  aon_cfg0 |= DW_SLEEP_EN_MASK;
+
+  /* Enable Wake up using SPI CSn or WAKE UP pin. */
+  // aon_cfg0 |= DW_WAKE_PIN_MASK;
+  aon_cfg0 |= DW_WAKE_SPI_MASK;
+
+  /* Enable interrupt flag for the clock PLL lock event and 
+  SLEEP to INIT event */
+  dw_clear_pending_interrupt(DW_MCPLOCK_MASK|DW_MSLP2INIT_MASK);
+  dw_enable_interrupt(DW_MCPLOCK_MASK|DW_MSLP2INIT_MASK);
+  
+  /* According to DECADRIVER "The 3 bits in AON CFG1 register must be 
+  cleared to ensure proper operation of the DW1000 in DEEPSLEEP mode. */
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CFG1, 1,
+                  &aon_cfg1);
+
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_WCFG, DW_SUBLEN_AON_WCFG,
+                  (uint8_t *) &aon_wcfg);
+
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CFG0, 1,
+                   &aon_cfg0);
+
+
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
+                  &aon_ctrl);
+  /* Upload the AON block configurations to the AON and enter in sleep*/
+  aon_ctrl = DW_SAVE_MASK;
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
+                  &aon_ctrl);
+}
+/**
  * \brief Set the TX power according the Table 20: "Reference values Register 
  *    file: 0x1E – Transmit Power Control for Manual Transmit Power Control" 
  *    of the user manual (v2.10).
@@ -1368,6 +1475,9 @@ dw_conf_print()
   uint32_t lde_repc = 0UL;
   uint32_t tx_power_val = 0UL;
   uint32_t rx_finfo_val = 0UL;
+  uint32_t gpio_mode = 0UL;
+  uint32_t gpio_dir = 0UL;
+  uint32_t gpio_dout = 0UL;
   uint8_t  user_sfd_lenght = 0;
   float temperature_val = 0;
   float voltage_val = 0;
@@ -1415,6 +1525,12 @@ dw_conf_print()
   dw_read_subreg(DW_REG_USR_SFD, DW_SUBREG_SFD_LENGTH, DW_SUBLEN_SFD_LENGTH,
                   (uint8_t *) &user_sfd_lenght);
 
+  gpio_mode = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_MODE,
+                                    DW_SUBLEN_GPIO_MODE);
+  gpio_dir = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_DIR,
+                                    DW_SUBLEN_GPIO_DIR);
+  gpio_dout = dw_read_subreg_32(DW_REG_GPIO_CTRL, DW_SUBREG_GPIO_DOUT,
+                                    DW_SUBLEN_GPIO_DOUT);
   temperature_val = dw_get_temperature(DW_ADC_SRC_LATEST);
   voltage_val = dw_get_voltage(DW_ADC_SRC_LATEST);
 
@@ -1422,9 +1538,11 @@ dw_conf_print()
   printf("DW1000 Current Configuration\r\n");
   printf("============================\r\n");
   printf("Device id   : 0x%08" PRIx32 "\r\n", dw_get_device_id());
-  printf("sys_status  : 0x%016" PRIx64 "\r\n", (unsigned long long) 
+  printf("SYS_STATUS  : 0x%016" PRIx64 "\r\n", (unsigned long long) 
                         dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
-  printf("sys_state   : 0x%016" PRIx64 "\r\n", (unsigned long long) 
+  printf("SYS_MASK    : 0x%016" PRIx64 "\r\n", (unsigned long long) 
+                        dw_read_reg_64(DW_REG_SYS_MASK, DW_LEN_SYS_MASK));
+  printf("SYS_STATE   : 0x%016" PRIx64 "\r\n", (unsigned long long) 
                         dw_read_reg_64(DW_REG_SYS_STATE, DW_LEN_SYS_STATE));
   printf("============================\r\n");
   printf("sys_cfg    : 0x%08" PRIx32 "\r\n", sys_cfg_val);
@@ -1455,6 +1573,9 @@ dw_conf_print()
                                     &temperature_val);
   printf("Voltage           : 0x%08" PRIx32 " (float)\n",*(long unsigned int*)
                                       &voltage_val);
+  printf("gpio_mode   : 0x%08" PRIx32 "\r\n", gpio_mode);
+  printf("gpio_dir   : 0x%08" PRIx32 "\r\n", gpio_dir);
+  printf("gpio_dout   : 0x%08" PRIx32 "\r\n", gpio_dout);
 }
 /*===========================================================================*/
 /* Utility                                                                   */

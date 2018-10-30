@@ -389,6 +389,8 @@
 #define DWM1000_SPI_CSN_PIN          4
 #define DWM1000_INT_PORT             GPIO_A_NUM /* Interrupt Port */
 #define DWM1000_INT_PIN              5
+#define DWM1000_WAKEUP_PORT          GPIO_A_NUM
+#define DWM1000_WAKEUP_PIN           6
 #define DWM1000_GPIOx_VECTOR         GPIO_A_IRQn
 /*---------------------------------------------------------------------------*/
 /**

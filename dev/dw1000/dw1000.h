@@ -552,6 +552,7 @@ void dw_turn_frame_filtering_off(void);
 void dw_turn_frame_filtering_on(void);
 uint8_t dw_is_frame_filtering_on(void);
 void dw_enable_gpio_led(void);
+void dw_enable_gpio_led_from_deepsleep(void);
 void dw_disable_gpio_led(void);
 void dw_set_sfd_timeout(uint16_t value);
 void dw_sfd_init(void);
@@ -661,6 +662,12 @@ int  dw_is_receive_done(uint64_t status);
 int  dw_is_receive_CRC(uint64_t status);
 int  dw_is_receive_failed(uint64_t status);
 int  dw_is_receive_timeout(uint64_t status);
+
+/* LDO TUNE */
+int dw_is_ldotune(void);
+void dw_load_ldotune(void);
+
+void set_in_deep_sleep(void);
 
 /*===========================================================================*/
 /*=========================== Private Functions =============================*/

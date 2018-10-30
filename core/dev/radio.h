@@ -186,7 +186,11 @@ enum {
   /* The minimum transmission power in dBm. */
   RADIO_CONST_TXPOWER_MIN,
   /* The maximum transmission power in dBm. */
-  RADIO_CONST_TXPOWER_MAX
+  RADIO_CONST_TXPOWER_MAX,
+
+
+  /* The maximum transmission power in dBm. */
+  RADIO_SLEEP_STATE
 };
 
 /* Radio power modes */
@@ -235,6 +239,13 @@ enum {
   RADIO_TX_ERR,
   RADIO_TX_COLLISION,
   RADIO_TX_NOACK,
+};
+
+/* Radio sleep mode parameters. */
+enum {
+  RADIO_SLEEP,
+  RADIO_REQUEST_WAKEUP,
+  RADIO_IDLE
 };
 
 /**

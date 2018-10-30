@@ -54,6 +54,9 @@
 #include "net/mac/tsch/tsch-packet.h"
 #include "net/mac/tsch/tsch-security.h"
 #include "net/mac/tsch/tsch-adaptive-timesync.h"
+
+#include "watchdog.h"
+
 #if CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64
 #include "lib/simEnvChange.h"
 #include "sys/cooja_mt.h"
@@ -61,7 +64,7 @@
 
 
 /* Just for the debugging of TSCH */
-#define DEBUG_GPIO_TSCH 1
+#define DEBUG_GPIO_TSCH 0
 #ifdef DEBUG_GPIO_TSCH
   #include "sys/clock.h"
   #include "dev/gpio.h"
@@ -210,6 +213,16 @@ static struct pt slot_operation_pt;
 static PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t));
 
+
+static
+void print_time(const char *s, rtimer_clock_t target ){
+  rtimer_clock_t now = RTIMER_NOW();
+  // printf("%s TARGET = %lu, NOW = %lu, DIFF = %lu\n", s, target, now, target-now);
+      TSCH_LOG_ADD(tsch_log_message,
+                snprintf(log->message, sizeof(log->message),
+                    "%s TARGET = %lu, NOW = %lu, DIFF = %lu\n", s, target, now, target-now);
+    );
+}
 /*---------------------------------------------------------------------------*/
 /* TSCH locking system. TSCH is locked during slot operations */
 
@@ -342,6 +355,19 @@ tsch_schedule_slot_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
     /* if(tsch_schedule_slot_operation(tm, ref_time, offset - RTIMER_GUARD, str)) { \
        PT_YIELD(pt); \
      } */ \
+    watchdog_periodic(); \
+    BUSYWAIT_UNTIL_ABS(0, ref_time, offset); \
+  } while(0);
+
+  /* Schedule slot operation conditionally, and YIELD if success only.
+ * Always attempt to schedule RTIMER_GUARD before the target to make sure to wake up
+ * ahead of time and then busy wait to exactly hit the target. */
+#define TSCH_SCHEDULE_AND_YIELD2(pt, tm, ref_time, offset, str) \
+  do { \
+     if(tsch_schedule_slot_operation(tm, ref_time, offset - RTIMER_GUARD, str)) { \
+       PT_YIELD(pt); \
+     }  \
+    watchdog_periodic(); \
     BUSYWAIT_UNTIL_ABS(0, ref_time, offset); \
   } while(0);
 /*---------------------------------------------------------------------------*/
@@ -510,6 +536,8 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
   PT_BEGIN(pt);
 
   TSCH_DEBUG_TX_EVENT();
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+
 
   /* First check if we have space to store a newly dequeued packet (in case of
    * successful Tx or Drop) */
@@ -747,6 +775,10 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
   }
 
   TSCH_DEBUG_TX_EVENT();
+
+  /* request to place the transceiver in SLEEP mode to reduce energy consumption */
+  NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_SLEEP);
+
 #ifdef DEBUG_GPIO_TSCH
   TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   SLOT_END_TRIGGER();
@@ -776,6 +808,8 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
   PT_BEGIN(pt);
 
   TSCH_DEBUG_RX_EVENT();
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+
 
   input_index = ringbufindex_peek_put(&input_ringbuf);
   if(input_index == -1) {
@@ -967,6 +1001,9 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
   TSCH_DEBUG_RX_EVENT();
 
+  /* request to place the transceiver in SLEEP mode to reduce energy consumption */
+  NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_SLEEP);
+
 #ifdef DEBUG_GPIO_TSCH
   TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   SLOT_END_TRIGGER();
@@ -982,6 +1019,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 {
   TSCH_DEBUG_INTERRUPT();
   PT_BEGIN(&slot_operation_pt);
+    static rtimer_clock_t rtimer_now;
 
   /* Loop over all active slots */
   while(tsch_is_associated) {
@@ -1014,6 +1052,48 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       }
       is_active_slot = current_packet != NULL || (current_link->link_options & LINK_OPTION_RX);
       if(is_active_slot) {
+        /* Wake up the transceiver*/
+        TSCH_SCHEDULE_AND_YIELD(&slot_operation_pt, t, current_slot_start-TSCH_SLOT_START_BEFOREHAND, US_TO_RTIMERTICKS(400), "wait");
+
+        SLOT_END_TRIGGER();
+        SLOT_END_TRIGGER();
+        radio_value_t radio_state = RADIO_RESULT_NOT_SUPPORTED;
+        
+        if(NETSTACK_RADIO.get_value(RADIO_SLEEP_STATE, &radio_state) == RADIO_RESULT_OK){
+                            TSCH_LOG_ADD(tsch_log_message,
+                        snprintf(log->message, sizeof(log->message),
+                            "radio_state %d %d ",radio_state,RADIO_SLEEP);
+                        );    
+          if(radio_state == (radio_value_t) RADIO_SLEEP){
+            // printf("radio state sleep\n");
+            if(NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_REQUEST_WAKEUP) == RADIO_RESULT_OK){
+                  TSCH_LOG_ADD(tsch_log_message,
+                        snprintf(log->message, sizeof(log->message),
+                            "Wake up requested");
+                        );                
+                  rtimer_now = RTIMER_NOW();
+                  TSCH_LOG_ADD(tsch_log_message,
+                        snprintf(log->message, sizeof(log->message),
+                            "Wake up ref time %lu, offset %ld, now %lu", 
+                            current_slot_start-TSCH_SLOT_START_BEFOREHAND,
+                            US_TO_RTIMERTICKS(3000),
+                            rtimer_now);
+                        );
+
+              TSCH_SCHEDULE_AND_YIELD(&slot_operation_pt, t, current_slot_start- US_TO_RTIMERTICKS(150), 0, "wait");
+              
+              SLOT_END_TRIGGER();
+              NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_IDLE);
+            }
+          }
+
+        }
+
+        SLOT_END_TRIGGER();
+        SLOT_END_TRIGGER();
+        SLOT_END_TRIGGER();
+
+
         /* Hop channel */
         current_channel = tsch_calculate_channel(&tsch_current_asn, current_link->channel_offset);
         NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, current_channel);
@@ -1021,6 +1101,8 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         tsch_radio_on(TSCH_RADIO_CMD_ON_START_OF_TIMESLOT);
         /* Decide whether it is a TX/RX/IDLE or OFF slot */
         /* Actual slot operation */
+              GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+
         if(current_packet != NULL) {
           /* We have something to transmit, do the following:
            * 1. send
@@ -1031,7 +1113,9 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
           PT_SPAWN(&slot_operation_pt, &slot_tx_pt, tsch_tx_slot(&slot_tx_pt, t));
         } else {
           /* Listen */
-          static struct pt slot_rx_pt;
+          static struct pt slot_rx_pt;                  
+          // print_time("before PT_SPAWN",  current_slot_start+tsch_timing[tsch_ts_rx_offset] - RADIO_DELAY_BEFORE_RX);
+
           PT_SPAWN(&slot_operation_pt, &slot_rx_pt, tsch_rx_slot(&slot_rx_pt, t));
         }
       }
@@ -1084,13 +1168,21 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         prev_slot_start = current_slot_start;
         current_slot_start += time_to_next_active_slot;
         current_slot_start += tsch_timesync_adaptive_compensate(time_to_next_active_slot);
-      } while(!tsch_schedule_slot_operation(t, prev_slot_start, time_to_next_active_slot-TSCH_SLOT_START_BEFOREHAND, "main"));
+
+                rtimer_now = RTIMER_NOW();
+                TSCH_LOG_ADD(tsch_log_message,
+                      snprintf(log->message, sizeof(log->message),
+                          "slot time %lu, offset %ld, now %lu", 
+                          prev_slot_start,
+                          time_to_next_active_slot-TSCH_SLOT_START_BEFOREHAND,
+                          rtimer_now);
+                      );
+      } while(!tsch_schedule_slot_operation(t, prev_slot_start-TSCH_SLOT_START_BEFOREHAND, time_to_next_active_slot, "main"));
     }
 
     tsch_in_slot_operation = 0;
     PT_YIELD(&slot_operation_pt);
   }
-
   PT_END(&slot_operation_pt);
 }
 /*---------------------------------------------------------------------------*/

@@ -1172,7 +1172,12 @@ set_in_deep_sleep(void){
   uint8_t aon_cfg0 = 0; /* AON Configuration Register 0 */
   uint8_t aon_cfg1 = 0; /* AON Configuration Register 1 */
 
-  /* AON Control */
+  /* According to DECADRIVER "The 3 bits in AON CFG1 register must be 
+  cleared to ensure proper operation of the DW1000 in DEEPSLEEP mode. */
+  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CFG1, 1,
+                  &aon_cfg1);
+
+  /* Reset AON Control value*/
   dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
                   &aon_ctrl);
 
@@ -1188,8 +1193,6 @@ set_in_deep_sleep(void){
   if(dw_is_ldotune()){
     aon_wcfg |= DW_ONW_LLDO_MASK;
   }
-  /* Save the user configuration into the AON memory */
-  // aon_ctrl |= DW_SAVE_MASK;
 
   /* Sleep enable configuration bit. In order to put the DW1000 into the 
   SLEEP state this bit needs to be set and then the configuration needs 
@@ -1197,18 +1200,13 @@ set_in_deep_sleep(void){
   aon_cfg0 |= DW_SLEEP_EN_MASK;
 
   /* Enable Wake up using SPI CSn or WAKE UP pin. */
-  // aon_cfg0 |= DW_WAKE_PIN_MASK;
-  aon_cfg0 |= DW_WAKE_SPI_MASK;
+  aon_cfg0 |= DW_WAKE_PIN_MASK;
+  // aon_cfg0 |= DW_WAKE_SPI_MASK;
 
   /* Enable interrupt flag for the clock PLL lock event and 
   SLEEP to INIT event */
   dw_clear_pending_interrupt(DW_MCPLOCK_MASK|DW_MSLP2INIT_MASK);
   dw_enable_interrupt(DW_MCPLOCK_MASK|DW_MSLP2INIT_MASK);
-  
-  /* According to DECADRIVER "The 3 bits in AON CFG1 register must be 
-  cleared to ensure proper operation of the DW1000 in DEEPSLEEP mode. */
-  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CFG1, 1,
-                  &aon_cfg1);
 
   dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_WCFG, DW_SUBLEN_AON_WCFG,
                   (uint8_t *) &aon_wcfg);
@@ -1217,10 +1215,12 @@ set_in_deep_sleep(void){
                    &aon_cfg0);
 
 
+  /* Upload the AON block configurations to the AON and then wenter in sleep
+  because SLEEP_EN is set.*/
+  aon_ctrl = DW_SAVE_MASK;
   dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
                   &aon_ctrl);
-  /* Upload the AON block configurations to the AON and enter in sleep*/
-  aon_ctrl = DW_SAVE_MASK;
+  aon_ctrl = DW_UPL_CFG_MASK;
   dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
                   &aon_ctrl);
 }

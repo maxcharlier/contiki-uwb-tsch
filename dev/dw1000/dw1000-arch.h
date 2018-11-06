@@ -143,8 +143,8 @@ void dw1000_arch_init_deepsleep(void);
 /*---------------------------------------------------------------------------*/
 /* DW1000 Pin state */
 typedef enum {
-  DW1000_PIN_SELECT,
-  DW1000_PIN_DESELECT
+  DW1000_PIN_ENABLE,
+  DW1000_PIN_DISABLE
 } dw1000_pin_state;
 
 /**

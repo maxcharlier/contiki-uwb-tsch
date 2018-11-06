@@ -74,6 +74,8 @@
 #define DWM1000_SPI_CSN_PIN_MASK    GPIO_PIN_MASK(DWM1000_SPI_CSN_PIN)
 #define DWM1000_INT_PORT_BASE       GPIO_PORT_TO_BASE(DWM1000_INT_PORT)
 #define DWM1000_INT_PIN_MASK        GPIO_PIN_MASK(DWM1000_INT_PIN)
+#define DWM1000_WAKEUP_PORT_BASE    GPIO_PORT_TO_BASE(DWM1000_WAKEUP_PORT)
+#define DWM1000_WAKEUP_PIN_MASK     GPIO_PIN_MASK(DWM1000_WAKEUP_PIN)
 /*---------------------------------------------------------------------------*/
 #define DW1000_SPI_RX_FLUSH(n)    do { \
     for(int i = 0; i < n; i++) { \
@@ -476,6 +478,11 @@ void dw1000_arch_init()
     udma_channel_mask_clr(DW1000_CONF_TX_DMA_SPI_CHAN);
   }
   ioc_init(); /* Needed to disable pull up  in deepsleep*/
+
+  /* init the wake up port in OUTPUT, LOW, with PULL DOWN resistor */
+  GPIO_SET_OUTPUT(DWM1000_WAKEUP_PORT_BASE, DWM1000_WAKEUP_PIN_MASK);
+  ioc_set_over(DWM1000_WAKEUP_PORT, DWM1000_WAKEUP_PIN, IOC_OVERRIDE_PDE);
+  GPIO_CLR_PIN(DWM1000_WAKEUP_PORT_BASE, DWM1000_WAKEUP_PIN_MASK);
 }
 /**
  * \brief     Wait a delay in microsecond.
@@ -499,39 +506,52 @@ void dw1000_arch_spi_set_clock_freq(uint32_t freq){
  * Disable SPICLK and SPIMISO to avoid leakeage current.
  **/
 void dw1000_arch_init_deepsleep(void){
-  /* drive CSn HIGH */
-  // DW1000_DESELECT();
 
   /* disable SPI clock */
   // spix_disable(DWM1000_SPI_INSTANCE);
 
   GPIO_SOFTWARE_CONTROL(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
   GPIO_SOFTWARE_CONTROL(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
-  GPIO_SOFTWARE_CONTROL(DWM1000_INT_PORT_BASE, DWM1000_INT_PORT_BASE);
+  // GPIO_SOFTWARE_CONTROL(DWM1000_SPI_MOSI_PORT_BASE, DWM1000_SPI_MOSI_PIN_MASK);
+
+  /* disable Pull up resistance */
+  ioc_set_over(DWM1000_CLK_PORT, DWM1000_CLK_PIN, IOC_OVERRIDE_DIS);
+  ioc_set_over(DWM1000_MISO_PORT, DWM1000_MISO_PIN, IOC_OVERRIDE_DIS);
+  // ioc_set_over(DWM1000_MOSI_PORT, DWM1000_MOSI_PIN, IOC_OVERRIDE_DIS);
+  ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_DIS);
+  /* enable pull up resistance */
+  ioc_set_over(DWM1000_SPI_CSN_PORT, DWM1000_SPI_CSN_PIN, IOC_OVERRIDE_PUE);
 
   /* set in input */
   GPIO_SET_INPUT(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
   GPIO_SET_INPUT(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
-  GPIO_SET_INPUT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
+  // GPIO_SET_INPUT(DWM1000_SPI_MOSI_PORT_BASE, DWM1000_SPI_MOSI_PIN_MASK);
+  // GPIO_SET_INPUT(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 
-  /* disable Pull up resistance and enable pull down*/
-  ioc_set_over(DWM1000_CLK_PORT, DWM1000_CLK_PIN, IOC_OVERRIDE_DIS);
-  ioc_set_over(DWM1000_MISO_PORT, DWM1000_MISO_PIN, IOC_OVERRIDE_DIS);
-  ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_DIS);
 
+  /* drive CSn HIGH */
+  DW1000_DESELECT();
 }
 /**
  * Used in DEEPSLEEP state. 
- * You need to drive HIGH the port for min 500µs to wakeup the transceiver.
+ * You need to drive HIGH the port WAKEUP or LOW the CSN port for min 500µs 
+ * to wakeup the transceiver.
  * You can check if thew transceiver have wakeup by reading the GPIO8 state 
  * GPIO8 is drive HIGH when the transceiver comes in the IDLE state 
  * It take approx 3ms to go out of the deepsleep state.
  **/
 void dw1000_arch_wake_up(dw1000_pin_state state){
-  if(state == DW1000_PIN_SELECT)
-    DW1000_SELECT();
-  else
-    DW1000_DESELECT();
+  if(state == DW1000_PIN_ENABLE){
+    // DW1000_SELECT();
+    /*  wake up port in OUTPUT, HIGH, with PULL UP resistor */
+    ioc_set_over(DWM1000_WAKEUP_PORT, DWM1000_WAKEUP_PIN, IOC_OVERRIDE_PUE);
+    GPIO_SET_PIN(DWM1000_WAKEUP_PORT_BASE, DWM1000_WAKEUP_PIN_MASK);
+  } else{ 
+    // DW1000_DESELECT();
+    /*  wake up port in OUTPUT, LOW, with PULL DOWN resistor */
+    ioc_set_over(DWM1000_WAKEUP_PORT, DWM1000_WAKEUP_PIN, IOC_OVERRIDE_PDE);
+    GPIO_CLR_PIN(DWM1000_WAKEUP_PORT_BASE, DWM1000_WAKEUP_PIN_MASK);
+  }
 }
 /**
  * Configure the embedeed system to interact with the transceiver. 
@@ -542,19 +562,27 @@ void dw1000_arch_restore_idle_state(void){
   /* Enable Pull up restitance (default state) */
   ioc_set_over(DWM1000_CLK_PORT, DWM1000_CLK_PIN, IOC_OVERRIDE_PUE);
   ioc_set_over(DWM1000_MISO_PORT, DWM1000_MISO_PIN, IOC_OVERRIDE_PUE);
+  // ioc_set_over(DWM1000_MOSI_PORT, DWM1000_MOSI_PIN, IOC_OVERRIDE_PUE);
   ioc_set_over(DWM1000_INT_PORT, DWM1000_INT_PIN, IOC_OVERRIDE_PUE);
+
+  /* Disable pull up resistance */
+  ioc_set_over(DWM1000_SPI_CSN_PORT, DWM1000_SPI_CSN_PIN, IOC_OVERRIDE_DIS);
+
 
   /* set pin in output */
   GPIO_SET_OUTPUT(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
   GPIO_SET_OUTPUT(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
+  // GPIO_SET_OUTPUT(DWM1000_SPI_MOSI_PORT_BASE, DWM1000_SPI_MOSI_PIN_MASK);
   
   GPIO_PERIPHERAL_CONTROL(DWM1000_SPI_CLK_PORT_BASE, DWM1000_SPI_CLK_PIN_MASK);
   GPIO_PERIPHERAL_CONTROL(DWM1000_SPI_MISO_PORT_BASE, DWM1000_SPI_MISO_PIN_MASK);
+  // GPIO_PERIPHERAL_CONTROL(DWM1000_SPI_MOSI_PORT_BASE, DWM1000_SPI_MOSI_PIN_MASK);
+
   /* drive CSn Low */
   // DW1000_DESELECT();
 
   /* reenable SPI clock */
   // spix_enable(DWM1000_SPI_INSTANCE);
-  dw1000_arch_init();
+  // dw1000_arch_init();
 }
 

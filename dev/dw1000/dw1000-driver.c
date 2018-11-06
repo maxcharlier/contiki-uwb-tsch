@@ -1451,9 +1451,9 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
       dw1000_arch_init_deepsleep();
     }
     else if(value == RADIO_REQUEST_WAKEUP) {
-      dw1000_arch_wake_up(DW1000_PIN_SELECT);
+      dw1000_arch_wake_up(DW1000_PIN_ENABLE);
       dw1000_us_delay(550);
-      dw1000_arch_wake_up(DW1000_PIN_DESELECT);
+      dw1000_arch_wake_up(DW1000_PIN_DISABLE);
       // printf("radio wake-up\n");
     }
     else if(value == RADIO_IDLE) {

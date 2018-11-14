@@ -339,6 +339,9 @@ dw_disable_extended_frame(void)
 /**
  * Re-enable LED blink mode after deepsleep.
  *
+ * LED wil blink with a lower intensity if the wakeup period is short.
+ * For exemple with a wakeup duration of 3 ms, the led only stay on for 3 ms 
+ * in place of 20 ms.
  */
 void
 dw_enable_gpio_led_from_deepsleep(void)
@@ -1163,6 +1166,7 @@ dw_load_ldotune(void){
 /**
  * Put the transceiver in DEEP SLEEP state.
  * /!\ Warning the transceiver need 3 ms to wake up.
+ * Need to use the WAKEUP pin to wakeup the transceiver.
  */
 void
 set_in_deep_sleep(void){
@@ -1218,9 +1222,6 @@ set_in_deep_sleep(void){
   /* Upload the AON block configurations to the AON and then wenter in sleep
   because SLEEP_EN is set.*/
   aon_ctrl = DW_SAVE_MASK;
-  dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
-                  &aon_ctrl);
-  aon_ctrl = DW_UPL_CFG_MASK;
   dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,
                   &aon_ctrl);
 }

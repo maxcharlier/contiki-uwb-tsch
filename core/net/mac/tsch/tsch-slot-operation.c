@@ -590,6 +590,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
         }
       }
 #endif /* LLSEC802154_ENABLED */
+      SLOT_END_TRIGGER();
 
       /* prepare packet to send: copy to radio buffer */
       if(packet_ready && NETSTACK_RADIO.prepare(packet, packet_len) == 0) { /* 0 means success */
@@ -647,6 +648,8 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
         /* At the end of the transmission, get an more accurate estimate of SFD sending time */
         NETSTACK_RADIO.get_object(RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP, &tx_start_time, sizeof(rtimer_clock_t));
 #endif
+SLOT_END_TRIGGER();
+
               /* Unicast: wait for ack after tx: sleep until ack time */
               TSCH_SCHEDULE_AND_YIELD(pt, t, tx_start_time,
                   tx_duration + tsch_timing[tsch_ts_rx_ack_delay] - RADIO_DELAY_BEFORE_RX, "TxBeforeAck");
@@ -676,6 +679,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 
               /* Read ack frame */
               ack_len = NETSTACK_RADIO.read((void *)ackbuf, sizeof(ackbuf));
+SLOT_END_TRIGGER();
 
               is_time_source = 0;
               /* The radio driver should return 0 if no valid packets are in the rx buffer */
@@ -705,6 +709,8 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 
               if(ack_len != 0) {
                 if(is_time_source) {
+                  SLOT_END_TRIGGER();
+                  SLOT_END_TRIGGER();
                   int32_t eack_time_correction = US_TO_RTIMERTICKS(ack_ies.ie_time_correction);
                   int32_t since_last_timesync = TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn);
                   if(eack_time_correction > SYNC_IE_BOUND) {
@@ -725,6 +731,8 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
                   /* Keep track of sync time */
                   last_sync_asn = tsch_current_asn;
                   tsch_schedule_keepalive();
+                  SLOT_END_TRIGGER();
+                  SLOT_END_TRIGGER();
                 }
                 mac_tx_status = MAC_TX_OK;
               } else {
@@ -739,7 +747,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
         }
       }
     }
-
+SLOT_END_TRIGGER();
     tsch_radio_off(TSCH_RADIO_CMD_OFF_END_OF_TIMESLOT);
 
     current_packet->transmissions++;
@@ -769,7 +777,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 #endif /* LLSEC802154_ENABLED */
     log->tx.dest = TSCH_LOG_ID_FROM_LINKADDR(queuebuf_addr(current_packet->qb, PACKETBUF_ADDR_RECEIVER));
     );
-
+SLOT_END_TRIGGER();
     /* Poll process for later processing of packet sent events and logs */
     process_poll(&tsch_pending_events_process);
   }
@@ -806,7 +814,6 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
   static int input_queue_drop = 0;
 
   PT_BEGIN(pt);
-
   TSCH_DEBUG_RX_EVENT();
         GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
 
@@ -830,6 +837,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
     current_input = &input_array[input_index];
 
+SLOT_END_TRIGGER();
     /* Wait before starting to listen */
     TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_rx_offset] - RADIO_DELAY_BEFORE_RX, "RxBeforeListen");
     TSCH_DEBUG_RX_EVENT();
@@ -862,6 +870,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
         static frame802154_t frame;
         radio_value_t radio_last_rssi;
 
+SLOT_END_TRIGGER();
         /* Read packet */
         current_input->len = NETSTACK_RADIO.read((void *)current_input->payload, TSCH_PACKET_MAX_LEN);
         NETSTACK_RADIO.get_value(RADIO_PARAM_LAST_RSSI, &radio_last_rssi);
@@ -880,6 +889,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
         packet_duration = TSCH_PACKET_DURATION(current_input->len);
 
+SLOT_END_TRIGGER();
 #if LLSEC802154_ENABLED
         /* Decrypt and verify incoming frame */
         if(frame_valid) {
@@ -941,9 +951,11 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
                 }
 #endif /* LLSEC802154_ENABLED */
 
+SLOT_END_TRIGGER();
                 /* Copy to radio buffer */
                 NETSTACK_RADIO.prepare((const void *)ack_buf, ack_len);
 
+SLOT_END_TRIGGER();
                 /* Wait for time to ACK and transmit ACK */
                 TSCH_SCHEDULE_AND_YIELD(pt, t, rx_start_time,
                                         packet_duration + tsch_timing[tsch_ts_tx_ack_delay] - RADIO_DELAY_BEFORE_TX, "RxBeforeAck");
@@ -953,6 +965,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
               }
             }
 
+SLOT_END_TRIGGER();
             /* If the sender is a time source, proceed to clock drift compensation */
             n = tsch_queue_get_nbr(&source_address);
             if(n != NULL && n->is_time_source) {
@@ -966,9 +979,11 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
               tsch_schedule_keepalive();
             }
 
+SLOT_END_TRIGGER();
             /* Add current input to ringbuf */
             ringbufindex_put(&input_ringbuf);
 
+SLOT_END_TRIGGER();
             /* Log every reception */
             TSCH_LOG_ADD(tsch_log_rx,
               log->rx.src = TSCH_LOG_ID_FROM_LINKADDR((linkaddr_t*)&frame.src_addr);

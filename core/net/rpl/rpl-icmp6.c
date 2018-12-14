@@ -340,14 +340,14 @@ dio_input(void)
   // printf(" dio nodeaddr0  0x%02X", linkaddr_node_addr.u8[1]);
 
   /* Discard DIO if the faster don't have our nodeid -1 */
-  if(((uint8_t*) &from)[15] != linkaddr_node_addr.u8[7]-1){
-    PRINTF("RPL: Discard DIO %x %x\n", ((uint8_t*) &from)[15], linkaddr_node_addr.u8[7]);
-    PRINTF("DIO from %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x \n",  ((uint8_t*) &from)[0], ((uint8_t*) &from)[1],  ((uint8_t*) &from)[2],  
-      ((uint8_t*) &from)[3],  ((uint8_t*) &from)[4],  ((uint8_t*) &from)[5],  ((uint8_t*) &from)[14], ((uint8_t*) &from)[15]);
+  // if(((uint8_t*) &from)[15] != linkaddr_node_addr.u8[7]-1){
+  //   PRINTF("RPL: Discard DIO %x %x\n", ((uint8_t*) &from)[15], linkaddr_node_addr.u8[7]);
+  //   PRINTF("DIO from %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x \n",  ((uint8_t*) &from)[0], ((uint8_t*) &from)[1],  ((uint8_t*) &from)[2],  
+  //     ((uint8_t*) &from)[3],  ((uint8_t*) &from)[4],  ((uint8_t*) &from)[5],  ((uint8_t*) &from)[14], ((uint8_t*) &from)[15]);
     
-    PRINT6ADDR(&from);
-    goto discard;
-  }
+  //   PRINT6ADDR(&from);
+  //   goto discard;
+  // }
 
   /* Check if there are any DIO suboptions. */
   for(; i < buffer_length; i += len) {

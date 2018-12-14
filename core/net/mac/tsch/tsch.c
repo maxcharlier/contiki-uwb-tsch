@@ -486,12 +486,12 @@ tsch_associate(const struct input_packet *input_eb, rtimer_clock_t timestamp)
 #endif /* TSCH_JOIN_MY_PANID_ONLY */
 
   /* Discard EB if the EB not comes from the addr we expect */
-  if(((uint8_t*) frame.src_addr)[7] != linkaddr_node_addr.u8[7]-1) {
-    PRINTF("TSCH:! parse_eb: discard EB ADDR not match 0x%x  expected 0x%x | ", ((uint8_t*) frame.src_addr)[7], linkaddr_node_addr.u8[7]-1);
-    PRINTLLADDR((const uip_lladdr_t *) frame.src_addr);
-    PRINTF("\n");
-    return 0;
-  }
+  // if(((uint8_t*) frame.src_addr)[7] != linkaddr_node_addr.u8[7]-1) {
+  //   PRINTF("TSCH:! parse_eb: discard EB ADDR not match 0x%x  expected 0x%x | ", ((uint8_t*) frame.src_addr)[7], linkaddr_node_addr.u8[7]-1);
+  //   PRINTLLADDR((const uip_lladdr_t *) frame.src_addr);
+  //   PRINTF("\n");
+  //   return 0;
+  // }
 
   /* There was no join priority (or 0xff) in the EB, do not join */
   if(ies.ie_join_priority == 0xff) {

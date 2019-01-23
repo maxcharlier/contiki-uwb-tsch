@@ -194,6 +194,13 @@
 
 // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 
+#define TSCH_LOC_RX_GUARD					244
+#define TSCH_LOC_RX_OFFSET 					(TSCH_LOC_RX_GUARD)
+#define TSCH_LOC_TX_OFFSET 					(TSCH_LOC_RX_GUARD+TSCH_LOC_RX_GUARD)
+#define TSCH_LOC_REPLY_TIME					305
+
+
+
 #else
 #error "TSCH: Unsupported default timeslot length"
 #endif

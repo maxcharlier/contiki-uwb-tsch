@@ -157,7 +157,7 @@
 #define PRINTF(...) do {} while(0)
 #endif
 
-#define DEBUG_LED 1
+#define DEBUG_LED 0
 #define DEGUB_RANGING_SS_TWR_FAST_TRANSMIT 0
 
 // #define DEBUG_RANGING_STATE
@@ -181,6 +181,15 @@
   #define LISTEN_SET() do { \
       GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
   } while(0)
+
+  #define DWM1000_SLEEP_PORT           GPIO_A_NUM
+  #define DWM1000_SLEEP_PIN            2
+  #define SLEEP_CLR() do { \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+  } while(0)
+  #define SLEEP_SET() do { \
+      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+  } while(0)
   #define DWM1000_SEND_PORT             GPIO_D_NUM
   #define DWM1000_SEND_PIN              0
   #define SEND_CLR() do { \
@@ -190,6 +199,9 @@
       GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
   } while(0)
   #define INIT_GPIO_DEBUG() do {\
+    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
     GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
     GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
     GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
@@ -200,6 +212,8 @@
 #else
   #define LISTEN_CLR() do {} while(0)
   #define LISTEN_SET() do {} while(0)
+  #define SLEEP_CLR() do {} while(0)
+  #define SLEEP_SET() do {} while(0)
   #define SEND_CLR() do {} while(0)
   #define SEND_SET() do {} while(0)
   #define INIT_GPIO_DEBUG() do {} while(0)
@@ -1439,8 +1453,7 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     return RADIO_RESULT_OK;
   
   case RADIO_SLEEP_STATE:
-    LISTEN_SET();
-    SEND_SET();
+    SLEEP_SET();
     if(value == RADIO_SLEEP) {
             dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID);
       // printf("put radio in sleep\n");
@@ -1482,8 +1495,7 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     else{
       return RADIO_RESULT_INVALID_VALUE;
     }
-    LISTEN_CLR();
-    SEND_CLR();
+    SLEEP_CLR();
     sleep_mode = value;
     return RADIO_RESULT_OK;
 

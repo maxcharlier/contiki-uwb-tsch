@@ -596,6 +596,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
       if(packet_ready && NETSTACK_RADIO.prepare(packet, packet_len) == 0) { /* 0 means success */
         static rtimer_clock_t tx_duration;
 
+      SLOT_END_TRIGGER();
 #if CCA_ENABLED
         cca_status = 1;
         /* delay before CCA */
@@ -670,7 +671,7 @@ SLOT_END_TRIGGER();
                 TSCH_DEBUG_TX_EVENT();
               }
               tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
-
+SLOT_END_TRIGGER();
 #if TSCH_HW_FRAME_FILTERING
               /* Leaving promiscuous mode */
               NETSTACK_RADIO.get_value(RADIO_PARAM_RX_MODE, &radio_rx_mode);
@@ -1192,6 +1193,11 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
                           time_to_next_active_slot-TSCH_SLOT_START_BEFOREHAND,
                           rtimer_now);
                       );
+      
+
+        SLOT_END_TRIGGER();
+        SLOT_END_TRIGGER();
+        SLOT_END_TRIGGER();
       } while(!tsch_schedule_slot_operation(t, prev_slot_start-TSCH_SLOT_START_BEFOREHAND, time_to_next_active_slot, "main"));
     }
 
@@ -1199,6 +1205,290 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
     PT_YIELD(&slot_operation_pt);
   }
   PT_END(&slot_operation_pt);
+}
+/*---------------------------------------------------------------------------*/
+static
+PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
+{
+  /**
+   * TX loc slot:
+   * Double Sided Two Way Ranging 
+   * msg1  TX >> RX 
+   * msg2  TX << RX
+   * msg3  TX >> RX
+   * mqg4  RX << TX 
+   *
+   * 1. Copy packet to radio buffer
+   * 3. Sleep until it is time to transmit
+   * 4. Transmit msg1
+   * 5. Save the transceiver TX time
+   * 6. Schedule a delayed reception  
+   * 7. Wait until we receive the response.
+   * 8. Read the msg2
+   * 9. Save the transceiver RX time
+   * 10. Prepare a response
+   * 11. Schedule a delayed transmission 
+   * 12. Wait the end of the msg3.
+   * 13. Save the TX time
+   * 14. Shedule a delayed reception
+   * 15. Read the received packet (msg4): 
+   *     The packet contain informations to compute the ranging.
+   * 16. Update Ranging parameters according to TX status
+   * 17. Schedule mac_call_sent_callback
+   **/
+
+  /* tx status */
+  static uint8_t mac_tx_status;
+  /* is the packet in its neighbor's queue? */
+  uint8_t in_queue;
+  static int dequeued_index;
+  static int packet_ready = 1;
+
+  PT_BEGIN(pt);
+
+  TSCH_DEBUG_TX_EVENT();
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLOT_END_PORT), GPIO_PIN_MASK(DWM1000_SLOT_END_PIN)); \
+
+
+  /* First check if we have space to store a newly dequeued packet (in case of
+   * successful Tx or Drop) */
+  dequeued_index = ringbufindex_peek_put(&dequeued_ringbuf);
+  if(dequeued_index != -1) {
+    if(current_packet == NULL || current_packet->qb == NULL) {
+      mac_tx_status = MAC_TX_ERR_FATAL;
+    } else {
+      /* packet payload */
+      static void *packet;
+#if LLSEC802154_ENABLED
+      /* encrypted payload */
+      static uint8_t encrypted_packet[TSCH_PACKET_MAX_LEN];
+#endif /* LLSEC802154_ENABLED */
+      /* packet payload length */
+      static uint8_t packet_len;
+      /* packet seqno */
+      static uint8_t seqno;
+      /* is this a broadcast packet? (wait for ack?) */
+      static uint8_t is_broadcast;
+      static rtimer_clock_t tx_start_time;
+
+#if CCA_ENABLED
+      static uint8_t cca_status;
+#endif
+
+      /* get payload */
+      packet = queuebuf_dataptr(current_packet->qb);
+      packet_len = queuebuf_datalen(current_packet->qb);
+      /* is this a broadcast packet? (wait for ack?) */
+      is_broadcast = current_neighbor->is_broadcast;
+      /* read seqno from payload */
+      seqno = ((uint8_t *)(packet))[2];
+      /* if this is an EB, then update its Sync-IE */
+      if(current_neighbor == n_eb) {
+        packet_ready = tsch_packet_update_eb(packet, packet_len, current_packet->tsch_sync_ie_offset);
+      } else {
+        packet_ready = 1;
+      }
+
+#if LLSEC802154_ENABLED
+      if(tsch_is_pan_secured) {
+        /* If we are going to encrypt, we need to generate the output in a separate buffer and keep
+         * the original untouched. This is to allow for future retransmissions. */
+        int with_encryption = queuebuf_attr(current_packet->qb, PACKETBUF_ATTR_SECURITY_LEVEL) & 0x4;
+        packet_len += tsch_security_secure_frame(packet, with_encryption ? encrypted_packet : packet, current_packet->header_len,
+            packet_len - current_packet->header_len, &tsch_current_asn);
+        if(with_encryption) {
+          packet = encrypted_packet;
+        }
+      }
+#endif /* LLSEC802154_ENABLED */
+      SLOT_END_TRIGGER();
+
+      /* prepare packet to send: copy to radio buffer */
+      if(packet_ready && NETSTACK_RADIO.prepare(packet, packet_len) == 0) { /* 0 means success */
+        static rtimer_clock_t tx_duration;
+
+      SLOT_END_TRIGGER();
+        {
+          /* delay before TX */
+          TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_loc_tx_offset] - RADIO_DELAY_BEFORE_TX, "msg2TXRX");
+          TSCH_DEBUG_TX_EVENT();
+          /* send packet already in radio tx buffer */
+          mac_tx_status = NETSTACK_RADIO.transmit(packet_len);
+          /* Save tx timestamp */
+          tx_start_time = current_slot_start + tsch_timing[tsch_ts_tx_offset];
+          /* calculate TX duration based on sent packet len */
+          tx_duration = TSCH_PACKET_DURATION(packet_len);
+          /* limit tx_time to its max value */
+          tx_duration = MIN(tx_duration, tsch_timing[tsch_ts_max_tx]);
+          /* turn tadio off -- will turn on again to wait for ACK if needed */
+          tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
+
+          if(mac_tx_status == RADIO_TX_OK) {
+            if(!is_broadcast) {
+              uint8_t ackbuf[TSCH_PACKET_MAX_LEN];
+              int ack_len;
+              rtimer_clock_t ack_start_time;
+              int is_time_source;
+              struct ieee802154_ies ack_ies;
+              uint8_t ack_hdrlen;
+              frame802154_t frame;
+
+#if TSCH_HW_FRAME_FILTERING
+              radio_value_t radio_rx_mode;
+              /* Entering promiscuous mode so that the radio accepts the enhanced ACK */
+              NETSTACK_RADIO.get_value(RADIO_PARAM_RX_MODE, &radio_rx_mode);
+              NETSTACK_RADIO.set_value(RADIO_PARAM_RX_MODE, radio_rx_mode & (~RADIO_RX_MODE_ADDRESS_FILTER));
+#endif /* TSCH_HW_FRAME_FILTERING */
+
+#if TSCH_RESYNC_WITH_SFD_TIMESTAMPS
+        /* At the end of the transmission, get an more accurate estimate of SFD sending time */
+        NETSTACK_RADIO.get_object(RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP, &tx_start_time, sizeof(rtimer_clock_t));
+#endif
+SLOT_END_TRIGGER();
+
+              /* Unicast: wait for ack after tx: sleep until ack time */
+              TSCH_SCHEDULE_AND_YIELD(pt, t, tx_start_time,
+                  tx_duration + tsch_timing[tsch_ts_loc_reply_time] - RADIO_DELAY_BEFORE_RX, "TxBeforeAck");
+              TSCH_DEBUG_TX_EVENT();
+
+              tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
+              /* Wait for ACK to come */
+              BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),
+                  tx_start_time, tx_duration + tsch_timing[tsch_ts_rx_ack_delay] + tsch_timing[tsch_ts_ack_wait] + RADIO_DELAY_BEFORE_DETECT);
+              TSCH_DEBUG_TX_EVENT();
+
+              ack_start_time = RTIMER_NOW() - RADIO_DELAY_BEFORE_DETECT;
+
+              if(NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()){
+                /* Wait for ACK to finish */
+                BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
+                    tx_start_time, tx_duration + tsch_timing[tsch_ts_rx_ack_delay] + tsch_timing[tsch_ts_ack_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
+                TSCH_DEBUG_TX_EVENT();
+              }
+              tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
+SLOT_END_TRIGGER();
+#if TSCH_HW_FRAME_FILTERING
+              /* Leaving promiscuous mode */
+              NETSTACK_RADIO.get_value(RADIO_PARAM_RX_MODE, &radio_rx_mode);
+              NETSTACK_RADIO.set_value(RADIO_PARAM_RX_MODE, radio_rx_mode | RADIO_RX_MODE_ADDRESS_FILTER);
+#endif /* TSCH_HW_FRAME_FILTERING */
+
+              /* Read ack frame */
+              ack_len = NETSTACK_RADIO.read((void *)ackbuf, sizeof(ackbuf));
+SLOT_END_TRIGGER();
+
+              is_time_source = 0;
+              /* The radio driver should return 0 if no valid packets are in the rx buffer */
+              if(ack_len > 0) {
+                is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
+                if(tsch_packet_parse_eack(ackbuf, ack_len, seqno,
+                    &frame, &ack_ies, &ack_hdrlen) == 0) {
+                  ack_len = 0;
+                }
+
+#if LLSEC802154_ENABLED
+                if(ack_len != 0) {
+                  if(!tsch_security_parse_frame(ackbuf, ack_hdrlen, ack_len - ack_hdrlen - tsch_security_mic_len(&frame),
+                      &frame, &current_neighbor->addr, &tsch_current_asn)) {
+                    TSCH_LOG_ADD(tsch_log_message,
+                        snprintf(log->message, sizeof(log->message),
+                        "!failed to authenticate ACK"));
+                    ack_len = 0;
+                  }
+                } else {
+                  TSCH_LOG_ADD(tsch_log_message,
+                      snprintf(log->message, sizeof(log->message),
+                      "!failed to parse ACK"));
+                }
+#endif /* LLSEC802154_ENABLED */
+              }
+
+              if(ack_len != 0) {
+                if(is_time_source) {
+                  SLOT_END_TRIGGER();
+                  SLOT_END_TRIGGER();
+                  int32_t eack_time_correction = US_TO_RTIMERTICKS(ack_ies.ie_time_correction);
+                  int32_t since_last_timesync = TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn);
+                  if(eack_time_correction > SYNC_IE_BOUND) {
+                    drift_correction = SYNC_IE_BOUND;
+                  } else if(eack_time_correction < -SYNC_IE_BOUND) {
+                    drift_correction = -SYNC_IE_BOUND;
+                  } else {
+                    drift_correction = eack_time_correction;
+                  }
+                  if(drift_correction != eack_time_correction) {
+                    TSCH_LOG_ADD(tsch_log_message,
+                        snprintf(log->message, sizeof(log->message),
+                            "!truncated dr %d %d", (int)eack_time_correction, (int)drift_correction);
+                    );
+                  }
+                  is_drift_correction_used = 1;
+                  tsch_timesync_update(current_neighbor, since_last_timesync, drift_correction);
+                  /* Keep track of sync time */
+                  last_sync_asn = tsch_current_asn;
+                  tsch_schedule_keepalive();
+                  SLOT_END_TRIGGER();
+                  SLOT_END_TRIGGER();
+                }
+                mac_tx_status = MAC_TX_OK;
+              } else {
+                mac_tx_status = MAC_TX_NOACK;
+              }
+            } else {
+              mac_tx_status = MAC_TX_OK;
+            }
+          } else {
+            mac_tx_status = MAC_TX_ERR;
+          }
+        }
+      }
+    }
+SLOT_END_TRIGGER();
+    tsch_radio_off(TSCH_RADIO_CMD_OFF_END_OF_TIMESLOT);
+
+    current_packet->transmissions++;
+    current_packet->ret = mac_tx_status;
+
+    /* Post TX: Update neighbor state */
+    in_queue = update_neighbor_state(current_neighbor, current_packet, current_link, mac_tx_status);
+
+    /* The packet was dequeued, add it to dequeued_ringbuf for later processing */
+    if(in_queue == 0) {
+      dequeued_array[dequeued_index] = current_packet;
+      ringbufindex_put(&dequeued_ringbuf);
+    }
+
+    /* Log every tx attempt */
+    TSCH_LOG_ADD(tsch_log_tx,
+        log->tx.mac_tx_status = mac_tx_status;
+    log->tx.num_tx = current_packet->transmissions;
+    log->tx.datalen = queuebuf_datalen(current_packet->qb);
+    log->tx.drift = drift_correction;
+    log->tx.drift_used = is_drift_correction_used;
+    log->tx.is_data = ((((uint8_t *)(queuebuf_dataptr(current_packet->qb)))[0]) & 7) == FRAME802154_DATAFRAME;
+#if LLSEC802154_ENABLED
+    log->tx.sec_level = queuebuf_attr(current_packet->qb, PACKETBUF_ATTR_SECURITY_LEVEL);
+#else /* LLSEC802154_ENABLED */
+    log->tx.sec_level = 0;
+#endif /* LLSEC802154_ENABLED */
+    log->tx.dest = TSCH_LOG_ID_FROM_LINKADDR(queuebuf_addr(current_packet->qb, PACKETBUF_ADDR_RECEIVER));
+    );
+SLOT_END_TRIGGER();
+    /* Poll process for later processing of packet sent events and logs */
+    process_poll(&tsch_pending_events_process);
+  }
+
+  TSCH_DEBUG_TX_EVENT();
+
+  /* request to place the transceiver in SLEEP mode to reduce energy consumption */
+  NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_SLEEP);
+
+#ifdef DEBUG_GPIO_TSCH
+  TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+  SLOT_END_TRIGGER();
+#endif /* DEBUG_GPIO_TSCH */
+
+  PT_END(pt);
 }
 /*---------------------------------------------------------------------------*/
 /* Set global time before starting slot operation,

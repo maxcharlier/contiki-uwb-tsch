@@ -77,7 +77,7 @@
  * PD1/I2C.INT                  |-07|21-|   ADC1/AIN5/PA5/DW1000 GPIO8
  * PC2/I2C.SDA                  |-08|22-|   ADC2/AIN4/PA4/DW1000 SPI.CSn
  * PC3/I2C.SCL                  |-09|23-|   BUTTON.USER/ADC6/AIN3/PA3
- * DGND                         |-10|24-|   ADC3/AIN2/PA2
+ * DGND                         |-10|24-|   ADC3/AIN2/PA2 (SLEEP FLAG)
  * +VDD/DW1000.D+3.3            |-11|25-|   PC0/UART1.TX
  * PC6/SPI1.MISO/DW1000.MISO    |-12|26-|   PC1/UART1.RX
  * USB.D+                       |-13|27-|   PC4/SPI1.SCLK/DW1000.SCLK

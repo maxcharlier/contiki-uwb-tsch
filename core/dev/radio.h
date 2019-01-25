@@ -176,6 +176,47 @@ enum {
    * it needs to be used with radio.get_object()/set_object(). */
   RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP,
 
+
+  /*
+   * Set a delayed transmission based on the previews reception.
+   * The delay is set in micro second.
+   * */
+  RADIO_LOC_TX_DELAYED_US,
+
+  /*
+   * Set a delayed reception based on the previews transmission.
+   * The delay is set in micro second.
+   * */
+  RADIO_LOC_RX_DELAYED_US,
+
+  /*
+   * Get the last stabilised RX timestamp. The units of the low order bit are 
+   * approximately 15.65 picoseconds. The actual unit may be calculated 
+   * as 1/ (128*499.2×10 6 ) seconds.
+   * The value is a 64 bits unsigned int (uint64_t)  */
+  RADIO_LOC_LAST_RX_TIMESPTAMP,
+
+  /*
+   * Get the last stabilised TX timestamp. The units of the low order bit are 
+   * approximately 15.65 picoseconds. The actual unit may be calculated 
+   * as 1/ (128*499.2×10 6 ) seconds.
+   * The value is a 64 bits unsigned int (uint64_t)  */
+  RADIO_LOC_LAST_TX_TIMESPTAMP,
+
+  /*
+   * The TX antenna delay correction. The units of the low order bit are 
+   * approximately 15.65 picoseconds. The actual unit may be calculated 
+   * as 1/ (128*499.2×10 6 ) seconds.
+   * The value is a 16 bits unsigned int (uint16_t)  */
+  RADIO_LOC_TX_ANTENNA_DELAY,
+
+  /*
+   * The RX antenna delay correction. The units of the low order bit are 
+   * approximately 15.65 picoseconds. The actual unit may be calculated 
+   * as 1/ (128*499.2×10 6 ) seconds.
+   * The value is a 16 bits unsigned int (uint16_t)  */
+  RADIO_LOC_RX_ANTENNA_DELAY,
+
   /* Constants (read only) */
 
   /* The lowest radio channel. */

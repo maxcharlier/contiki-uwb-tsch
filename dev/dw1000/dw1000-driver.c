@@ -238,6 +238,11 @@ static uint8_t volatile poll_mode = 0;
   static uint8_t volatile tsch_channel = 0;
 #endif /* DW1000_TSCH */
 
+/* Used by the driver to know if the transmit() fonction 
+have to send directly the message or if it is a delayed transmission */
+static int volative dw1000_is_delayed_tx = 0;
+
+
 /* Used to avoid multiple interrupt in ranging mode */
 static int volatile dw1000_driver_in_ranging = 0;
 
@@ -303,8 +308,10 @@ volatile uint16_t dw1000_driver_sfd_end_time = 0;
 static volatile uint16_t last_packet_timestamp = 0;
 
 /* start private function */
-void dw1000_schedule_reply(void);
-void dw1000_schedule_receive(uint16_t data_len);
+void dw1000_schedule_tx_old(void);
+void dw1000_schedule_tx((uint16_t delay_us));
+void dw1000_schedule_rx_old(uint16_t data_len);
+void dw1000_schedule_rx(uint16_t delay_us);
 void dw1000_compute_prop_time_sstwr(int16_t t_reply_offset);
 void dw1000_update_frame_quality(void);
 void ranging_prepare_ack(void);
@@ -612,16 +619,19 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* if we are in ranging, the size change. */
   payload_len = convert_payload_len(payload_len);
 
-  if(!(dw1000_driver_sstwr || dw1000_driver_sdstwr)){
-    /* Initialize a no delayed transmission 
-      and wait for an ACK if an ACK request is triggered */
-    dw_init_tx(dw1000_driver_wait_ACK, 0); 
-  } else{
-    /* Initialize a no delayed transmission and wait for an ranging response 
-      Re-enable the RX state after the transmission. */
-    /* if we hare in SS TWR we re enable the transceiver manually */
-    dw_init_tx(dw1000_driver_sdstwr, 0);
-  }
+  // if(!(dw1000_driver_sstwr || dw1000_driver_sdstwr)){
+  //   /* Initialize a no delayed transmission 
+  //     and wait for an ACK if an ACK request is triggered */
+  //   dw_init_tx(dw1000_driver_wait_ACK, 0); 
+  // } else{
+  //    Initialize a no delayed transmission and wait for an ranging response 
+  //     Re-enable the RX state after the transmission. 
+  //   /* if we hare in SS TWR we re enable the transceiver manually */
+  //   dw_init_tx(dw1000_driver_sdstwr, 0);
+  // }
+  /* No wait for response but delayed send */
+  dw_init_tx(0, dw1000_is_delayed_tx);
+  dw1000_is_delayed_tx = 0; /* disable delayed transmition for the next call */
   SEND_SET();
 #if DEBUG
   uint8_t tr_value;
@@ -707,7 +717,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* start SS TWR */
   if(dw1000_driver_sstwr && tx_return == RADIO_TX_OK){
     /* re enable the receiver */
-    dw1000_schedule_receive(payload_len);
+    dw1000_schedule_rx_old(payload_len);
     // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
     tx_return = RADIO_TX_ERR;
@@ -1557,6 +1567,32 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
     return RADIO_RESULT_OK;
   }
 
+  if(param == RADIO_LOC_LAST_RX_TIMESPTAMP) {
+    if(size != sizeof(uint64_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+
+    dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
+                    (uint8_t *) dest);
+    return RADIO_RESULT_OK;
+  }
+  if(param == RADIO_LOC_LAST_TX_TIMESPTAMP) {
+    if(size != sizeof(uint64_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
+                    (uint8_t *) dest);
+    return RADIO_RESULT_OK;
+  }
+  if(param == RADIO_LOC_RX_ANTENNA_DELAY) {
+    if(size != sizeof(uint16_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    dw_get_rx_antenna_delay();
+    return RADIO_RESULT_OK;
+  }
+
+
   return RADIO_RESULT_NOT_SUPPORTED;
 }
 /**
@@ -1594,6 +1630,30 @@ dw1000_driver_set_object(radio_param_t param,
     dw_set_extended_addr(ext_addr);
 
     return RADIO_RESULT_OK;
+  }
+  else if(param == RADIO_LOC_TX_ANTENNA_DELAY){
+    if(size != 2 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    dw_set_tx_antenna_delay((uint16_t) &src);
+  }
+  else if(param == RADIO_LOC_RX_ANTENNA_DELAY){
+    if(size != 2 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    dw_set_rx_antenna_delay((uint16_t) &src);
+  }
+  else if(param == RADIO_LOC_TX_DELAYED_US){
+    if(size != 2 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    dw1000_schedule_tx((uint16_t) &src);
+  }
+  else if(param == RADIO_LOC_RX_DELAYED_US){
+    if(size != 2 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    dw1000_schedule_rx((uint16_t) &src);
   }
   return RADIO_RESULT_NOT_SUPPORTED;
 }
@@ -2066,7 +2126,7 @@ PROCESS_THREAD(dw1000_driver_process_ss_twr, ev, data){
     dw_write_subreg(DW_REG_TX_BUFFER, 0x7, 2,  
                     (uint8_t*) &initiator_frame[5]);
 
-    dw1000_schedule_reply();
+    dw1000_schedule_tx_old();
 
     /* no wait for response and delayed */
     dw_init_tx(0, 1);
@@ -2442,11 +2502,27 @@ dw1000_driver_set_reply_time(uint32_t reply_time)
                                           dw1000_driver_schedule_reply_time);
 }
 /**
+ * \brief Based on the delay (in us) and the RX timestamps, this function schedule 
+ *        the ranging reply message.
+ */
+void 
+dw1000_schedule_tx(uint16_t delay_us)
+{
+  uint64_t schedule_time = dw_get_rx_timestamp();
+  /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
+  schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  /* The 10nd bit have a "value" of 125Mhz */
+  schedule_time += US_TO_RADIO(delay_us); 
+
+  dw_set_dx_timestamp(schedule_time);
+  dw1000_is_delayed_tx = 1;
+}
+/**
  * \brief Based on the reply time and the RX timestamps, this function schedule 
  *        the ranging reply message.
  */
 void 
-dw1000_schedule_reply(void)
+dw1000_schedule_tx_old(void)
 {
   uint64_t schedule_time = dw_get_rx_timestamp();
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
@@ -2460,7 +2536,7 @@ dw1000_schedule_reply(void)
  *        /!\ Private function.
  */
 void
-dw1000_schedule_receive(uint16_t data_len)
+dw1000_schedule_rx_old(uint16_t data_len)
 {
   uint64_t schedule_time = dw_get_tx_timestamp();
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
@@ -2469,6 +2545,23 @@ dw1000_schedule_receive(uint16_t data_len)
   schedule_time += ((uint64_t) (
         theorical_transmission_payload(dw1000_conf.data_rate, data_len) + 
     DW1000_REPLY_TIME_COMPUTATION) * 125) << 9;
+  dw_set_dx_timestamp(schedule_time);
+  dw_init_delayed_rx();
+}
+/**
+ * \brief Configures the DW1000 to be ready to receive a ranging response 
+ *          based on the lasted sended messages. The delay is in micro seconds.
+ *        /!\ Private function.
+ */
+void
+dw1000_schedule_rx(uint16_t delay_us)
+{
+  uint64_t schedule_time = dw_get_tx_timestamp();
+  /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
+  schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  /* The 10nd bit have a "value" of 125Mhz */
+  schedule_time+= US_TO_RADIO(delay_us);
+
   dw_set_dx_timestamp(schedule_time);
   dw_init_delayed_rx();
 }
@@ -2653,7 +2746,7 @@ ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send){
   dw1000_driver_clear_pending_interrupt();
 
   if(sheduled)
-    dw1000_schedule_reply();
+    dw1000_schedule_tx();
 
   /* wait for resp and delayed */
   dw_init_tx(wait_for_resp, sheduled);

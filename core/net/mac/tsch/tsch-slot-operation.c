@@ -1274,6 +1274,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 #if CCA_ENABLED
       static uint8_t cca_status;
 #endif
+      static unit32_t last_timestamp;
 
       /* get payload */
       packet = queuebuf_dataptr(current_packet->qb);
@@ -1345,6 +1346,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
         NETSTACK_RADIO.get_object(RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP, &tx_start_time, sizeof(rtimer_clock_t));
 #endif
 SLOT_END_TRIGGER();
+              /* schedule delayed reception */ 
 
               /* Unicast: wait for ack after tx: sleep until ack time */
               TSCH_SCHEDULE_AND_YIELD(pt, t, tx_start_time,

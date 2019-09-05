@@ -112,6 +112,13 @@ void TSCH_CALLBACK_PACKET_READY(void);
 
 /************ Types ***********/
 
+/* Propagation time between nodes */
+struct tsch_prop_time
+{
+ uint32_t prop_time;
+ rtimer_clock_t last_mesureament; 
+};
+
 /* TSCH packet information */
 struct tsch_packet {
   struct queuebuf *qb;  /* pointer to the queuebuf to be sent */
@@ -140,6 +147,7 @@ struct tsch_neighbor {
   struct tsch_packet *tx_array[TSCH_QUEUE_NUM_PER_NEIGHBOR];
   /* Circular buffer of pointers to packet. */
   struct ringbufindex tx_ringbuf;
+  struct tsch_prop_time last_prop_time;
 };
 
 /***** External Variables *****/
@@ -190,5 +198,7 @@ void tsch_queue_backoff_inc(struct tsch_neighbor *n);
 void tsch_queue_update_all_backoff_windows(const linkaddr_t *dest_addr);
 /* Initialize TSCH queue module */
 void tsch_queue_init(void);
+/* Update the propagation time between the node and his neighbor */
+void update_neighbor_prop_time(struct tsch_neighbor *n, uint32_t prop_time, rtimer_clock_t last_mesureament);
 
 #endif /* __TSCH_QUEUE_H__ */

@@ -902,3 +902,21 @@ int16_t
 clock_ticks_to_microsecond(rtimer_clock_t clock_ticks) {
   return ((long int) (1000000l * clock_ticks) / ((long int) RTIMER_SECOND)) + 1;
 }
+
+/** 
+ * Compute the propagation time using the Asymmetrical approach of Decawave
+ * We use signed number to give the possibilities to have negative 
+ * propagation time in the case that the antenna delay was to hight 
+ * when we calibrate the nodes.
+ *
+ **/
+int32_t
+compute_prop_time(int32_t initiator_roundtrip, int32_t initiator_reply,
+  int32_t replier_roundtrip, int32_t replier_reply) {
+  return (int32_t)(( ((int64_t) initiator_roundtrip * replier_roundtrip) 
+                  - ((int64_t) initiator_reply * replier_reply) )
+                /  ((int64_t) initiator_roundtrip 
+                  +  replier_roundtrip 
+                  +  initiator_reply 
+                  +  replier_reply));
+}

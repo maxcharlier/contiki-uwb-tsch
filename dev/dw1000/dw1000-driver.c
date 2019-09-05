@@ -631,8 +631,18 @@ dw1000_driver_transmit(unsigned short payload_len)
   // }
   /* No wait for response but delayed send */
   dw_init_tx(0, dw1000_is_delayed_tx);
+  
+  if(dw1000_is_delayed_tx){
+    /* wait the effective start of the transmission */
+    uint8_t sys_ctrl_lo;
+    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
+                    watchdog_periodic();, 
+                    ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
+                    microsecond_to_clock_tik(500));
+  }
   dw1000_is_delayed_tx = 0; /* disable delayed transmition for the next call */
   SEND_SET();
+
 #if DEBUG
   uint8_t tr_value;
   /* TR bit is the 15nd bit */
@@ -1588,7 +1598,14 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
     if(size != sizeof(uint16_t) || !dest) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    dw_get_rx_antenna_delay();
+    *(uint16_t *) dest = dw_get_rx_antenna_delay();
+    return RADIO_RESULT_OK;
+  }
+  if(param == RADIO_LOC_TX_ANTENNA_DELAY) {
+    if(size != sizeof(uint16_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    *(uint16_t *) dest = dw_get_tx_antenna_delay();
     return RADIO_RESULT_OK;
   }
 

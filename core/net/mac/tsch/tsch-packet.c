@@ -410,3 +410,111 @@ tsch_packet_parse_eb(const uint8_t *buf, int buf_size,
   return curr_len;
 }
 /*---------------------------------------------------------------------------*/
+/* Construct ACK packet and return ACK length */
+int
+tsch_packet_create_ack(uint8_t *buf, int buf_size, uint8_t seqno)
+{
+  if(buf_size >= 3){
+    uint16_t frame_control = 0x02;
+    buf[0] = frame_control & 0xFF;
+    buf[1] = frame_control >> 8;
+    buf[2] = seq_num;
+    return 3
+  }
+  return 0
+}
+/*---------------------------------------------------------------------------*/
+/* Construct a ranging data packet. This packet contains the real reply time and 
+  round trip time to compute the propagation time. */
+int
+tsch_packet_create_ranging_pakcet(uint8_t *buf, int buf_size, const linkaddr_t 
+            *dest_addr, uint8_t seqno, uint32_t t_reply, uint32_t t_round)
+{
+  int ret;
+  uint8_t curr_len = 0;
+  frame802154_t p;
+  uint64_t payload = t_reply | t_round << 32;
+  struct ieee802154_ies ies;
+
+  memset(&p, 0, sizeof(p));
+  p.fcf.frame_type = FRAME802154_DATAFRAME;
+  p.fcf.frame_version = FRAME802154_IEEE802154E_2012;
+  p.fcf.ie_list_present = 0;
+  /* Compression unset. According to IEEE802.15.4e-2012:
+   * - if no address is present: elide PAN ID
+   * - if at least one address is present: include exactly one PAN ID (dest by default) */
+  p.fcf.panid_compression = 0;
+  p.dest_pid = IEEE802154_PANID;
+  p.seq = seqno;
+
+  p.payload = &payload;
+
+  if(dest_addr != NULL) {
+    p.fcf.dest_addr_mode = LINKADDR_SIZE > 2 ? FRAME802154_LONGADDRMODE : FRAME802154_SHORTADDRMODE;;
+    linkaddr_copy((linkaddr_t *)&p.dest_addr, dest_addr);
+  }
+
+  p.fcf.src_addr_mode = LINKADDR_SIZE > 2 ? FRAME802154_LONGADDRMODE : FRAME802154_SHORTADDRMODE;;
+  p.src_pid = IEEE802154_PANID;
+  linkaddr_copy((linkaddr_t *)&p.src_addr, &linkaddr_node_addr);
+
+#if LLSEC802154_ENABLED
+  if(tsch_is_pan_secured) {
+    p.fcf.security_enabled = 1;
+    p.aux_hdr.security_control.security_level = TSCH_SECURITY_KEY_SEC_LEVEL_ACK;
+    p.aux_hdr.security_control.key_id_mode = FRAME802154_1_BYTE_KEY_ID_MODE;
+    p.aux_hdr.security_control.frame_counter_suppression = 1;
+    p.aux_hdr.security_control.frame_counter_size = 1;
+    p.aux_hdr.key_index = TSCH_SECURITY_KEY_INDEX_ACK;
+  }
+#endif /* LLSEC802154_ENABLED */
+
+  if((curr_len = frame802154_create(&p, buf)) == 0) {
+    return 0;
+  }
+
+  return curr_len;
+}/*---------------------------------------------------------------------------*/
+/* Parse a ranging data packet. This packet contains the real reply time and 
+  round trip time to compute the propagation time.  */
+int
+tsch_packet_parse_ranging_packet(const uint8_t *buf, int buf_size, uint8_t seqno, 
+    frame802154_t *frame, uint32_t *t_reply, uint32_t *t_round)
+{
+  uint8_t curr_len = 0;
+  int ret;
+  uint64_t payload;
+  linkaddr_t dest;
+
+  if(frame == NULL || buf_size < 0) {
+    return 0;
+  }
+  /* Parse 802.15.4-2006 frame, i.e. all fields before Information Elements */
+  if((ret = frame802154_parse((uint8_t *)buf, buf_size, frame)) < 3) {
+    return 0;
+  }
+  curr_len += ret;
+
+  /* Check seqno */
+  if(seqno != frame->seq) {
+    return 0;
+  }
+
+  /* Check destination PAN ID */
+  if(frame802154_check_dest_panid(frame) == 0) {
+    return 0;
+  }
+
+  /* Check destination address (if any) */
+  if(frame802154_extract_linkaddr(frame, NULL, &dest) == 0 ||
+     (!linkaddr_cmp(&dest, &linkaddr_node_addr)
+      && !linkaddr_cmp(&dest, &linkaddr_null))) {
+    return 0;
+  }
+  memset(&payload, frame->payload, sizeof(uint64_t));
+  t_reply = (uint32_t*) &payload;
+  t_round = (uint32_t*) (&payload +4); /*shift of 32 bits */
+
+  return curr_len;
+}
+/*---------------------------------------------------------------------------*/

@@ -80,4 +80,8 @@ theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght);
 rtimer_clock_t microsecond_to_clock_tik(int duration);
 int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks);
 
+int32_t compute_prop_time(int32_t initiator_roundtrip, 
+			int32_t initiator_reply, int32_t replier_roundtrip, 
+			int32_t replier_reply);
+
 #endif /* __DW1000_UTIL_H__ */

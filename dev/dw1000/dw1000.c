@@ -694,7 +694,7 @@ void dw_set_channel(dw1000_channel_t channel){
     break;
   case DW_CHANNEL_5:
     rf_rxctrlh_val = 0xD8;
-    rf_txctrl_val = 0x001E3FE0UL;
+    rf_txctrl_val = 0x001E3FE3UL;
     tc_pgdelay_val = 0xC0;
     fs_pllcfg_val = 0x0800041DUL;
     fs_plltune_val = 0xBE;
@@ -1219,7 +1219,7 @@ set_in_deep_sleep(void){
                    &aon_cfg0);
 
 
-  /* Upload the AON block configurations to the AON and then wenter in sleep
+  /* Upload the AON block configurations to the AON and then enter in sleep
   because SLEEP_EN is set.*/
   aon_ctrl = DW_SAVE_MASK;
   dw_write_subreg(DW_REG_AON, DW_SUBREG_AON_CTRL, DW_SUBLEN_AON_CTRL,

@@ -70,6 +70,10 @@ enum tsch_timeslot_timing_elements {
   tsch_ts_max_ack,
   tsch_ts_max_tx,
   tsch_ts_timeslot_length,
+  tsch_ts_loc_rx_wait,
+  tsch_ts_loc_rx_offset,
+  tsch_ts_loc_tx_offset,
+  tsch_ts_loc_reply_time,
   tsch_ts_elements_count, /* Not a timing element */
 };
 

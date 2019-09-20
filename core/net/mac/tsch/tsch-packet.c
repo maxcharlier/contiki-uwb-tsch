@@ -418,23 +418,21 @@ tsch_packet_create_ack(uint8_t *buf, int buf_size, uint8_t seqno)
     uint16_t frame_control = 0x02;
     buf[0] = frame_control & 0xFF;
     buf[1] = frame_control >> 8;
-    buf[2] = seq_num;
-    return 3
+    buf[2] = seqno;
+    return 3;
   }
-  return 0
+  return 0;
 }
 /*---------------------------------------------------------------------------*/
 /* Construct a ranging data packet. This packet contains the real reply time and 
   round trip time to compute the propagation time. */
 int
-tsch_packet_create_ranging_pakcet(uint8_t *buf, int buf_size, const linkaddr_t 
+tsch_packet_create_ranging_packet(uint8_t *buf, int buf_size, const linkaddr_t 
             *dest_addr, uint8_t seqno, uint32_t t_reply, uint32_t t_round)
 {
-  int ret;
   uint8_t curr_len = 0;
   frame802154_t p;
-  uint64_t payload = t_reply | t_round << 32;
-  struct ieee802154_ies ies;
+  uint64_t payload = t_reply | ((uint64_t) t_round) << 32;
 
   memset(&p, 0, sizeof(p));
   p.fcf.frame_type = FRAME802154_DATAFRAME;
@@ -447,7 +445,7 @@ tsch_packet_create_ranging_pakcet(uint8_t *buf, int buf_size, const linkaddr_t
   p.dest_pid = IEEE802154_PANID;
   p.seq = seqno;
 
-  p.payload = &payload;
+  p.payload = (uint8_t *) &payload;
 
   if(dest_addr != NULL) {
     p.fcf.dest_addr_mode = LINKADDR_SIZE > 2 ? FRAME802154_LONGADDRMODE : FRAME802154_SHORTADDRMODE;;
@@ -511,7 +509,7 @@ tsch_packet_parse_ranging_packet(const uint8_t *buf, int buf_size, uint8_t seqno
       && !linkaddr_cmp(&dest, &linkaddr_null))) {
     return 0;
   }
-  memset(&payload, frame->payload, sizeof(uint64_t));
+  memcpy(&payload, frame->payload, sizeof(uint64_t));
   t_reply = (uint32_t*) &payload;
   t_round = (uint32_t*) (&payload +4); /*shift of 32 bits */
 

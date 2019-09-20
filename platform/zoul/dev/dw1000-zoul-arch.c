@@ -76,6 +76,8 @@
 #define DWM1000_INT_PIN_MASK        GPIO_PIN_MASK(DWM1000_INT_PIN)
 #define DWM1000_WAKEUP_PORT_BASE    GPIO_PORT_TO_BASE(DWM1000_WAKEUP_PORT)
 #define DWM1000_WAKEUP_PIN_MASK     GPIO_PIN_MASK(DWM1000_WAKEUP_PIN)
+#define DWM1000_RESET_PORT_BASE    GPIO_PORT_TO_BASE(DWM1000_RESET_PORT)
+#define DWM1000_RESET_PIN_MASK     GPIO_PIN_MASK(DWM1000_RESET_PIN)
 /*---------------------------------------------------------------------------*/
 #define DW1000_SPI_RX_FLUSH(n)    do { \
     for(int i = 0; i < n; i++) { \
@@ -430,6 +432,14 @@ dw1000_arch_gpio8_read_pin(void)
   return GPIO_READ_PIN(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
+/** Initialise the RESET PIN in INPOUT and open drain */
+void
+dw1000_arch_init_reset_pin(void)
+{
+  GPIO_SOFTWARE_CONTROL(DWM1000_RESET_PORT_BASE, DWM1000_RESET_PIN_MASK);
+  GPIO_SET_INPUT(DWM1000_RESET_PORT_BASE, DWM1000_RESET_PIN_MASK);
+  ioc_set_over(DWM1000_RESET_PORT, DWM1000_RESET_PIN, IOC_OVERRIDE_OE);}
+/*---------------------------------------------------------------------------*/
 /**
  * \brief Initialize the architecture specific part of the DW1000
  **/
@@ -483,6 +493,11 @@ void dw1000_arch_init()
   GPIO_SET_OUTPUT(DWM1000_WAKEUP_PORT_BASE, DWM1000_WAKEUP_PIN_MASK);
   ioc_set_over(DWM1000_WAKEUP_PORT, DWM1000_WAKEUP_PIN, IOC_OVERRIDE_PDE);
   GPIO_CLR_PIN(DWM1000_WAKEUP_PORT_BASE, DWM1000_WAKEUP_PIN_MASK);
+
+  /* Performe a wake up in case of the node was in deepsleept before being restarted */
+  NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_REQUEST_WAKEUP);
+  dw1000_us_delay(4000);
+  NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_IDLE);
 }
 /**
  * \brief     Wait a delay in microsecond.

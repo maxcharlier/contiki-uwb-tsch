@@ -54,7 +54,7 @@
 #include "dev/leds.h"
 
 #define DWM1000_TRIGER_OUT_PORT           GPIO_A_NUM
-#define DWM1000_TRIGER_OUT_PIN            7
+#define DWM1000_TRIGER_OUT_PIN            2
 #define TRIGGER_OUT_CLR() do { \
     GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_TRIGER_OUT_PORT), GPIO_PIN_MASK(DWM1000_TRIGER_OUT_PIN)); \
 } while(0)

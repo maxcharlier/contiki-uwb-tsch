@@ -53,9 +53,8 @@ PROCESS_THREAD(dw1000_dma, ev, data)
   printf("Node addr 0x%02X%02X\n", 
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
+  printf("NodeID %08lX\n", dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
 
-  printf("     [0, n] write n random byte in the RX buffer\n");
-  printf("     [1, n] read n byte in the RX buffer\n");
 
   NETSTACK_RADIO.off();
 

@@ -170,7 +170,9 @@ PROCESS_THREAD(tsch_delay_process, ev, data)
         uint8_t buffer[127];
         printf("Read 127 bytes\n");
         
-        DURATION(NETSTACK_RADIO.read((void*) &buffer[0], 127));
+        // Buffer empty can not read a message
+        // DURATION(NETSTACK_RADIO.read((void*) &buffer[0], 127));
+        DURATION(dw_read_reg(DW_REG_RX_BUFFER, 127, (uint8_t *)&buffer[0]););
         printf("Write 127 bytes\n");
         
         DURATION(NETSTACK_RADIO.prepare((void*) &buffer[0], 127));
@@ -179,8 +181,9 @@ PROCESS_THREAD(tsch_delay_process, ev, data)
         uint8_t buffer[69];
         printf("Read 69 bytes\n");
         
-        DURATION(NETSTACK_RADIO.read((void*) &buffer[0], 69));
-        
+        // DURATION(NETSTACK_RADIO.read((void*) &buffer[0], 69));
+        DURATION(dw_read_reg(DW_REG_RX_BUFFER, 69, (uint8_t *)&buffer[0]););
+
         printf("Write 69 bytes\n");
         
         DURATION(NETSTACK_RADIO.prepare((void*) &buffer[0], 69));

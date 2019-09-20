@@ -38,7 +38,7 @@ AUTOSTART_PROCESSES(&dw1000_dma);
 #endif
 
 #define TIME_PORT     GPIO_A_NUM
-#define TIME_PIN      7
+#define TIME_PIN      2
 
 void init_gpio(void);
 void gpio_up(void);

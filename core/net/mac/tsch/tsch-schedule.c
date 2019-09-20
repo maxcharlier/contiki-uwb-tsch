@@ -414,7 +414,7 @@ tsch_schedule_init(void)
 /*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH minimal schedule */
 void
-tsch_schedule_create_minimal(void)
+tsch_schedule_create_minimal_old(void)
 {
   struct tsch_slotframe *sf_min;
   /* First, empty current schedule */
@@ -430,7 +430,46 @@ tsch_schedule_create_minimal(void)
       LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING,
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
-}/*---------------------------------------------------------------------------*/
+}
+/*---------------------------------------------------------------------------*/
+/* Create a 6TiSCH minimal schedule */
+void
+tsch_schedule_create_minimal(void)
+{
+  struct tsch_slotframe *sf_custom;
+  /* First, empty current schedule */
+  tsch_schedule_remove_all_slotframes();
+  /* Build 6TiSCH minimal schedule.
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
+  /* Add a single Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
+   * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
+   * but is required according to 802.15.4e if also used for EB transmission.
+   * Timeslot: 0, channel offset: 0. */
+  tsch_schedule_add_link(sf_custom,
+      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING,
+      LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
+      0, 0);
+
+  linkaddr_copy(&node_1_address, &linkaddr_node_addr);
+  node_1_address.u8[7] = 0x1;
+  linkaddr_copy(&node_2_address, &linkaddr_node_addr);
+  node_2_address.u8[7] = 0x2;
+
+  if(linkaddr_node_addr.u8[7] == 0x01){
+    tsch_schedule_add_link(sf_custom,
+        LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, 40, 0);
+  printf("localisation schedule1\n");
+  }
+  if(linkaddr_node_addr.u8[7] == 0x02){
+    tsch_schedule_add_link(sf_custom,
+        LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, 40, 0);
+  printf("localisation schedule2\n");
+  }
+
+  tsch_schedule_print();
+}
+/*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH linear schedule with concurrent communications*/
 void
 tsch_schedule_create_minimal5(void)
@@ -883,6 +922,52 @@ tsch_schedule_create_minimal3(void)
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot21, 2);
   }
 
+
+  tsch_schedule_print();
+}
+/*---------------------------------------------------------------------------*/
+/* Create a 6TiSCH linear schedule with concurrent communications*/
+void
+tsch_schedule_create_loc(void)
+{
+  struct tsch_slotframe *sf_custom;
+  /* First, empty current schedule */
+  tsch_schedule_remove_all_slotframes();
+  /* A slotframe is define by an handle (a unique number) and a length
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
+
+
+  linkaddr_copy(&node_1_address, &linkaddr_node_addr);
+  node_1_address.u8[7] = 0x1;
+  linkaddr_copy(&node_2_address, &linkaddr_node_addr);
+  node_2_address.u8[7] = 0x2;
+
+
+  /* Add a Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
+   * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
+   * but is required according to 802.15.4e if also used for EB transmission.
+   * Timeslot: 0, channel offset: 0. */
+  tsch_schedule_add_link(sf_custom,
+      LINK_OPTION_RX | LINK_OPTION_TX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING,
+      LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
+      0, 0);
+
+  if(linkaddr_node_addr.u8[7] == 0x01){
+    /* Node 1 */ 
+    tsch_schedule_add_link(sf_custom,
+       LINK_OPTION_TX , LINK_TYPE_NORMAL, &node_2_address, 6, 0);
+    tsch_schedule_add_link(sf_custom,
+       LINK_OPTION_TX , LINK_TYPE_LOC, &node_2_address, 12, 0);
+  }
+
+  if(linkaddr_node_addr.u8[7] == 0x02){
+    /* Node 2 */ 
+    tsch_schedule_add_link(sf_custom,
+       LINK_OPTION_RX , LINK_TYPE_NORMAL, &node_1_address, 6, 0);
+    tsch_schedule_add_link(sf_custom,
+       LINK_OPTION_RX , LINK_TYPE_LOC, &node_1_address, 12, 0);
+  }
 
   tsch_schedule_print();
 }

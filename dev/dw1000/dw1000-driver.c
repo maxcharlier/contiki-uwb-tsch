@@ -157,7 +157,7 @@
 #define PRINTF(...) do {} while(0)
 #endif
 
-#define DEBUG_LED 0
+#define DEBUG_LED 1
 #define DEGUB_RANGING_SS_TWR_FAST_TRANSMIT 0
 
 // #define DEBUG_RANGING_STATE
@@ -240,7 +240,7 @@ static uint8_t volatile poll_mode = 0;
 
 /* Used by the driver to know if the transmit() fonction 
 have to send directly the message or if it is a delayed transmission */
-static int volative dw1000_is_delayed_tx = 0;
+static int volatile dw1000_is_delayed_tx = 0;
 
 
 /* Used to avoid multiple interrupt in ranging mode */
@@ -309,7 +309,7 @@ static volatile uint16_t last_packet_timestamp = 0;
 
 /* start private function */
 void dw1000_schedule_tx_old(void);
-void dw1000_schedule_tx((uint16_t delay_us));
+void dw1000_schedule_tx(uint16_t delay_us);
 void dw1000_schedule_rx_old(uint16_t data_len);
 void dw1000_schedule_rx(uint16_t delay_us);
 void dw1000_compute_prop_time_sstwr(int16_t t_reply_offset);
@@ -630,15 +630,25 @@ dw1000_driver_transmit(unsigned short payload_len)
   //   dw_init_tx(dw1000_driver_sdstwr, 0);
   // }
   /* No wait for response but delayed send */
-  dw_init_tx(0, dw1000_is_delayed_tx);
+  // dw_init_tx(0, dw1000_is_delayed_tx);
+  dw_init_tx(0, 0);
   
   if(dw1000_is_delayed_tx){
     /* wait the effective start of the transmission */
-    uint8_t sys_ctrl_lo;
-    BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
-                    watchdog_periodic();, 
-                    ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
-                    microsecond_to_clock_tik(500));
+    uint64_t sys_time = 0ULL, dx_time = 0ULL;
+
+    BUSYWAIT_UPDATE_UNTIL(
+                    watchdog_periodic();\
+                    dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);\
+                    dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);,
+                    sys_time >= dx_time, 
+                    microsecond_to_clock_tik(1000));
+      // printf("SYS_TIME DW_TIME %llu %llu \n", sys_time, dx_time);
+
+    // BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
+    //                 watchdog_periodic();, 
+    //                 ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
+    //                 microsecond_to_clock_tik(500));
   }
   dw1000_is_delayed_tx = 0; /* disable delayed transmition for the next call */
   SEND_SET();
@@ -1652,25 +1662,30 @@ dw1000_driver_set_object(radio_param_t param,
     if(size != 2 || !src) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    dw_set_tx_antenna_delay((uint16_t) &src);
+    uint16_t delay = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
+    dw_set_tx_antenna_delay(delay);
   }
   else if(param == RADIO_LOC_RX_ANTENNA_DELAY){
     if(size != 2 || !src) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    dw_set_rx_antenna_delay((uint16_t) &src);
+    uint16_t delay = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
+    dw_set_rx_antenna_delay(delay);
   }
   else if(param == RADIO_LOC_TX_DELAYED_US){
     if(size != 2 || !src) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    dw1000_schedule_tx((uint16_t) &src);
+    uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
+    // printf("schedule %d \n", schedule);
+    dw1000_schedule_tx(schedule);
   }
   else if(param == RADIO_LOC_RX_DELAYED_US){
     if(size != 2 || !src) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    dw1000_schedule_rx((uint16_t) &src);
+    uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
+    dw1000_schedule_rx(schedule);
   }
   return RADIO_RESULT_NOT_SUPPORTED;
 }
@@ -2532,7 +2547,9 @@ dw1000_schedule_tx(uint16_t delay_us)
   schedule_time += US_TO_RADIO(delay_us); 
 
   dw_set_dx_timestamp(schedule_time);
+
   dw1000_is_delayed_tx = 1;
+  dw_init_tx(0,1);
 }
 /**
  * \brief Based on the reply time and the RX timestamps, this function schedule 
@@ -2763,7 +2780,7 @@ ranging_send_ack(uint8_t sheduled, uint8_t wait_for_resp, uint8_t wait_send){
   dw1000_driver_clear_pending_interrupt();
 
   if(sheduled)
-    dw1000_schedule_tx();
+    dw1000_schedule_tx_old();
 
   /* wait for resp and delayed */
   dw_init_tx(wait_for_resp, sheduled);

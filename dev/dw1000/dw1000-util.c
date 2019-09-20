@@ -359,7 +359,7 @@ print_frame(uint16_t frame_len, uint8_t *frame)
                                         frame[frame_len + 1], frame[frame_len]);
     }
   } else if(frame_len == 3 || frame_len == 5) { //With or without ACK
-    printf("ACK received.\r\n");
+    printf("ACK, len = %d.\r\n", frame_len);
     printf("Sequence number: %d\r\n", frame[2]);
   } else {
     printf("!!! Message malformed received !!!\r\n");

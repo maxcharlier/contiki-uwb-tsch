@@ -106,10 +106,11 @@ static const uint16_t tsch_default_timing_us[tsch_ts_elements_count] = {
   TSCH_DEFAULT_TS_MAX_ACK,
   TSCH_DEFAULT_TS_MAX_TX,
   TSCH_DEFAULT_TS_TIMESLOT_LENGTH,  
-  TSCH_LOC_RX_GUARD,
+  TSCH_LOC_RX_WAIT,
   TSCH_LOC_RX_OFFSET,
   TSCH_LOC_TX_OFFSET,
-  TSCH_LOC_REPLY_TIME,
+  TSCH_LOC_TX_REPLY_TIME,
+  TSCH_LOC_RX_REPLY_TIME,
 };
 /* TSCH timeslot timing (in rtimer ticks) */
 rtimer_clock_t tsch_timing[tsch_ts_elements_count];

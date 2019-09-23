@@ -2525,6 +2525,7 @@ dw_init_delayed_rx(void)
   uint8_t sys_ctrl_val = (1 << (DW_RXENAB - 8) & (DW_RXENAB_MASK >> 8));
   sys_ctrl_val |= (1 << (DW_RXDLYE - 8) & (DW_RXDLYE_MASK >> 8));
   dw_write_subreg(DW_REG_SYS_CTRL, 0x1, 1, &sys_ctrl_val);
+
   uint32_t sys_status = 0UL;
   dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
   if((sys_status & DW_HPDWARN_MASK) != 0){

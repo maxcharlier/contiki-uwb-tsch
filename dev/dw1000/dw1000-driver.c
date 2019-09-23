@@ -631,24 +631,28 @@ dw1000_driver_transmit(unsigned short payload_len)
   // }
   /* No wait for response but delayed send */
   // dw_init_tx(0, dw1000_is_delayed_tx);
-  dw_init_tx(0, 0);
   
   if(dw1000_is_delayed_tx){
     /* wait the effective start of the transmission */
     uint64_t sys_time = 0ULL, dx_time = 0ULL;
-
+    /* We wait for a maximum of 1ms to be improve in case of lower bitrate */
     BUSYWAIT_UPDATE_UNTIL(
                     watchdog_periodic();\
                     dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);\
                     dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);,
                     sys_time >= dx_time, 
-                    microsecond_to_clock_tik(1000));
+                    1000);
       // printf("SYS_TIME DW_TIME %llu %llu \n", sys_time, dx_time);
+      // printf("SYS_TIME DW_TIME %lu %lu \n", RADIO_TO_US(sys_time), RADIO_TO_US(dx_time));
 
     // BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
     //                 watchdog_periodic();, 
     //                 ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
     //                 microsecond_to_clock_tik(500));
+  }
+  else{
+    /* No wait for response, no delayed transmission */
+    dw_init_tx(0, 0);
   }
   dw1000_is_delayed_tx = 0; /* disable delayed transmition for the next call */
   SEND_SET();
@@ -2369,6 +2373,8 @@ dw1000_set_tsch_channel(uint8_t channel){
   dw_configure_lde(dw1000_conf.preamble_code);
 
   dw_set_pac_size(dw1000_conf.pac_size, dw1000_conf.prf);
+
+  dw_set_default_antenna_delay(dw1000_conf.prf);
 }
 /**
  * \Brief For a given channel and PRF return a preamble code.
@@ -2544,9 +2550,10 @@ dw1000_schedule_tx(uint16_t delay_us)
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
   schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
   /* The 10nd bit have a "value" of 125Mhz */
-  schedule_time += US_TO_RADIO(delay_us); 
+  schedule_time = schedule_time + US_TO_RADIO(delay_us); 
 
   dw_set_dx_timestamp(schedule_time);
+  // printf("schedule tx time %llu\n", (schedule_time-(dw_get_rx_timestamp()&DW_TIMESTAMP_CLEAR_LOW_9)));
 
   dw1000_is_delayed_tx = 1;
   dw_init_tx(0,1);
@@ -2594,7 +2601,9 @@ dw1000_schedule_rx(uint16_t delay_us)
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
   schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
   /* The 10nd bit have a "value" of 125Mhz */
-  schedule_time+= US_TO_RADIO(delay_us);
+  schedule_time= schedule_time + US_TO_RADIO(delay_us);
+
+  // printf("schedule rx time %llu\n", (schedule_time-(dw_get_tx_timestamp()&DW_TIMESTAMP_CLEAR_LOW_9)));
 
   dw_set_dx_timestamp(schedule_time);
   dw_init_delayed_rx();

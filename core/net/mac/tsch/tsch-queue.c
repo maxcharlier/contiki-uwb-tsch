@@ -361,6 +361,10 @@ struct tsch_packet *
 tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, struct tsch_link *link)
 {
   if(!tsch_is_locked()) {
+    /* if localisation slot, then no packet to send (packet created by the timeslot) */
+    if(link->link_type == LINK_TYPE_LOC){
+      return NULL;
+    }
     int is_shared_link = link != NULL && link->link_options & LINK_OPTION_SHARED;
     if(n != NULL) {
       int16_t get_index = ringbufindex_peek_get(&n->tx_ringbuf);
@@ -400,6 +404,10 @@ struct tsch_packet *
 tsch_queue_get_unicast_packet_for_any(struct tsch_neighbor **n, struct tsch_link *link)
 {
   if(!tsch_is_locked()) {
+    /* if localisation slot, then no packet to send (packet created by the timeslot) */
+    if(link->link_type == LINK_TYPE_LOC){
+      return NULL;
+    }
     struct tsch_neighbor *curr_nbr = list_head(neighbor_list);
     struct tsch_packet *p = NULL;
     while(curr_nbr != NULL) {

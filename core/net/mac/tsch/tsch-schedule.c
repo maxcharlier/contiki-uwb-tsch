@@ -232,7 +232,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
         if(l->link_options & LINK_OPTION_TX) {
           n = tsch_queue_add_nbr(&l->addr);
           /* We have a tx link to this neighbor, update counters */
-          if(n != NULL) {
+          if(n != NULL && !(l->link_type == LINK_TYPE_LOC)) {
             n->tx_links_count++;
             if(!(l->link_options & LINK_OPTION_SHARED)) {
               n->dedicated_tx_links_count++;

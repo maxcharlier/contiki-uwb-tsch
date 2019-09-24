@@ -101,5 +101,15 @@ int tsch_packet_update_eb(uint8_t *buf, int buf_size, uint8_t tsch_sync_ie_offse
 int tsch_packet_parse_eb(const uint8_t *buf, int buf_size,
     frame802154_t *frame, struct ieee802154_ies *ies,
     uint8_t *hdrlen, int frame_without_mic);
+/* Construct ACK packet and return ACK length */
+int tsch_packet_create_ack(uint8_t *buf, int buf_size, uint8_t seqno);
+/* Construct a ranging data packet. This packet contains the real reply time and 
+  round trip time to compute the propagation time. */
+int tsch_packet_create_ranging_packet(uint8_t *buf, int buf_size, const linkaddr_t 
+            *dest_addr, uint8_t seqno, uint32_t t_reply, uint32_t t_round);
+/* Parse a ranging data packet. This packet contains the real reply time and 
+  round trip time to compute the propagation time.  */
+int tsch_packet_parse_ranging_packet(const uint8_t *buf, int buf_size, uint8_t seqno, 
+  			frame802154_t *frame, uint32_t * t_reply, uint32_t * t_round);
 
 #endif /* __TSCH_PACKET_H__ */

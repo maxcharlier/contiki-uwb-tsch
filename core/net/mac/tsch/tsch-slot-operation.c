@@ -1081,19 +1081,19 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
       /* There is no packet to send, and this link does not have Rx flag. Instead of doing
        * nothing, switch to the backup link (has Rx flag) if any. */
-      if(current_packet == NULL && !(current_link->link_options & LINK_OPTION_RX) && backup_link != NULL) {
+      if(current_packet == NULL && !((current_link->link_options & LINK_OPTION_RX) ||
+       (current_link->link_type == LINK_TYPE_LOC)) && backup_link != NULL) {
         current_link = backup_link;
         current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
       }
       /* Active slot if we have a packet to send or it is a receive slot or a localisation slot */
-      is_active_slot = current_packet != NULL || (current_link->link_options & LINK_OPTION_RX) ||
+      is_active_slot = current_packet != NULL || 
+       (current_link->link_options & LINK_OPTION_RX) ||
        (current_link->link_type == LINK_TYPE_LOC);
        // printf("current_link type %d\n", current_link->link_type);
       if(is_active_slot) {
         /* Wake up the transceiver*/
         TSCH_SCHEDULE_AND_YIELD(&slot_operation_pt, t, current_slot_start-TSCH_SLOT_START_BEFOREHAND, US_TO_RTIMERTICKS(400), "wait");
-
-        
         
         radio_value_t radio_state = RADIO_RESULT_NOT_SUPPORTED;
         
@@ -1136,14 +1136,18 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         /* Decide whether it is a TX/RX/IDLE or OFF slot */
         /* Actual slot operation */
         /* Is a localization slot ? */
-        if((current_link->link_type == LINK_TYPE_LOC)){
+        if(current_link->link_type == LINK_TYPE_LOC){
           if(current_link->link_options & LINK_OPTION_TX){
-            static struct pt slot_tx_loc_pt;
-            PT_SPAWN(&slot_operation_pt, &slot_tx_loc_pt, tsch_tx_loc_slot(&slot_tx_loc_pt, t));
+            /*
+              if(current_packet != NULL){
+                printf("tsch_tx_loc_slot we have a packet to send :( \n");
+              } */
+              static struct pt slot_tx_loc_pt;
+              PT_SPAWN(&slot_operation_pt, &slot_tx_loc_pt, tsch_tx_loc_slot(&slot_tx_loc_pt, t));
           }
-          else{
-            static struct pt slot_rx_loc_pt;
-            PT_SPAWN(&slot_operation_pt, &slot_rx_loc_pt, tsch_rx_loc_slot(&slot_rx_loc_pt, t));
+          else if(current_link->link_options & LINK_OPTION_RX){
+              static struct pt slot_rx_loc_pt;
+              PT_SPAWN(&slot_operation_pt, &slot_rx_loc_pt, tsch_rx_loc_slot(&slot_rx_loc_pt, t));          
           }
         }
         else if(current_packet != NULL) {
@@ -1288,7 +1292,6 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
   seqno = 20;
 
   /* create payload */
-  // packet_len = tsch_packet_create_ack(packet, TSCH_PACKET_MAX_LEN, seqno);
   packet_len = tsch_packet_create_eack(packet_buf, TSCH_PACKET_MAX_LEN, &(current_neighbor->addr), seqno, 0, 1);
 
   /* Copy packet (msg1) to the radio buffer*/

@@ -52,6 +52,7 @@
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-log.h"
 #include "net/mac/tsch/tsch-packet.h"
+#include "net/mac/tsch/tsch-prop.h"
 #include "net/mac/tsch/tsch-security.h"
 #include "net/mac/tsch/tsch-adaptive-timesync.h"
 #include "watchdog.h"
@@ -239,16 +240,6 @@ static PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t));
 
-
-static
-void print_time(const char *s, rtimer_clock_t target ){
-  rtimer_clock_t now = RTIMER_NOW();
-  // printf("%s TARGET = %lu, NOW = %lu, DIFF = %lu\n", s, target, now, target-now);
-      TSCH_LOG_ADD(tsch_log_message,
-                snprintf(log->message, sizeof(log->message),
-                    "%s TARGET = %lu, NOW = %lu, DIFF = %lu\n", s, target, now, target-now);
-    );
-}
 /*---------------------------------------------------------------------------*/
 /* TSCH locking system. TSCH is locked during slot operations */
 
@@ -319,7 +310,6 @@ tsch_calculate_channel(struct tsch_asn_t *asn, uint8_t channel_offset)
   uint16_t index_of_offset = (index_of_0 + channel_offset) % tsch_hopping_sequence_length.val;
   return tsch_hopping_sequence[index_of_offset];
 }
-
 /*---------------------------------------------------------------------------*/
 /* Timing utility functions */
 
@@ -1069,7 +1059,6 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
                             tsch_lock_requested,
                             current_link == NULL);
       );
-
     } else {
       int is_active_slot;
       TSCH_DEBUG_SLOT_START();
@@ -1087,9 +1076,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
       }
       /* Active slot if we have a packet to send or it is a receive slot or a localisation slot */
-      is_active_slot = current_packet != NULL || 
-       (current_link->link_options & LINK_OPTION_RX) ||
-       (current_link->link_type == LINK_TYPE_LOC);
+      is_active_slot = is_active_timeslot(current_packet, current_neighbor, current_link);
        // printf("current_link type %d\n", current_link->link_type);
       if(is_active_slot) {
         /* Wake up the transceiver*/
@@ -1161,8 +1148,6 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         } else {
           /* Listen */
           static struct pt slot_rx_pt;                  
-          // print_time("before PT_SPAWN",  current_slot_start+tsch_timing[tsch_ts_rx_offset] - RADIO_DELAY_BEFORE_RX);
-
           PT_SPAWN(&slot_operation_pt, &slot_rx_pt, tsch_rx_slot(&slot_rx_pt, t));
         }
       }
@@ -1461,7 +1446,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
               //   replier_roundtrip, replier_reply);
 
               /* need to compute the distance and then send it to the upper layer */
-              uint32_t prop_time = compute_prop_time(timestamp_rx_m2-timestamp_tx_m1, 
+              int32_t prop_time = compute_prop_time(timestamp_rx_m2-timestamp_tx_m1, 
                 timestamp_tx_m3-timestamp_rx_m2,
                 replier_roundtrip, replier_reply);
 

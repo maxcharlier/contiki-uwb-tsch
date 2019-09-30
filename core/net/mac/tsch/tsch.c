@@ -53,6 +53,7 @@
 #include "net/mac/tsch/tsch-private.h"
 #include "net/mac/tsch/tsch-log.h"
 #include "net/mac/tsch/tsch-packet.h"
+#include "net/mac/tsch/tsch-prop.h"
 #include "net/mac/tsch/tsch-security.h"
 #include "net/mac/mac-sequence.h"
 #include "lib/random.h"
@@ -873,6 +874,9 @@ tsch_init(void)
   tsch_log_init();
   ringbufindex_init(&input_ringbuf, TSCH_MAX_INCOMING_PACKETS);
   ringbufindex_init(&dequeued_ringbuf, TSCH_DEQUEUED_ARRAY_SIZE);
+
+  /* Start the propagation time process */
+  process_start(&TSCH_PROP_PROCESS, NULL);
 
   tsch_is_initialized = 1;
 

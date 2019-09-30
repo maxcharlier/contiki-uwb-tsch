@@ -1149,7 +1149,6 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
       #if DEBUG_LED
       dw_enable_gpio_led_from_deepsleep(); /* /!\ Increase the power consumption. */
       #endif /* DEBUG_LED */
-      // dw_enable_gpio_led();
     }
     else{
       return RADIO_RESULT_INVALID_VALUE;
@@ -1221,7 +1220,7 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
       return RADIO_RESULT_INVALID_VALUE;
     }
 
-    dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_RAWST, DW_SUBLEN_RX_RAWST, 
+    dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_RX_STAMP, DW_SUBLEN_RX_STAMP, 
                     (uint8_t *) dest);
     return RADIO_RESULT_OK;
   }
@@ -1229,7 +1228,7 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
     if(size != sizeof(uint64_t) || !dest) {
       return RADIO_RESULT_INVALID_VALUE;
     }
-    dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_RAWST, DW_SUBLEN_TX_RAWST, 
+    dw_read_subreg(DW_REG_TX_TIME, DW_SUBREG_TX_STAMP, DW_SUBLEN_TX_STAMP, 
                     (uint8_t *) dest);
     return RADIO_RESULT_OK;
   }

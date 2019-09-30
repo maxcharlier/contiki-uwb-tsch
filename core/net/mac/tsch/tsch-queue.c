@@ -487,14 +487,3 @@ tsch_queue_init(void)
   n_broadcast = tsch_queue_add_nbr(&tsch_broadcast_address);
 }
 /*---------------------------------------------------------------------------*/
-/* Update the propagation time between the node and his neighbor */
-void
-update_neighbor_prop_time(struct tsch_neighbor *n, uint32_t prop_time, 
-                          rtimer_clock_t last_mesureament)
-{
-  struct tsch_prop_time n_prop_time;
-  n_prop_time.prop_time = prop_time;
-  n_prop_time.last_mesureament = last_mesureament;
-  n->last_prop_time = n_prop_time;
-}
-/*---------------------------------------------------------------------------*/

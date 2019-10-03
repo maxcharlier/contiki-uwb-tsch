@@ -632,6 +632,19 @@ PT_THREAD(tsch_scan(struct pt *pt))
   /* Time when we started scanning on current_channel */
   static clock_time_t current_channel_since;
 
+  /* Check the radio state : if we are in DEEP SLEEP we need to wakup the radio.
+    We can be in deep sleep if we have loose a previews synchronisation of TSCH.*/
+  radio_value_t radio_state = RADIO_RESULT_NOT_SUPPORTED;
+  if(NETSTACK_RADIO.get_value(RADIO_SLEEP_STATE, &radio_state) == RADIO_RESULT_OK){  
+    if(radio_state == (radio_value_t) RADIO_SLEEP){
+      if(NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_REQUEST_WAKEUP) == RADIO_RESULT_OK){
+        /* wait 4 ms to be sure that the transceiver is wake-up */
+        clock_delay_usec(4000);        
+        NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_IDLE);
+      }
+    }
+  }
+
   TSCH_ASN_INIT(tsch_current_asn, 0, 0);
 
   etimer_set(&scan_timer, CLOCK_SECOND / TSCH_ASSOCIATION_POLL_FREQUENCY);

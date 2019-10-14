@@ -118,6 +118,9 @@
 #undef TSCH_CONF_AUTOSTART
 #define TSCH_CONF_AUTOSTART 0
 
+/* Declare the usage of a specific tread for the localisation */
+#define TSCH_LOC_THREAD 1
+
 /* 6TiSCH minimal schedule length.
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 /* by default 3 */
@@ -191,3 +194,8 @@
 #endif /* CONTIKI_TARGET_CC2538DK || CONTIKI_TARGET_ZOUL \
        || CONTIKI_TARGET_OPENMOTE_CC2538 */
 #endif
+
+
+#define SINK_ID 0XA5
+
+#define ROOT_ID SINK_ID

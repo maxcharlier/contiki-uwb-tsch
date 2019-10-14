@@ -91,6 +91,11 @@
 #define TSCH_CONF_RX_WAIT 2200
 #endif /* TSCH_CONF_RX_WAIT */
 
+/* configure if TSCH use SLEEP feature of the radio between slots.*/
+#ifndef TSCH_CONF_SLEEP
+#define TSCH_SLEEP 0
+#endif /* TSCH_CONF_SLEEP */
+
 /* The default timeslot timing in the standard is a guard time of
  * 2200 us, a Tx offset of 2120 us and a Rx offset of 1120 us.
  * As a result, the listening device has a guard time not centered
@@ -194,12 +199,14 @@
 
 // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 
-#define TSCH_LOC_RX_GUARD					400
+#define TSCH_LOC_RX_GUARD					500
 #define TSCH_LOC_RX_WAIT					(TSCH_LOC_RX_GUARD + TSCH_LOC_RX_GUARD + UWB_T_SHR)
 #define TSCH_LOC_RX_OFFSET 					(TSCH_LOC_RX_GUARD)
-#define TSCH_LOC_TX_OFFSET 					(TSCH_LOC_RX_GUARD+TSCH_LOC_RX_GUARD)
-#define TSCH_LOC_TX_REPLY_TIME				600
-#define TSCH_LOC_RX_REPLY_TIME				(TSCH_LOC_TX_REPLY_TIME-UWB_T_SHR)
+#define TSCH_LOC_TX_OFFSET 					(TSCH_LOC_RX_GUARD+TSCH_LOC_RX_GUARD+UWB_T_SHR)
+
+#define TSCH_LOC_REPLY_DELAY				350
+#define TSCH_LOC_TX_REPLY_TIME				(TSCH_LOC_REPLY_DELAY+UWB_T_SHR)
+#define TSCH_LOC_RX_REPLY_TIME				(TSCH_LOC_REPLY_DELAY-TSCH_ACK_GUARD)
 
 
 

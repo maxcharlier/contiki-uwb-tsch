@@ -262,6 +262,7 @@ void dw1000_update_frame_quality(void);
 dw1000_preamble_code_t
 dw1000_get_preamble_code(dw1000_channel_t channel, dw1000_prf_t prf);
 void dw1000_set_tsch_channel(uint8_t channel);
+void dw1000_rx_timeout(uint16_t timeout);
 /* end private function */
 
 static int dw1000_driver_prepare(const void *data, unsigned short payload_len);
@@ -524,15 +525,9 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* No wait for response, no delayed transmission */
     dw_init_tx(0, 0);
   }
-  dw1000_is_delayed_tx = 0; /* disable delayed transmition for the next call */
   SEND_SET();
 
 #if DEBUG
-  uint8_t tr_value;
-  /* TR bit is the 15nd bit */
-  dw_read_subreg(DW_REG_TX_FCTRL, 0x1, 1, &tr_value); 
-  printf("Ranging request send: %d\r\n", (tr_value & (DW_TR_MASK >> 8)) > 0);
-
   /* wait the effective start of the transmission */
   uint8_t sys_ctrl_lo;
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
@@ -575,7 +570,11 @@ dw1000_driver_transmit(unsigned short payload_len)
 
     tx_return = RADIO_TX_OK;
   }else{
-    dw_idle(); /* error: abort the transmission */
+    // printf("Is delayed ? %d\n", dw1000_is_delayed_tx);
+    // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+
+    // dw_idle(); /* error: abort the transmission */
+    dw1000_driver_init();
   }
 
  
@@ -592,9 +591,11 @@ dw1000_driver_transmit(unsigned short payload_len)
   ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
 
   SEND_CLR();
+
+  dw1000_is_delayed_tx = 0; /* disable delayed transmition for the next call */
+
 #if DEBUG_VERBOSE
   print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
-
 #endif
 #if DEBUG 
   if(tx_return == RADIO_TX_OK) {
@@ -792,9 +793,11 @@ dw1000_driver_receiving_packet(void)
 static int
 dw1000_driver_pending_packet(void)
 {
-  PRINTF("dw1000_driver_receiving_packet\r\n");
-  /* return true if we have have the flag "data frame ready" */
-  return (dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & DW_RXDFR_MASK) > 0;
+  PRINTF("dw1000_driver_pending_packet\r\n");
+  /* return true if we have have the flag "data frame ready" 
+  return (dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & DW_RXDFR_MASK) > 0; */
+  /* Return true if we have receive a frame and the CRC is good */
+  return (dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS) & DW_RXFCG_MASK) > 0;
 }
 /**
  * \brief     Turns "on" the radio. This function should put the radio into
@@ -1246,6 +1249,16 @@ dw1000_driver_get_object(radio_param_t param, void *dest, size_t size)
     *(uint16_t *) dest = dw_get_tx_antenna_delay();
     return RADIO_RESULT_OK;
   }
+  if(param == RADIO_RX_TIMEOUT_US) {
+    if(size != sizeof(uint16_t) || !dest) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    if(dw_is_rx_timeout()){
+      *(uint8_t *) dest = dw_get_rx_timeout();
+    }
+    *(uint8_t *) dest = 0;
+    return RADIO_RESULT_OK;
+  }
 
 
   return RADIO_RESULT_NOT_SUPPORTED;
@@ -1315,10 +1328,33 @@ dw1000_driver_set_object(radio_param_t param,
     uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
     dw1000_schedule_rx(schedule);
   }
+  else if(param == RADIO_RX_TIMEOUT_US){
+    if(size != 2 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    uint16_t timeout = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8;
+    dw1000_rx_timeout(timeout);
+  }
   return RADIO_RESULT_NOT_SUPPORTED;
 }
 /*---------------------------------------------------------------------------*/
-
+/**
+ *
+ * \brief Set a timeout value for the reception duration. 
+ * Usefull when delayed reception is used to avoid listening too long 
+ * if we don't receive a frame. 
+ * The delay is set in micro second. A value of 0 will disable this feature.
+ **/
+void dw1000_rx_timeout(uint16_t timeout){
+  if(timeout == 0){
+    dw_disable_rx_timeout();
+  }
+  else
+  {
+    dw_set_rx_timeout(timeout);
+    dw_enable_rx_timeout();
+  }
+}
 /**
  * \brief Enable interrupt for Frame with good CRC reception or Overrun
  */

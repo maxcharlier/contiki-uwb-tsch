@@ -455,11 +455,12 @@ typedef uint32_t rtimer_clock_t;
 
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
-  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 5, 1, 4, 0, 2, 3}
+  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 5, 1, 4, 0, 2, 3}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){7}
-  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 1}
+  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 3}
   #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
-  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  1
+  // #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     (uint8_t[]){ 3}
+  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  6
   #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   5000
 
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
@@ -493,9 +494,15 @@ typedef uint32_t rtimer_clock_t;
   // #define TSCH_CONF_KEEPALIVE_TIMEOUT (10*CLOCK_SECOND)
   // #define TSCH_CONF_MAX_EB_PERIOD (10*CLOCK_SECOND)
   // #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
+  #define TSCH_CONF_SLEEP 1
 
   /* Used to start the slot in advance to avoid miss deadline because of the slow processing speed */
-  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(250+2400))
+  
+  #if TSCH_CONF_SLEEP
+  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(250+3400))
+  #else
+  #define TSCH_CONF_SLOT_START_BEFOREHAND ((unsigned) US_TO_RTIMERTICKS(250))
+  #endif /* TSCH_CONF_SLEEP */
 
   /* change the clock of the CPU 32 MHZ in place of 16 */
   // #define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ

@@ -40,6 +40,7 @@
 
 #include "contiki.h"
 #include "net/mac/tsch/tsch-packet.h"
+#include "net/mac/tsch/tsch-prop.h"
 #include "net/mac/tsch/tsch-queue.h"
 #include "net/mac/tsch/tsch-schedule.h"
 
@@ -49,7 +50,7 @@
 
 
 #ifndef TSCH_LOC_THREAD
-PROCESS(TSCH_PROP_PROCESS, "TSCH localization process");
+  PROCESS(TSCH_PROP_PROCESS, "TSCH propagation time process");
 
   /*---------------------------------------------------------------------------*/
   /* Protothread for slot operation, called by update_neighbor_prop_time() 
@@ -81,13 +82,17 @@ PROCESS(TSCH_PROP_PROCESS, "TSCH localization process");
  * Tell if a slot is active or not 
  * The slot is ative if we have a packet to send or 
  * If the slot is a receive slot or
- * If the slot is a localisation slot */
+ * If the slot is a localisation slot in RX or
+ * A localisation slot in TX with a unicast link. */
 int
 is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n, 
-              struct tsch_link *link){
+              struct tsch_link *link)
+{
   return p != NULL || 
        (link->link_options & LINK_OPTION_RX) ||
-       (link->link_type == LINK_TYPE_LOC);
+       (link->link_options & LINK_OPTION_TX && link->link_type == LINK_TYPE_LOC && 
+          (linkaddr_cmp(&(link->addr), &(n->addr)))
+        );
 }
 
 
@@ -101,6 +106,10 @@ update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time,
   n_prop_time.prop_time = prop_time;
   n_prop_time.last_mesureament = last_mesureament;
   n->last_prop_time = n_prop_time;
+
+  /* printf("TSCH-prop %ld %lu\n", 
+          prop_time, 
+          last_mesureament); */
 
   /* Send the PROCESS_EVENT_MSG event asynchronously to 
   "tsch_loc_operation", with a pointer to the tsch_neighbor. */

@@ -133,6 +133,8 @@ int tsch_schedule_init(void);
 void tsch_schedule_create_minimal(void);
 /* Prints out the current schedule (all slotframes and links) */
 void tsch_schedule_print(void);
+/* Return the slotframe duration */
+rtimer_clock_t tsch_schedule_get_slotframe_duration(void);
 
 /* Adds and returns a slotframe (NULL if failure) */
 struct tsch_slotframe *tsch_schedule_add_slotframe(uint16_t handle, uint16_t size);

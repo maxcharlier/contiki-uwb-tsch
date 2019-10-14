@@ -612,6 +612,7 @@ void     dw_set_rx_timeout(uint16_t timeout);
 uint16_t dw_get_rx_timeout(void);
 void     dw_enable_rx_timeout(void);
 void     dw_disable_rx_timeout(void);
+uint8_t     dw_is_rx_timeout(void);
 
 /* Ranging  / timestamps */
 uint64_t dw_get_rx_timestamp(void);

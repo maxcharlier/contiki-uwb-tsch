@@ -2118,7 +2118,7 @@ dw_set_rx_timeout(uint16_t us)
 uint16_t
 dw_get_rx_timeout()
 {
-  return (uint16_t)dw_read_reg_32(DW_REG_RX_FWTO, DW_LEN_RX_FWTO);
+  return (uint16_t) dw_read_reg_32(DW_REG_RX_FWTO, DW_LEN_RX_FWTO);
 }
 /**
  * \brief Enables rx timeout. After the period set in register RX_FWTO the bit
@@ -2144,6 +2144,16 @@ dw_disable_rx_timeout()
   cfgReg &= ~DW_RXWTOE_MASK;
   dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *)&cfgReg);
   PRINTF("CFG: %" PRIx32 "\r\n", cfgReg);
+}
+/**
+ * \brief Return if the RX timeout feature is enable.
+ */
+uint8_t
+dw_is_rx_timeout()
+{
+  uint32_t cfgReg = 0UL;
+  cfgReg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
+  return (cfgReg & DW_RXWTOE_MASK) > 0;
 }
 
 /**

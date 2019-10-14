@@ -31,22 +31,34 @@
 #include "lib/random.h"
 #include "sys/ctimer.h"
 #include "net/ip/uip.h"
+#include "net/ip/uipopt.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-udp-packet.h"
-#include "sys/ctimer.h"
+#include "net/rpl/rpl.h"
 #ifdef WITH_COMPOWER
 #include "powertrace.h"
 #endif
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "dev/serial-line.h"
 #include "net/ipv6/uip-ds6-route.h"
 
+
+#include "net/mac/tsch/tsch-queue.h" /* containt def of tsch_neighbor */
+/* containt def of tsch_schedule_get_slotframe_duration */
+#include "net/mac/tsch/tsch-schedule.h" 
+
+
+/* from core/net/ip/simple-udp.c */
+#define UIP_IP_BUF   ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
+
+
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 
-#define UDP_EXAMPLE_ID  1
+#define UDP_SERVER_ADDR SINK_ID
 
 #define DEBUG DEBUG_FULL
 #include "net/ip/uip-debug.h"
@@ -62,13 +74,15 @@
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
+static struct tsch_prop_time anchors_prop[4];
+static rtimer_clock_t last_transmition = 0;
+
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client process");
+PROCESS(TSCH_PROP_PROCESS, "TSCH localization process");
 AUTOSTART_PROCESSES(&udp_client_process);
 /*---------------------------------------------------------------------------*/
-static int seq_id;
-static int reply;
 
 static void
 tcpip_handler(void)
@@ -78,38 +92,42 @@ tcpip_handler(void)
   if(uip_newdata()) {
     str = uip_appdata;
     str[uip_datalen()] = '\0';
-    reply++;
-    printf("DATA recv '%s' (s:%d, r:%d)\n", str, seq_id, reply);
+
+    printf("DATA recv from %d \n",
+           UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
+    uint8_t current_index= 0;
+    int32_t prop_time;
+    for (int i = 0; i < uip_datalen() / 5; i++){
+      printf("Node id 0X%02X", (uint8_t) str[current_index]);
+      current_index++;
+      memcpy(&prop_time, &str[current_index], 4);
+      current_index += 4;
+      printf(" %ld\n", prop_time);
+    }
   }
 }
 /*---------------------------------------------------------------------------*/
 static void
-send_packet(void *ptr)
+send_packet(void)
 {
   char buf[MAX_PAYLOAD_LEN];
+  uint8_t current_index= 0;
+  for (int i=0; i <4; i++){
+    if(anchors_prop[i].last_mesureament > last_transmition){
+      buf[current_index] = 0XA1+i;
+      current_index++;
+      memcpy(&buf[current_index], &(anchors_prop[i].prop_time), 4);
+      current_index += 4;
+    }
 
-#ifdef SERVER_REPLY
-  uint8_t num_used = 0;
-  uip_ds6_nbr_t *nbr;
-
-  nbr = nbr_table_head(ds6_neighbors);
-  while(nbr != NULL) {
-    nbr = nbr_table_next(ds6_neighbors, nbr);
-    num_used++;
   }
-
-  if(seq_id > 0) {
-    ANNOTATE("#A r=%d/%d,color=%s,n=%d %d\n", reply, seq_id,
-             reply == seq_id ? "GREEN" : "RED", uip_ds6_route_num_routes(), num_used);
+  if(current_index > 0 ){
+    printf("Server address 0X%02X packet_len %d \n", server_ipaddr.u8[15], current_index);
+    uip_udp_packet_sendto(client_conn, buf, current_index,
+                          &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+    printf("send packet\n");
+    last_transmition = RTIMER_NOW();
   }
-#endif /* SERVER_REPLY */
-
-  seq_id++;
-  PRINTF("DATA send to %d 'Hello %d'\n",
-         server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
-  sprintf(buf, "Hello %d from the client", seq_id);
-  uip_udp_packet_sendto(client_conn, buf, strlen(buf),
-                        &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -137,58 +155,106 @@ static void
 set_global_address(void)
 {
   uip_ipaddr_t ipaddr;
-
   uip_lladdr_t server_lladdr;
 
+  struct uip_ds6_addr *root_if;
 
   uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
-/* The choice of server address determines its 6LoWPAN header compression.
- * (Our address will be compressed Mode 3 since it is derived from our
- * link-local address)
- * Obviously the choice made here must also be selected in udp-server.c.
- *
- * For correct Wireshark decoding using a sniffer, add the /64 prefix to the
- * 6LowPAN protocol preferences,
- * e.g. set Context 0 to fd00::. At present Wireshark copies Context/128 and
- * then overwrites it.
- * (Setting Context 0 to fd00::1111:2222:3333:4444 will report a 16 bit
- * compressed address of fd00::1111:22ff:fe33:xxxx)
- *
- * Note the IPCMV6 checksum verification depends on the correct uncompressed
- * addresses.
- */
- 
-// #if 0
-/* Mode 1 - 64 bits inline */
-   // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 1);
-// #elif 1
-/* Mode 2 - 16 bits inline */
-  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 1);
-// #else
-/* Mode 3 - derived from server link-local (MAC) address */
-  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0x0250, 0xc2ff, 0xfea8, 0xcd1a); //redbee-econotag
-  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0X01);
 
+
+  if(ipaddr.u8[15]== ROOT_ID){
+    root_if = uip_ds6_addr_lookup(&ipaddr);
+    if(root_if != NULL) {
+      rpl_dag_t *dag;
+      dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)&ipaddr);
+      uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
+      rpl_set_prefix(dag, &ipaddr, 64);
+      PRINTF("created a new RPL dag\n");
+    } else {
+      PRINTF("failed to create a new RPL DAG\n");
+    }
+  }
+  else{
+    printf("This node is not a root node\n");
+  }
+
+  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 0XA5);
+
+
+  /* we set manualy the Server addr based on the current mac addr of the node.
+  Then we replace the last byte of the mac addr by the server node id */
   uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
   memcpy(&server_lladdr, &uip_lladdr, sizeof(uip_lladdr_t));
-  ((uint8_t *) &server_lladdr)[sizeof(uip_lladdr_t)-1] = 0X01;
+  ((uint8_t *) &server_lladdr)[sizeof(uip_lladdr_t)-1] = UDP_SERVER_ADDR;
   uip_ds6_set_addr_iid(&server_ipaddr, &server_lladdr);
-  // server_ipaddr.u16[7] = UDP_SERVER_ADDR;
-  printf("server addr: ");
+
+  printf("Server addr: ");
   uip_debug_ipaddr_print(&server_ipaddr);
-// #endif
+  printf("\n");
+  
 }
+
+/*---------------------------------------------------------------------------*/
+/* Protothread for slot operation, called by update_neighbor_prop_time() 
+ * function. "data" is a struct tsch_neighbor pointer.*/
+PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
+{
+  PROCESS_BEGIN();
+
+  // PROCESS_PAUSE();
+
+  printf("tsch_loc_operation start\n");
+
+  while(1) {
+    PROCESS_WAIT_EVENT();
+    /* receive a new propagation time measurement */
+    if(ev == PROCESS_EVENT_MSG){
+      // printf("Node 0X%02X prop time %ld %lu\n", 
+      //   ((struct tsch_neighbor *) data)->addr.u8[7],
+      //   ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
+      //   ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament);
+
+      printf("Node 0X%02X anchors_prop index %d\n", 
+        ((struct tsch_neighbor *) data)->addr.u8[7],
+        ((struct tsch_neighbor *) data)->addr.u8[7]-(0XA1));
+
+
+      struct tsch_prop_time n_prop_time;
+      n_prop_time.prop_time = ((struct tsch_neighbor *) data)->last_prop_time.prop_time;
+      n_prop_time.last_mesureament = ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament;
+      /* replace older measurement */
+      anchors_prop[((struct tsch_neighbor *) data)->addr.u8[7]-(0XA1)] = n_prop_time;
+
+      /* check if we need to send an updated */
+      // if(((struct tsch_neighbor *) data)->last_prop_time.last_mesureament > 
+      //   last_mesureament + tsch_schedule_get_slotframe_duration()){
+      //   send_packet();
+      // }
+      /* check if we need to send an updated */
+      if( RTIMER_NOW() > (last_transmition + (5 * RTIMER_SECOND))){
+        send_packet();
+      }
+    }
+    if(ev == serial_line_event_message && data != NULL) {
+      char *str;
+      str = data;
+      if(str[0] == 'r') {
+        printf("tsch_schedule_print TSCH_PROP_PROCESS \n");
+        tsch_schedule_print();
+        
+      }
+    }
+  }
+
+  PROCESS_END();
+}
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_client_process, ev, data)
 {
-  static struct etimer periodic;
-  static struct ctimer backoff_timer;
-#if WITH_COMPOWER
-  static int print = 0;
-#endif
 
   PROCESS_BEGIN();
 
@@ -201,6 +267,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   print_local_addresses();
 
+  struct tsch_prop_time n_prop_time;
+  n_prop_time.prop_time = 0;
+  n_prop_time.last_mesureament = 0;
+      
+  for (int i =0; i < 4; i++){
+    anchors_prop[i]=n_prop_time;
+  }
   /* new connection with remote host */
   client_conn = udp_new(NULL, UIP_HTONS(UDP_SERVER_PORT), NULL); 
   if(client_conn == NULL) {
@@ -212,7 +285,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   PRINTF("Created a connection with the server ");
   PRINT6ADDR(&client_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+  UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
 #if WITH_COMPOWER
   powertrace_sniff(POWERTRACE_ON);
@@ -220,7 +293,6 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   NETSTACK_MAC.on();
   
-  etimer_set(&periodic, SEND_INTERVAL);
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
@@ -231,49 +303,10 @@ PROCESS_THREAD(udp_client_process, ev, data)
       char *str;
       str = data;
       if(str[0] == 'r') {
-        uip_ds6_route_t *r;
-        uip_ipaddr_t *nexthop;
-        uip_ds6_defrt_t *defrt;
-        uip_ipaddr_t *ipaddr;
-        defrt = NULL;
-        if((ipaddr = uip_ds6_defrt_choose()) != NULL) {
-          defrt = uip_ds6_defrt_lookup(ipaddr);
-        }
-        if(defrt != NULL) {
-          PRINTF("DefRT: :: -> %02d", defrt->ipaddr.u8[15]);
-          PRINTF(" lt:%lu inf:%d\n", stimer_remaining(&defrt->lifetime),
-                 defrt->isinfinite);
-        } else {
-          PRINTF("DefRT: :: -> NULL\n");
-        }
-
-        for(r = uip_ds6_route_head();
-            r != NULL;
-            r = uip_ds6_route_next(r)) {
-          nexthop = uip_ds6_route_nexthop(r);
-          PRINTF("Route: %02d -> %02d", r->ipaddr.u8[15], nexthop->u8[15]);
-          /* PRINT6ADDR(&r->ipaddr); */
-          /* PRINTF(" -> "); */
-          /* PRINT6ADDR(nexthop); */
-          PRINTF(" lt:%lu\n", r->state.lifetime);
-
-        }
+        printf("tsch_schedule_print udp_client_process \n");
+        tsch_schedule_print();
+        
       }
-    }
-
-    if(etimer_expired(&periodic)) {
-      etimer_reset(&periodic);
-      ctimer_set(&backoff_timer, SEND_TIME, send_packet, NULL);
-
-#if WITH_COMPOWER
-      if (print == 0) {
-	powertrace_print("#P");
-      }
-      if (++print == 3) {
-	print = 0;
-      }
-#endif
-
     }
   }
 

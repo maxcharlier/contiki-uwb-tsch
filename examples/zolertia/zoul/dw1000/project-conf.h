@@ -43,6 +43,8 @@
 #define BROADCAST_CHANNEL     129
 #define NETSTACK_CONF_RDC     nullrdc_driver
 
+#define NETSTACK_CONF_MAC    nullmac_driver
+
 /* Pin definition for the test-motion example, for the RE-Mote it uses the
  * ADC1 pin
  */

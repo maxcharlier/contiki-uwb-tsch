@@ -62,18 +62,30 @@
 #endif /* TSCH_LOG_LEVEL */
 #include "net/net-debug.h"
 
+#define INDEX_NODE_ID   (sizeof(linkaddr_t)-1)
+
 /* 802.15.4 broadcast MAC address  */
-static linkaddr_t node_1_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_2_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_3_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_4_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_5_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_6_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_7_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_8_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_9_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_A_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
-static linkaddr_t node_B_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
+// static linkaddr_t node_1_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
+
+static linkaddr_t node_1_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_2_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_3_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_4_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_5_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_6_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_7_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_8_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_9_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_A_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_B_address = { { 0XFF, 0XFF } };
+static linkaddr_t anchor_1_address = { { 0XFF, 0XFF } };
+static linkaddr_t anchor_2_address = { { 0XFF, 0XFF } };
+static linkaddr_t anchor_3_address = { { 0XFF, 0XFF } };
+static linkaddr_t anchor_4_address = { { 0XFF, 0XFF } };
+static linkaddr_t sink_1_address = { { 0XFF, 0XFF } };
+
+static linkaddr_t * anchors_addr[5] = {&anchor_1_address, &anchor_2_address, &anchor_3_address, 
+  &anchor_4_address, &sink_1_address};
 
 /* Pre-allocated space for links */
 MEMB(link_memb, struct tsch_link, TSCH_SCHEDULE_MAX_LINKS);
@@ -415,6 +427,7 @@ tsch_schedule_init(void)
 /* Create a 6TiSCH minimal schedule */
 void
 tsch_schedule_create_minimal_old(void)
+// tsch_schedule_create_minimal(void)
 {
   struct tsch_slotframe *sf_min;
   /* First, empty current schedule */
@@ -432,11 +445,13 @@ tsch_schedule_create_minimal_old(void)
       0, 0);
 }
 /*---------------------------------------------------------------------------*/
-/* Create a 6TiSCH minimal schedule */
+/* Create a 6TiSCH schedule to test the propagation time feature. */
 void
-tsch_schedule_create_minimal(void)
+tsch_schedule_create_minimal_test_loc(void)
+// tsch_schedule_create_minimal(void)
 {
   struct tsch_slotframe *sf_custom;
+  uint8_t offset = 5;
   /* First, empty current schedule */
   tsch_schedule_remove_all_slotframes();
   /* Build 6TiSCH minimal schedule.
@@ -452,19 +467,21 @@ tsch_schedule_create_minimal(void)
       0, 0);
 
   linkaddr_copy(&node_1_address, &linkaddr_node_addr);
-  node_1_address.u8[7] = 0x1;
+  node_1_address.u8[INDEX_NODE_ID] = 0X01;
   linkaddr_copy(&node_2_address, &linkaddr_node_addr);
-  node_2_address.u8[7] = 0x2;
+  node_2_address.u8[INDEX_NODE_ID] = 0x02;
 
-  if(linkaddr_node_addr.u8[7] == 0x01){
-    tsch_schedule_add_link(sf_custom,
-        LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, 40, 0);
-  printf("localisation schedule1\n");
-  }
-  if(linkaddr_node_addr.u8[7] == 0x02){
-    tsch_schedule_add_link(sf_custom,
-        LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, 40, 0);
-  printf("localisation schedule2\n");
+  for (int i = 1; i < 5; i++){
+    if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_1_address.u8[INDEX_NODE_ID]){
+      tsch_schedule_add_link(sf_custom,
+          LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, offset * i, 0);
+    printf("localisation schedule1\n");
+    }
+    if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_2_address.u8[INDEX_NODE_ID]){
+      tsch_schedule_add_link(sf_custom,
+          LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, offset * i, 0);
+    printf("localisation schedule2\n");
+    }
   }
 
   tsch_schedule_print();
@@ -483,25 +500,25 @@ tsch_schedule_create_minimal5(void)
 
 
   linkaddr_copy(&node_6_address, &linkaddr_node_addr);
-  node_6_address.u8[7] = 0x6;
+  node_6_address.u8[INDEX_NODE_ID] = 0x6;
   linkaddr_copy(&node_7_address, &linkaddr_node_addr);
-  node_7_address.u8[7] = 0x7;
+  node_7_address.u8[INDEX_NODE_ID] = 0x7;
   linkaddr_copy(&node_8_address, &linkaddr_node_addr);
-  node_8_address.u8[7] = 0x8;
+  node_8_address.u8[INDEX_NODE_ID] = 0x8;
   linkaddr_copy(&node_9_address, &linkaddr_node_addr);
-  node_9_address.u8[7] = 0x9;
+  node_9_address.u8[INDEX_NODE_ID] = 0x9;
   linkaddr_copy(&node_A_address, &linkaddr_node_addr);
-  node_A_address.u8[7] = 0xA;
+  node_A_address.u8[INDEX_NODE_ID] = 0xA;
   linkaddr_copy(&node_B_address, &linkaddr_node_addr);
-  node_B_address.u8[7] = 0xB;
+  node_B_address.u8[INDEX_NODE_ID] = 0xB;
 
-  printf("link node addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],  linkaddr_node_addr.u8[2],  
-      linkaddr_node_addr.u8[3],  linkaddr_node_addr.u8[4],  linkaddr_node_addr.u8[5],  linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
+  // printf("link node addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],  linkaddr_node_addr.u8[2],  
+  //     linkaddr_node_addr.u8[3],  linkaddr_node_addr.u8[4],  linkaddr_node_addr.u8[5],  linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[INDEX_NODE_ID]);
   
-  printf("0x01 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_1_address.u8[0], node_1_address.u8[1],  node_1_address.u8[2],  
-      node_1_address.u8[3],  node_1_address.u8[4],  node_1_address.u8[5],  node_1_address.u8[6], node_1_address.u8[7]);
-  printf("0x02 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_2_address.u8[0], node_2_address.u8[1],  node_2_address.u8[2],  
-      node_2_address.u8[3],  node_2_address.u8[4],  node_2_address.u8[5],  node_2_address.u8[6], node_2_address.u8[7]); 
+  // printf("0x01 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_1_address.u8[0], node_1_address.u8[1],  node_1_address.u8[2],  
+  //     node_1_address.u8[3],  node_1_address.u8[4],  node_1_address.u8[5],  node_1_address.u8[6], node_1_address.u8[INDEX_NODE_ID]);
+  // printf("0x02 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_2_address.u8[0], node_2_address.u8[1],  node_2_address.u8[2],  
+  //     node_2_address.u8[3],  node_2_address.u8[4],  node_2_address.u8[5],  node_2_address.u8[6], node_2_address.u8[INDEX_NODE_ID]); 
 
   uint8_t tx_option = LINK_OPTION_TX;
 
@@ -515,12 +532,12 @@ tsch_schedule_create_minimal5(void)
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
 
-  if(linkaddr_node_addr.u8[7] == 0x0B){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x0B){
     /* Node TX*/
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_A_address, 4, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x0A){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x0A){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 4, 0);
@@ -531,7 +548,7 @@ tsch_schedule_create_minimal5(void)
         tx_option, LINK_TYPE_NORMAL, &node_9_address, 13, 0);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x09){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x09){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 7, 0);
@@ -545,7 +562,7 @@ tsch_schedule_create_minimal5(void)
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_8_address, 22, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x08){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x08){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 10, 0);
@@ -563,7 +580,7 @@ tsch_schedule_create_minimal5(void)
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_7_address, 36, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x07){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x07){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 6, 0);
@@ -586,7 +603,7 @@ tsch_schedule_create_minimal5(void)
         tx_option, LINK_TYPE_NORMAL, &node_6_address, 27, 0);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x06){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x06){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 3, 0);
@@ -617,25 +634,25 @@ tsch_schedule_create_minimal6(void)
 
 
   linkaddr_copy(&node_6_address, &linkaddr_node_addr);
-  node_6_address.u8[7] = 0x6;
+  node_6_address.u8[INDEX_NODE_ID] = 0x6;
   linkaddr_copy(&node_7_address, &linkaddr_node_addr);
-  node_7_address.u8[7] = 0x7;
+  node_7_address.u8[INDEX_NODE_ID] = 0x7;
   linkaddr_copy(&node_8_address, &linkaddr_node_addr);
-  node_8_address.u8[7] = 0x8;
+  node_8_address.u8[INDEX_NODE_ID] = 0x8;
   linkaddr_copy(&node_9_address, &linkaddr_node_addr);
-  node_9_address.u8[7] = 0x9;
+  node_9_address.u8[INDEX_NODE_ID] = 0x9;
   linkaddr_copy(&node_A_address, &linkaddr_node_addr);
-  node_A_address.u8[7] = 0xA;
+  node_A_address.u8[INDEX_NODE_ID] = 0xA;
   linkaddr_copy(&node_B_address, &linkaddr_node_addr);
-  node_B_address.u8[7] = 0xB;
+  node_B_address.u8[INDEX_NODE_ID] = 0xB;
 
-  printf("link node addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],  linkaddr_node_addr.u8[2],  
-      linkaddr_node_addr.u8[3],  linkaddr_node_addr.u8[4],  linkaddr_node_addr.u8[5],  linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
+  // printf("link node addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],  linkaddr_node_addr.u8[2],  
+  //     linkaddr_node_addr.u8[3],  linkaddr_node_addr.u8[4],  linkaddr_node_addr.u8[5],  linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[INDEX_NODE_ID]);
   
-  printf("0x01 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_1_address.u8[0], node_1_address.u8[1],  node_1_address.u8[2],  
-      node_1_address.u8[3],  node_1_address.u8[4],  node_1_address.u8[5],  node_1_address.u8[6], node_1_address.u8[7]);
-  printf("0x02 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_2_address.u8[0], node_2_address.u8[1],  node_2_address.u8[2],  
-      node_2_address.u8[3],  node_2_address.u8[4],  node_2_address.u8[5],  node_2_address.u8[6], node_2_address.u8[7]); 
+  // printf("0x01 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_1_address.u8[0], node_1_address.u8[1],  node_1_address.u8[2],  
+  //     node_1_address.u8[3],  node_1_address.u8[4],  node_1_address.u8[5],  node_1_address.u8[6], node_1_address.u8[INDEX_NODE_ID]);
+  // printf("0x02 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_2_address.u8[0], node_2_address.u8[1],  node_2_address.u8[2],  
+  //     node_2_address.u8[3],  node_2_address.u8[4],  node_2_address.u8[5],  node_2_address.u8[6], node_2_address.u8[INDEX_NODE_ID]); 
 
   uint8_t tx_option = LINK_OPTION_TX;
 
@@ -649,12 +666,12 @@ tsch_schedule_create_minimal6(void)
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
 
-  if(linkaddr_node_addr.u8[7] == 0x0B){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x0B){
     /* Node TX*/
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_A_address, 3, 1);
   }
-  if(linkaddr_node_addr.u8[7] == 0x0A){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x0A){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 3, 1);
@@ -665,7 +682,7 @@ tsch_schedule_create_minimal6(void)
         tx_option, LINK_TYPE_NORMAL, &node_9_address, 12, 1);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x09){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x09){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 6, 1);
@@ -679,7 +696,7 @@ tsch_schedule_create_minimal6(void)
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_8_address, 21, 1);
   }
-  if(linkaddr_node_addr.u8[7] == 0x08){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x08){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 9, 1);
@@ -697,7 +714,7 @@ tsch_schedule_create_minimal6(void)
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_7_address, 24, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x07){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x07){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 6, 0);
@@ -720,7 +737,7 @@ tsch_schedule_create_minimal6(void)
         tx_option, LINK_TYPE_NORMAL, &node_6_address, 27, 0);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x06){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x06){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 3, 0);
@@ -751,25 +768,17 @@ tsch_schedule_create_minimal4(void)
 
 
   linkaddr_copy(&node_6_address, &linkaddr_node_addr);
-  node_6_address.u8[7] = 0x6;
+  node_6_address.u8[INDEX_NODE_ID] = 0x6;
   linkaddr_copy(&node_7_address, &linkaddr_node_addr);
-  node_7_address.u8[7] = 0x7;
+  node_7_address.u8[INDEX_NODE_ID] = 0x7;
   linkaddr_copy(&node_8_address, &linkaddr_node_addr);
-  node_8_address.u8[7] = 0x8;
+  node_8_address.u8[INDEX_NODE_ID] = 0x8;
   linkaddr_copy(&node_9_address, &linkaddr_node_addr);
-  node_9_address.u8[7] = 0x9;
+  node_9_address.u8[INDEX_NODE_ID] = 0x9;
   linkaddr_copy(&node_A_address, &linkaddr_node_addr);
-  node_A_address.u8[7] = 0xA;
+  node_A_address.u8[INDEX_NODE_ID] = 0xA;
   linkaddr_copy(&node_B_address, &linkaddr_node_addr);
-  node_B_address.u8[7] = 0xB;
-
-  printf("link node addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],  linkaddr_node_addr.u8[2],  
-      linkaddr_node_addr.u8[3],  linkaddr_node_addr.u8[4],  linkaddr_node_addr.u8[5],  linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
-  
-  printf("0x01 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_1_address.u8[0], node_1_address.u8[1],  node_1_address.u8[2],  
-      node_1_address.u8[3],  node_1_address.u8[4],  node_1_address.u8[5],  node_1_address.u8[6], node_1_address.u8[7]);
-  printf("0x02 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_2_address.u8[0], node_2_address.u8[1],  node_2_address.u8[2],  
-      node_2_address.u8[3],  node_2_address.u8[4],  node_2_address.u8[5],  node_2_address.u8[6], node_2_address.u8[7]); 
+  node_B_address.u8[INDEX_NODE_ID] = 0xB;
 
   uint8_t tx_option = LINK_OPTION_TX;
   uint8_t timeslotBA = 3;
@@ -788,12 +797,12 @@ tsch_schedule_create_minimal4(void)
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
 
-  if(linkaddr_node_addr.u8[7] == 0x0B){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x0B){
     /* Node TX*/
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_A_address, timeslotBA, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x0A){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x0A){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslotBA, 0);
@@ -802,7 +811,7 @@ tsch_schedule_create_minimal4(void)
         tx_option, LINK_TYPE_NORMAL, &node_9_address, timeslotA9, 0);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x09){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x09){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslotA9, 0);
@@ -810,7 +819,7 @@ tsch_schedule_create_minimal4(void)
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_8_address, timeslot98, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x08){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x08){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot98, 0);
@@ -818,7 +827,7 @@ tsch_schedule_create_minimal4(void)
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_7_address, timeslot87, 0);
   }
-  if(linkaddr_node_addr.u8[7] == 0x07){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x07){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot87, 0);
@@ -827,7 +836,7 @@ tsch_schedule_create_minimal4(void)
         tx_option, LINK_TYPE_NORMAL, &node_6_address, timeslot76, 0);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x06){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x06){
     /* Node RX*/ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot76, 0);
@@ -850,22 +859,15 @@ tsch_schedule_create_minimal3(void)
 
 
   linkaddr_copy(&node_1_address, &linkaddr_node_addr);
-  node_1_address.u8[7] = 0x1;
+  node_1_address.u8[INDEX_NODE_ID] = 0x1;
   linkaddr_copy(&node_2_address, &linkaddr_node_addr);
-  node_2_address.u8[7] = 0x2;
+  node_2_address.u8[INDEX_NODE_ID] = 0x2;
   linkaddr_copy(&node_3_address, &linkaddr_node_addr);
-  node_3_address.u8[7] = 0x3;
+  node_3_address.u8[INDEX_NODE_ID] = 0x3;
   linkaddr_copy(&node_4_address, &linkaddr_node_addr);
-  node_4_address.u8[7] = 0x4;
+  node_4_address.u8[INDEX_NODE_ID] = 0x4;
   linkaddr_copy(&node_5_address, &linkaddr_node_addr);
-  node_5_address.u8[7] = 0x5;
-  printf("link node addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1],  linkaddr_node_addr.u8[2],  
-      linkaddr_node_addr.u8[3],  linkaddr_node_addr.u8[4],  linkaddr_node_addr.u8[5],  linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
-  
-  printf("0x01 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_1_address.u8[0], node_1_address.u8[1],  node_1_address.u8[2],  
-      node_1_address.u8[3],  node_1_address.u8[4],  node_1_address.u8[5],  node_1_address.u8[6], node_1_address.u8[7]);
-  printf("0x02 addr %02x%02x::%02x%02x::%02x%02x::%02x%02x \n",  node_2_address.u8[0], node_2_address.u8[1],  node_2_address.u8[2],  
-      node_2_address.u8[3],  node_2_address.u8[4],  node_2_address.u8[5],  node_2_address.u8[6], node_2_address.u8[7]); 
+  node_5_address.u8[INDEX_NODE_ID] = 0x5;
 
   uint8_t tx_option = LINK_OPTION_TX;
   uint8_t timeslot54 = 3;
@@ -883,13 +885,13 @@ tsch_schedule_create_minimal3(void)
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
 
-  if(linkaddr_node_addr.u8[7] == 0x05){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x05){
     /* Node TX 5 to 4  */ 
     tsch_schedule_add_link(sf_custom,
        tx_option , LINK_TYPE_NORMAL, &node_4_address, timeslot54, 0);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x04){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x04){
     /* Node RX 4 from 5 */ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot54, 0);
@@ -898,7 +900,7 @@ tsch_schedule_create_minimal3(void)
         tx_option, LINK_TYPE_NORMAL, &node_3_address, timeslot43, 4);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x03){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x03){
     /* Node TX 3 to 2 */
     tsch_schedule_add_link(sf_custom,
         tx_option, LINK_TYPE_NORMAL, &node_2_address, timeslot32, 2);
@@ -907,7 +909,7 @@ tsch_schedule_create_minimal3(void)
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot43, 4);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x02){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x02){
     /* Node RX 2 from 3 */ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot32, 2);
@@ -916,7 +918,7 @@ tsch_schedule_create_minimal3(void)
         tx_option, LINK_TYPE_NORMAL, &node_1_address, timeslot21, 2);
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x01){
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0x01){
     /* Node RX 1 from 2 */ 
     tsch_schedule_add_link(sf_custom,
         LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, timeslot21, 2);
@@ -926,25 +928,20 @@ tsch_schedule_create_minimal3(void)
   tsch_schedule_print();
 }
 /*---------------------------------------------------------------------------*/
-/* Create a 6TiSCH linear schedule with concurrent communications*/
+/* Create a 6TiSCH schedule for concurrent localisation*/
 void
-tsch_schedule_create_loc(void)
+// tsch_schedule_create_minimal_loc(void)
+tsch_schedule_create_minimal(void)
 {
   struct tsch_slotframe *sf_custom;
+  int i;
+  int channel_offset = 5;
   /* First, empty current schedule */
   tsch_schedule_remove_all_slotframes();
-  /* A slotframe is define by an handle (a unique number) and a length
+  /* Build 6TiSCH minimal schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
   sf_custom = tsch_schedule_add_slotframe(0, TSCH_SCHEDULE_DEFAULT_LENGTH);
-
-
-  linkaddr_copy(&node_1_address, &linkaddr_node_addr);
-  node_1_address.u8[7] = 0x1;
-  linkaddr_copy(&node_2_address, &linkaddr_node_addr);
-  node_2_address.u8[7] = 0x2;
-
-
-  /* Add a Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
+  /* Add a single Tx|Rx|Shared slot using broadcast address (i.e. usable for unicast and broadcast).
    * We set the link type to advertising, which is not compliant with 6TiSCH minimal schedule
    * but is required according to 802.15.4e if also used for EB transmission.
    * Timeslot: 0, channel offset: 0. */
@@ -953,22 +950,104 @@ tsch_schedule_create_loc(void)
       LINK_TYPE_ADVERTISING, &tsch_broadcast_address,
       0, 0);
 
-  if(linkaddr_node_addr.u8[7] == 0x01){
-    /* Node 1 */ 
-    tsch_schedule_add_link(sf_custom,
-       LINK_OPTION_TX , LINK_TYPE_NORMAL, &node_2_address, 6, 0);
-    tsch_schedule_add_link(sf_custom,
-       LINK_OPTION_TX , LINK_TYPE_LOC, &node_2_address, 12, 0);
+  /* initialise real node ADDR */
+  for(i = 0; i<4; i++){
+    linkaddr_copy(anchors_addr[i], &linkaddr_node_addr);
+    (anchors_addr[i]->u8[INDEX_NODE_ID]) = 0xA0 +i+1;
   }
 
-  if(linkaddr_node_addr.u8[7] == 0x02){
-    /* Node 2 */ 
-    tsch_schedule_add_link(sf_custom,
-       LINK_OPTION_RX , LINK_TYPE_NORMAL, &node_1_address, 6, 0);
-    tsch_schedule_add_link(sf_custom,
-       LINK_OPTION_RX , LINK_TYPE_LOC, &node_1_address, 12, 0);
-  }
+  linkaddr_copy(&sink_1_address, &linkaddr_node_addr);
+  sink_1_address.u8[INDEX_NODE_ID] = 0xA5;
 
+  // printf("current node id %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X\n", 
+  //   linkaddr_node_addr.u8[0],
+  //   linkaddr_node_addr.u8[1],
+  //   linkaddr_node_addr.u8[2],
+  //   linkaddr_node_addr.u8[3],
+  //   linkaddr_node_addr.u8[4],
+  //   linkaddr_node_addr.u8[5],
+  //   linkaddr_node_addr.u8[6],
+  //   linkaddr_node_addr.u8[INDEX_NODE_ID]
+  //   );  
+  // printf("anchor1 id %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X\n", 
+  //   anchors_addr[0]->u8[0],
+  //   anchors_addr[0]->u8[1],
+  //   anchors_addr[0]->u8[2],
+  //   anchors_addr[0]->u8[3],
+  //   anchors_addr[0]->u8[4],
+  //   anchors_addr[0]->u8[5],
+  //   anchors_addr[0]->u8[6],
+  //   anchors_addr[0]->u8[INDEX_NODE_ID]
+  //   );
+
+  linkaddr_copy(&node_1_address, &linkaddr_node_addr);
+  node_1_address.u8[INDEX_NODE_ID] = 0x1;
+  linkaddr_copy(&node_2_address, &linkaddr_node_addr);
+  node_2_address.u8[INDEX_NODE_ID] = 0x2;
+  linkaddr_copy(&node_3_address, &linkaddr_node_addr);
+  node_3_address.u8[INDEX_NODE_ID] = 0x3;
+  linkaddr_copy(&node_4_address, &linkaddr_node_addr);
+  node_4_address.u8[INDEX_NODE_ID] = 0x4;
+  linkaddr_copy(&node_5_address, &linkaddr_node_addr);
+  node_5_address.u8[INDEX_NODE_ID] = 0x5;
+
+
+static linkaddr_t * nodes_addr[4] = {&node_1_address, &node_2_address, &node_3_address, 
+  &node_4_address};
+
+  /* check if we are a mobile node */
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] <= 0x05){
+    printf("Schedule localisation for mobiles nodes\n");
+    for(i = 0; i<5; i++){
+      uint8_t linktype = LINK_TYPE_LOC;
+      /* if sink addr */
+      if(anchors_addr[(linkaddr_node_addr.u8[INDEX_NODE_ID]-1+i)%5]->u8[INDEX_NODE_ID] == sink_1_address.u8[INDEX_NODE_ID]){
+        linktype = LINK_TYPE_NORMAL;
+
+      // tsch_schedule_add_link(sf_custom, LINK_OPTION_TX, linktype, 
+      //   anchors_addr[(linkaddr_node_addr.u8[INDEX_NODE_ID]-1+i)%5], channel_offset*(i+1), linkaddr_node_addr.u8[INDEX_NODE_ID]);
+      }
+
+      // if(anchors_addr[(linkaddr_node_addr.u8[INDEX_NODE_ID]-1+i)%5]->u8[INDEX_NODE_ID] == anchors_addr[0]->u8[INDEX_NODE_ID]){
+      //   tsch_schedule_add_link(sf_custom, LINK_OPTION_TX, linktype, 
+      //     anchors_addr[(linkaddr_node_addr.u8[INDEX_NODE_ID]-1+i)%5], channel_offset*(i+1), linkaddr_node_addr.u8[INDEX_NODE_ID]);
+      // }
+      tsch_schedule_add_link(sf_custom, LINK_OPTION_TX, linktype, 
+          anchors_addr[(linkaddr_node_addr.u8[INDEX_NODE_ID]-1+i)%5], channel_offset*(i+1), linkaddr_node_addr.u8[INDEX_NODE_ID]);
+
+    }
+  }
+  /* check if we are an anchor node */
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] >= anchors_addr[0]->u8[INDEX_NODE_ID] && 
+     linkaddr_node_addr.u8[INDEX_NODE_ID] <= anchors_addr[3]->u8[INDEX_NODE_ID]){
+    printf("Schedule localisation for anchors nodes\n");
+    for(i = 0; i<4; i++){
+      int8_t offset = (linkaddr_node_addr.u8[INDEX_NODE_ID]-0XA0)-i;
+      if(offset <=0)
+        offset = 5+offset;
+      tsch_schedule_add_link(sf_custom,
+          LINK_OPTION_RX, LINK_TYPE_LOC, nodes_addr[i], 
+          channel_offset*offset, 
+          i+1);
+    }
+    /* direct link to the sink */
+    tsch_schedule_add_link(sf_custom,
+          LINK_OPTION_TX  | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL, anchors_addr[4], 
+          channel_offset*6, 0);
+  }
+  /* check if we are the sink node */
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == sink_1_address.u8[INDEX_NODE_ID]){
+    printf("Schedule localisation for the sink node\n");
+    for(i = 0; i<4; i++){
+      tsch_schedule_add_link(sf_custom,
+          LINK_OPTION_RX, LINK_TYPE_NORMAL, &tsch_broadcast_address, channel_offset*((5-i)%6), i+1);
+    }
+
+    tsch_schedule_add_link(sf_custom,
+          LINK_OPTION_RX  | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_NORMAL, &tsch_broadcast_address, 
+          channel_offset*6, 0);
+  }
+  printf("Schedule localisation initialised\n");
   tsch_schedule_print();
 }
 /*---------------------------------------------------------------------------*/
@@ -988,8 +1067,8 @@ tsch_schedule_print(void)
       printf("List of links:\n");
 
       while(l != NULL) {
-        printf("[Link] Options %02x, type %u, timeslot %u, channel offset %u, address %u\n",
-               l->link_options, l->link_type, l->timeslot, l->channel_offset, l->addr.u8[7]);
+        printf("[Link] Options %02x, type %u, timeslot %u, channel offset %u, address 0X%02X\n",
+               l->link_options, l->link_type, l->timeslot, l->channel_offset, l->addr.u8[INDEX_NODE_ID]);
         l = list_item_next(l);
       }
 
@@ -998,5 +1077,10 @@ tsch_schedule_print(void)
 
     printf("Schedule: end of slotframe list\n");
   }
+}
+/*---------------------------------------------------------------------------*/
+/* Return the slotframe duration */
+rtimer_clock_t tsch_schedule_get_slotframe_duration(void){
+ return (rtimer_clock_t) TSCH_SCHEDULE_DEFAULT_LENGTH * US_TO_RTIMERTICKS(TSCH_DEFAULT_TS_TIMESLOT_LENGTH);
 }
 /*---------------------------------------------------------------------------*/

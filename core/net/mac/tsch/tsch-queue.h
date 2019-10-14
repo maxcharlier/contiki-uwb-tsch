@@ -140,6 +140,7 @@ struct tsch_neighbor {
   uint8_t backoff_window; /* CSMA backoff window (number of slots to skip) */
   uint8_t last_backoff_window; /* Last CSMA backoff window */
   uint8_t tx_links_count; /* How many links do we have to this neighbor? */
+  uint8_t tx_loc_links_count; /* How many links do we have to this neighbor? */
   uint8_t dedicated_tx_links_count; /* How many dedicated links do we have to this neighbor? */
   /* Array for the ringbuf. Contains pointers to packets.
    * Its size must be a power of two to allow for atomic put */

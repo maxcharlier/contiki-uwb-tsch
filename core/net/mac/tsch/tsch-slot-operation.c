@@ -1298,7 +1298,9 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
   seqno = 20;
 
   /* create payload */
-  packet_len = tsch_packet_create_eack(packet_buf, TSCH_PACKET_MAX_LEN, &(current_neighbor->addr), seqno, 0, 1);
+  packet_len = tsch_packet_create_eack(packet_buf, TSCH_PACKET_MAX_LEN, &(current_link->addr), seqno, 0, 1);
+  
+  current_neighbor = tsch_queue_add_nbr(&(current_link->addr));
 
   /* Copy packet (msg1) to the radio buffer*/
   if(NETSTACK_RADIO.prepare(packet_buf, packet_len) == 0) { /* 0 means success */
@@ -1661,7 +1663,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
               printf("error invalid addr rx loc slot 0X%02X%02X  0X%02X%02X\n",
                 destination_address.u8[0],destination_address.u8[1], 
                 linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
-            
+
           if(linkaddr_cmp(&destination_address, &linkaddr_node_addr)
              || linkaddr_cmp(&destination_address, &linkaddr_null)) {
             int do_nack = 0;

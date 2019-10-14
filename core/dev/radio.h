@@ -190,6 +190,16 @@ enum {
   RADIO_LOC_RX_DELAYED_US,
 
   /*
+   * Set a timeout value for the reception duration. 
+   * Usefull when delayed reception is used to avoid listening too long 
+   * if we don't receive a frame. 
+   * The radio need to be in IDLE when this paramter is set.
+   * The delay is set in micro second. 
+   * A value of 0 will disable this feature.
+   * */
+  RADIO_RX_TIMEOUT_US,
+
+  /*
    * Get the last stabilised RX timestamp. The units of the low order bit are 
    * approximately 15.65 picoseconds. The actual unit may be calculated 
    * as 1/ (128*499.2×10 6 ) seconds.

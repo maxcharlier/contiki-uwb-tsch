@@ -341,8 +341,8 @@ tsch_queue_free_unused_neighbors(void)
       /* Queue is empty, no tx link to this neighbor: deallocate.
        * Always keep time source and virtual broadcast neighbors. */
       if(!n->is_broadcast && !n->is_time_source && !n->tx_links_count
-         && tsch_queue_is_empty(n)) {
-        // tsch_queue_remove_nbr(n);
+         && tsch_queue_is_empty(n) && !n->tx_loc_links_count) {
+        tsch_queue_remove_nbr(n);
       }
       n = next_n;
     }

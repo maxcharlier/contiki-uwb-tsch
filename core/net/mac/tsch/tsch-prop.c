@@ -90,9 +90,7 @@ is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n,
 {
   return p != NULL || 
        (link->link_options & LINK_OPTION_RX) ||
-       (link->link_options & LINK_OPTION_TX && link->link_type == LINK_TYPE_LOC && 
-          (linkaddr_cmp(&(link->addr), &(n->addr)))
-        );
+       (link->link_options & LINK_OPTION_TX && link->link_type == LINK_TYPE_LOC);
 }
 
 

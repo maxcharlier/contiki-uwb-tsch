@@ -496,8 +496,7 @@ void dw1000_arch_init()
 
   /* Performe a wake up in case of the node was in deepsleept before being restarted */
   NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_REQUEST_WAKEUP);
-  dw1000_us_delay(4000);
-  NETSTACK_RADIO.set_value(RADIO_SLEEP_STATE, RADIO_IDLE);
+  dw1000_us_delay(4000);      
 }
 /**
  * \brief     Wait a delay in microsecond.

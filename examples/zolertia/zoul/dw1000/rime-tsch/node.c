@@ -44,6 +44,8 @@
 #include "net/rime/rime.h"
 #include "net/mac/tsch/tsch.h"
 
+#include "dev/uart.h"
+
 #include "dev/serial-line.h"
 
 
@@ -53,13 +55,23 @@
 
 #define HELLO_PORT    146
 #define RANGING_PORT  147
-#define MAX_PAYLOAD_LEN   30
+#define MAX_PAYLOAD_LEN   70
+
+#define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+
+#define PRINT_BYTE 1
+#if !PRINT_BYTE
+  #define PRINTF(...) printf(__VA_ARGS__)
+#else /* !PRINT_BYTE */
+  #define PRINTF(...) do {} while(0)
+#endif /* PRINT_BYTE */
 
 
-const linkaddr_t coordinator_addr =    { { 0X00, 0XA5 } };
-const linkaddr_t sink_addr =    { { 0X00, 0XA5 } };
 
-static struct tsch_prop_time anchors_prop[4];
+const linkaddr_t coordinator_addr =    { { 0X00, 0XD0 } };
+const linkaddr_t sink_addr =    { { 0X00, 0XD0 } };
+
+static struct tsch_prop_time anchors_prop[5];
 static rtimer_clock_t last_transmition = 0;
 
 /*---------------------------------------------------------------------------*/
@@ -72,13 +84,13 @@ AUTOSTART_PROCESSES(&unicast_test_process);
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
-  printf("App: unicast message received from %u.%u\n",
+  PRINTF("App: unicast message received from %u.%u\n",
    from->u8[0], from->u8[1]);
 }
 static void
 sent_uc(struct unicast_conn *ptr, int status, int num_tx)
 {
-  printf("App: unicast message sent, status %u, num_tx %u\n",
+  PRINTF("App: unicast message sent, status %u, num_tx %u\n",
    status, num_tx);
 }
 
@@ -87,30 +99,64 @@ sent_uc(struct unicast_conn *ptr, int status, int num_tx)
 static void
 sent_ranging(struct unicast_conn *ptr, int status, int num_tx)
 {
- printf("Ranging: unicast message sent, status %u, num_tx %u\n",
+ PRINTF("Ranging: unicast message sent, status %u, num_tx %u\n",
    status, num_tx);
 }
+/*---------------------------------------------------------------------------*/
 static void
 recv_ranging(struct unicast_conn *c, const linkaddr_t *from)
 {
-  printf("Ranging: ranging message received from 0X%02X.%02X\n",
-   from->u8[0], from->u8[1]);
 
-  char *str;
-  if(packetbuf_datalen() > 0) {
-    str = (char *)packetbuf_dataptr();
-    str[packetbuf_datalen()] = '\0';
-
-    uint8_t current_index= 0;
-    int32_t prop_time;
-    for(int i = 0; i < packetbuf_datalen() / 5; i++){
-      printf("     Node id 0X%02X", (uint8_t) str[current_index]);
-      current_index++;
-      memcpy(&prop_time, &str[current_index], 4);
-      current_index += 4;
-      printf(" %ld\n", prop_time);
+  #if PRINT_BYTE
+    /* print R: _NODEADDR_PACKETBUF_LEN_
+      for each prop time:
+      _ANCHORID_TPROP_
+    */
+    printf("-R:");
+    write_byte(from->u8[1]);
+    write_byte(from->u8[0]);
+    unsigned char *str;
+    if(packetbuf_datalen() > 0) {
+      str = (unsigned char *)packetbuf_dataptr();
+      write_byte(packetbuf_datalen());
+      for(int i = 0; i < packetbuf_datalen(); i++){
+        write_byte((uint8_t) str[i]);    
+      }
     }
-  }
+
+    write_byte((uint8_t) '\n');
+
+  #else /* PRINT_BYTE */  
+    printf("R: 0X%02X%02X",from->u8[0], from->u8[1]);
+    unsigned char *str;
+    if(packetbuf_datalen() > 0) {
+      uint8_t current_index= 0;
+      int32_t prop_time;
+
+      str = (unsigned char *)packetbuf_dataptr();
+      str[packetbuf_datalen()] = '\0';
+
+      for(int i = 0; i < packetbuf_datalen() / 9; i++){
+        printf(" %c", (uint8_t) str[current_index]);
+        current_index++;
+        memcpy(&prop_time, &str[current_index], 4);
+        current_index += 4;
+        printf(" %ld",  prop_time);
+        memcpy(&prop_time, &str[current_index], 4);
+        current_index += 4;
+        printf(" %ld",  prop_time);
+        current_index += 4;
+        /* channel */
+        printf(" %u",  str[current_index]);
+        current_index += 1;
+      }
+      write_byte(packetbuf_datalen());
+      for(int i = 0; i < packetbuf_datalen(); i++){
+        write_byte((uint8_t) str[i]);    
+      }
+    }
+    printf("\n");
+  #endif /* PRINT_BYTE */
 }
 static void
 initialize_anchro_prop(void){
@@ -135,23 +181,26 @@ send_packet(void)
 {
   char buf[MAX_PAYLOAD_LEN];
   uint8_t current_index= 0;
-  for (int i=0; i <4; i++){
+  for (int i=0; i <5; i++){
     if(anchors_prop[i].last_mesureament > last_transmition){
-      buf[current_index] = 0XA1+i;
+      buf[current_index] = 0XD0+i;
       current_index++;
       memcpy(&buf[current_index], &(anchors_prop[i].prop_time), 4);
       current_index += 4;
+      memcpy(&buf[current_index], &(anchors_prop[i].last_mesureament), 4);
+      current_index += 4;
+      memcpy(&buf[current_index], &(anchors_prop[i].tsch_channel), 1);
+      current_index += 1;
     }
 
   }
-  if(current_index > 0 ){
+  if(current_index > 0 && !linkaddr_cmp(&sink_addr, &linkaddr_node_addr)){
     packetbuf_copyfrom(buf, current_index);
     packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
 
-    if(!linkaddr_cmp(&sink_addr, &linkaddr_node_addr)) {
-      printf("App: sending unicast message to 0X%02X.%02X\n", sink_addr.u8[0], sink_addr.u8[1]);
-      unicast_send(&ranging_connection, &sink_addr);
-    }
+    printf("App: sending unicast message to 0X%02X.%02X\n", sink_addr.u8[0], sink_addr.u8[1]);
+    unicast_send(&ranging_connection, &sink_addr);
+
 
     last_transmition = RTIMER_NOW();
   }
@@ -169,10 +218,11 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
     PROCESS_YIELD();
     /* receive a new propagation time measurement */
     if(ev == PROCESS_EVENT_MSG){
-      printf("Node 0X%02X prop time %ld %lu\n", 
+      printf("Node 0X%02X prop time %ld %lu %u\n", 
         ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1],
         ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-        ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament);
+        ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament,
+        ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
 
       // printf("Node 0X%02X anchors_prop index %d\n", 
       //   ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1],
@@ -182,11 +232,14 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       struct tsch_prop_time n_prop_time;
       n_prop_time.prop_time = ((struct tsch_neighbor *) data)->last_prop_time.prop_time;
       n_prop_time.last_mesureament = ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament;
+      n_prop_time.tsch_channel = ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel;
       /* replace older measurement */
-      anchors_prop[((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1]-(0XA1)] = n_prop_time;
+      uint8_t i = MAX(0, ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1]-(0XD0));
+      anchors_prop[i] = n_prop_time;
 
       /* check if we need to send an updated */
-      if( RTIMER_NOW() > (last_transmition + (5 * RTIMER_SECOND))){
+      // if( RTIMER_NOW() > (last_transmition + (5 * RTIMER_SECOND))){
+      if( RTIMER_NOW() > (last_transmition + tsch_schedule_get_slotframe_duration())){
         send_packet();
       }
     }
@@ -194,7 +247,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       char *str;
       str = data;
       if(str[0] == 'r') {
-        printf("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
+        PRINTF("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
         tsch_schedule_print();
         
       }

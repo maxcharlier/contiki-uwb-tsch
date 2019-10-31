@@ -380,8 +380,10 @@ tsch_schedule_slot_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
  * ahead of time and then busy wait to exactly hit the target. */
 #define TSCH_WAIT(pt, tm, ref_time, offset, str) \
   do { \
+    watchdog_periodic(); \
     BUSYWAIT_UNTIL_ABS(0, ref_time, offset); \
   } while(0);
+  // TSCH_SCHEDULE_AND_YIELD(pt, tm, ref_time, offset, str)
 /*---------------------------------------------------------------------------*/
 /* Get EB, broadcast or unicast packet to be sent, and target neighbor. */
 static struct tsch_packet *
@@ -755,7 +757,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
           }
         }
 
-        printf("Packet send %d, length %d, dest 0X%02X, slot %lu\n", 
+        /* printf("Packet send %d, length %d, dest 0X%02X, slot %lu\n", 
           mac_tx_status, packet_len, 
           current_neighbor->addr.u8[sizeof(current_neighbor->addr)-1],
           tsch_current_asn.ls4b % TSCH_SCHEDULE_DEFAULT_LENGTH);
@@ -764,6 +766,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
           printf("OK %d; NOACK %d, ERR %d\n", MAC_TX_OK, MAC_TX_NOACK, MAC_TX_ERR);
           // print_frame(packet_len, packet);
         }
+        */
       }
     }
 
@@ -1299,7 +1302,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
   /* create payload */
   packet_len = tsch_packet_create_eack(packet_buf, TSCH_PACKET_MAX_LEN, &(current_link->addr), seqno, 0, 1);
-  
+
   current_neighbor = tsch_queue_add_nbr(&(current_link->addr));
 
   /* Copy packet (msg1) to the radio buffer*/
@@ -1497,7 +1500,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
                 timestamp_tx_m3-timestamp_rx_m2,
                 replier_roundtrip, replier_reply);
 
-              update_neighbor_prop_time(current_neighbor, prop_time, RTIMER_NOW()); 
+              update_neighbor_prop_time(current_neighbor, prop_time, RTIMER_NOW(), current_channel); 
               // printf("update_neighbor_prop_time \n");
               mac_tx_status = MAC_TX_OK;
             }
@@ -1613,7 +1616,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
     if(!packet_seen) {
       /* no packets on air */
       tsch_radio_off(TSCH_RADIO_CMD_OFF_FORCE);
-              printf("no packet seen rx loc slot\n");
+              // printf("no packet seen rx loc slot\n");
     } 
     else 
     {

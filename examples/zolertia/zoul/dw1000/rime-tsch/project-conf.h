@@ -83,7 +83,7 @@
 /* 6TiSCH minimal schedule length.
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 120
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 31
 
 #undef TSCH_LOG_CONF_ID_FROM_LINKADDR
 #define TSCH_LOG_CONF_ID_FROM_LINKADDR(addr) ((addr) ? (addr)->u8[LINKADDR_SIZE - 2] : 0)

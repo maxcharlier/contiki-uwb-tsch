@@ -50,6 +50,6 @@ PROCESS_NAME(TSCH_PROP_PROCESS);
 /********** Functions *********/
 
 int is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n, struct tsch_link *link);
-void update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, rtimer_clock_t last_mesureament);
+void update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, rtimer_clock_t last_mesureament, uint8_t tsch_channel);
 
 #endif /* __TSCH_LOC_H__ */

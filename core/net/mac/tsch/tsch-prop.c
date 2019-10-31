@@ -43,6 +43,7 @@
 #include "net/mac/tsch/tsch-prop.h"
 #include "net/mac/tsch/tsch-queue.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "dev/radio.h"
 
 
 #include <stdio.h>
@@ -67,9 +68,10 @@
       PROCESS_WAIT_EVENT();
       // printf("Got event number %d\n", ev);
       if(ev == PROCESS_EVENT_MSG){
-        printf("New prop time %ld %lu\n", 
+        printf("New prop time %ld %lu %u\n", 
           ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-          ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament);
+          ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament,
+          ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
       }
     }
 
@@ -98,11 +100,12 @@ is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n,
 /* Update the propagation time between the node and his neighbor */
 void
 update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, 
-                          rtimer_clock_t last_mesureament)
+                          rtimer_clock_t last_mesureament, uint8_t tsch_channel)
 {
   struct tsch_prop_time n_prop_time;
   n_prop_time.prop_time = prop_time;
   n_prop_time.last_mesureament = last_mesureament;
+  n_prop_time.tsch_channel = tsch_channel;
   n->last_prop_time = n_prop_time;
 
   /* printf("TSCH-prop %ld %lu\n", 

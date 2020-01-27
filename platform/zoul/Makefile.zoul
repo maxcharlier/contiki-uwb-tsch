@@ -23,6 +23,11 @@ BSL_SPEED ?= 460800
 # Works in Linux and probably on OSX too (RTCC example)
 CFLAGS += -DDATE="\"`date +"%02u %02d %02m %02y %02H %02M %02S"`\""
 
+### If PORT is defined, override to keep backward compatibility
+ifdef NODEID
+  CFLAGS += -DNODEID=$(NODEID)
+endif
+
 ### Configure the build for the board and pull in board-specific sources
 CONTIKI_TARGET_DIRS += . dev
 CONTIKI_TARGET_DIRS += . $(BOARD)

@@ -695,7 +695,7 @@ void dw_set_channel(dw1000_channel_t channel){
   case DW_CHANNEL_5:
     rf_rxctrlh_val = 0xD8;
     rf_txctrl_val = 0x001E3FE3UL;
-    tc_pgdelay_val = 0xC0;
+    tc_pgdelay_val = 0xB5;
     fs_pllcfg_val = 0x0800041DUL;
     fs_plltune_val = 0xBE;
     break;

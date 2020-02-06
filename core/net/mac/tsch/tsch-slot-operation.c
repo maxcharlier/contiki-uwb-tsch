@@ -1633,7 +1633,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
       BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
           current_slot_start, tsch_timing[tsch_ts_loc_rx_offset] + tsch_timing[tsch_ts_loc_rx_wait] + tsch_timing[tsch_ts_max_tx] + RADIO_DELAY_BEFORE_DETECT);
       TSCH_DEBUG_RX_EVENT();
-      tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
+      // tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
 
           if(!NETSTACK_RADIO.pending_packet()){
             printf("frame lost rx loc slot\n");

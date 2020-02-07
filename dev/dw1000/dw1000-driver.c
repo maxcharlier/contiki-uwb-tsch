@@ -391,7 +391,7 @@ dw1000_driver_init(void)
 #ifdef DOUBLE_BUFFERING
   dw_enable_double_buffering();
 #else
-  dw_enable_automatic_receiver_Re_Enable();
+  // dw_enable_automatic_receiver_Re_Enable();
 #endif /* DOUBLE_BUFFERING */
 
 #if DEBUG_LED

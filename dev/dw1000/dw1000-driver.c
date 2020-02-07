@@ -781,7 +781,7 @@ dw1000_driver_receiving_packet(void)
   return ((sys_status & (DW_RXPRD_MASK     /* Receiver preamble detected */
                       | DW_RXSFDD_MASK    /* Receiver SFD detected */
                       | DW_RXPHD_MASK)) > 0)   /* Receiver PHY Header Detect */
-        && !((sys_status & DW_RXDFR_MASK) > 0);/* Receiver data frame ready */
+        && !((sys_status & DW_RXFCG_MASK) > 0);/* Receiver CRC good */
 }
 /**
  * \brief     Checks to see if we have a pending packet. Some drivers check

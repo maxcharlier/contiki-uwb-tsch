@@ -1636,8 +1636,9 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
       // tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
 
           if(!NETSTACK_RADIO.pending_packet()){
+            uint64_t sys_status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
             printf("frame lost rx loc slot\n");
-            print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
+            print_sys_status(sys_status);
           }
               
 

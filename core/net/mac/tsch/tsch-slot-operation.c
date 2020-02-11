@@ -1631,16 +1631,16 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
 
       /* Wait until packet is received or we stop receiving a packet (error in the crc or sfd), turn radio off */
       BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet() || !NETSTACK_RADIO.receiving_packet(),
-          current_slot_start, tsch_timing[tsch_ts_loc_rx_offset] + tsch_timing[tsch_ts_loc_rx_wait] + tsch_timing[tsch_ts_max_tx] + RADIO_DELAY_BEFORE_DETECT);
+          rx_start_time + RADIO_DELAY_BEFORE_DETECT, 2 * tsch_timing[tsch_ts_max_tx] +  RADIO_DELAY_BEFORE_DETECT);
       TSCH_DEBUG_RX_EVENT();
-      tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
 
           if(!NETSTACK_RADIO.pending_packet()){
             uint64_t sys_status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
             printf("frame lost rx loc slot\n");
             print_sys_status(sys_status);
           }
-              
+
+      tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
 
       if(NETSTACK_RADIO.pending_packet()) {
         static int frame_valid;

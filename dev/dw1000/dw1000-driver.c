@@ -781,8 +781,14 @@ dw1000_driver_receiving_packet(void)
   return ((sys_status & (DW_RXPRD_MASK     /* Receiver preamble detected */
                       | DW_RXSFDD_MASK    /* Receiver SFD detected */
                       | DW_RXPHD_MASK)) > 0)   /* Receiver PHY Header Detect */
-        && !((sys_status & DW_RXFCG_MASK) > 0);/* Receiver CRC good */
+        && !((sys_status & (DW_RXFCG_MASK /* Receiver CRC good */
+                      | DW_RXFCE_MASK /*  Receiver FCS Error */
+                      | DW_RXRFSL_MASK /* Receiver Reed Solomon Frame Sync Loss. */
+                      | DW_LDEERR_MASK /* Leading edge detection processing error. */
+                      | DW_RXDFR_MASK /* Receiver Data Frame Ready. */
+                      | DW_RXFCE_MASK) > 0); /* Receiver PHY Header Error */
 }
+
 /**
  * \brief     Checks to see if we have a pending packet. Some drivers check
  *            a flag set by an interrupt routine.

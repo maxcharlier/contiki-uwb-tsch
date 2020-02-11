@@ -786,7 +786,7 @@ dw1000_driver_receiving_packet(void)
                       | DW_RXRFSL_MASK /* Receiver Reed Solomon Frame Sync Loss. */
                       | DW_LDEERR_MASK /* Leading edge detection processing error. */
                       | DW_RXDFR_MASK /* Receiver Data Frame Ready. */
-                      | DW_RXFCE_MASK) > 0); /* Receiver PHY Header Error */
+                      | DW_RXFCE_MASK) > 0)); /* Receiver PHY Header Error */
 }
 
 /**

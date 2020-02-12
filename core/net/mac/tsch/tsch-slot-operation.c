@@ -1612,13 +1612,16 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
     /* Start radio for at least guard time */
     tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
     packet_seen = NETSTACK_RADIO.receiving_packet() || NETSTACK_RADIO.pending_packet();
+    
+    uint64_t sys_status_init = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+
     if(!packet_seen) {
       /* Check if receiving within guard time */
       BUSYWAIT_UNTIL_ABS((packet_seen = NETSTACK_RADIO.receiving_packet()),
           current_slot_start, tsch_timing[tsch_ts_loc_rx_offset] + tsch_timing[tsch_ts_loc_rx_wait] + RADIO_DELAY_BEFORE_DETECT);
 
 
-      uint64_t sys_status_init = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+      sys_status_init = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
 
       packet_seen = NETSTACK_RADIO.receiving_packet() || NETSTACK_RADIO.pending_packet();
     }

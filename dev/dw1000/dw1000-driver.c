@@ -383,7 +383,7 @@ dw1000_driver_init(void)
                 (dw1000_conf.prf == 1) ? 16U : 64U);
 
   dw_disable_rx_timeout();
-  dw_disable_receive_abort_on_RSD_error()
+  dw_disable_receive_abort_on_RSD_error();
 
   /* Contiki should set correct value. */
   dw_set_pan_id(0xffff);

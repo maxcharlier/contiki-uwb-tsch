@@ -1616,6 +1616,10 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
       /* Check if receiving within guard time */
       BUSYWAIT_UNTIL_ABS((packet_seen = NETSTACK_RADIO.receiving_packet()),
           current_slot_start, tsch_timing[tsch_ts_loc_rx_offset] + tsch_timing[tsch_ts_loc_rx_wait] + RADIO_DELAY_BEFORE_DETECT);
+
+
+      uint64_t sys_status_init = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
+
       packet_seen = NETSTACK_RADIO.receiving_packet() || NETSTACK_RADIO.pending_packet();
     }
     if(!packet_seen) {
@@ -1631,13 +1635,16 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
 
       /* Wait until packet is received or we stop receiving a packet (error in the crc or sfd), turn radio off */
       BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet() || !NETSTACK_RADIO.receiving_packet(),
-          rx_start_time + RADIO_DELAY_BEFORE_DETECT, 2 * tsch_timing[tsch_ts_max_tx] +  RADIO_DELAY_BEFORE_DETECT);
+          rx_start_time + RADIO_DELAY_BEFORE_DETECT, tsch_timing[tsch_ts_loc_uwb_t_shr] + tsch_timing[tsch_ts_max_tx] +  RADIO_DELAY_BEFORE_DETECT);
       TSCH_DEBUG_RX_EVENT();
 
           if(!NETSTACK_RADIO.pending_packet()){
             uint64_t sys_status = dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS);
             printf("frame lost rx loc slot\n");
             print_sys_status(sys_status);
+
+            printf("prev sys-status\n");
+            print_sys_status(sys_status_init);
           }
 
       tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);

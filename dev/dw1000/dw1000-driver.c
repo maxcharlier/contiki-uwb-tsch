@@ -785,10 +785,10 @@ dw1000_driver_receiving_packet(void)
                       | DW_RXPHD_MASK)) > 0)   /* Receiver PHY Header Detect */
         && !((sys_status & ((DW_RXFCG_MASK /* Receiver CRC good */
                       | DW_RXFCE_MASK /*  Receiver FCS Error */
-                      /* | DW_RXRFSL_MASK  Receiver Reed Solomon Frame Sync Loss. (the CRC of the frame could be good*/
                       | DW_LDEERR_MASK /* Leading edge detection processing error. */
                       | DW_RXDFR_MASK /* Receiver Data Frame Ready. */
                       | DW_RXFCE_MASK)) > 0)); /* Receiver PHY Header Error */
+                      /* | DW_RXRFSL_MASK  Receiver Reed Solomon Frame Sync Loss. (keep receiving because the CRC of the frame could be good*/
 }
 
 /**

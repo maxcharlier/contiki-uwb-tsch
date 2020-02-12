@@ -551,6 +551,9 @@ void dw_conf_print(void);
 void dw_turn_frame_filtering_off(void);
 void dw_turn_frame_filtering_on(void);
 uint8_t dw_is_frame_filtering_on(void);
+
+void dw_disable_receive_abort_on_RSD_error(void);
+void dw_enable_receive_abort_on_RSD_error(void);
 void dw_enable_gpio_led(void);
 void dw_enable_gpio_led_from_deepsleep(void);
 void dw_disable_gpio_led(void);

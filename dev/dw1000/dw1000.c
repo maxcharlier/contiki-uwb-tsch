@@ -308,6 +308,40 @@ uint8_t dw_is_frame_filtering_on(void){
   return frameFilteringData & DW_FFEN_MASK; /* Frame Filtering Enable bit */
 }
 
+
+
+/**
+ * \brief Keep the receiver on the reception when the Reed Solomon decoder detects
+ * an non-correctable error.
+ *
+ */
+void
+dw_disable_receive_abort_on_RSD_error(void)
+{
+  /* read current value from system configuration register */
+  uint32_t sys_cfg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
+  /* switch all filtering off and disable filtering */
+  /* switch it all off */
+  sys_cfg |= DW_DIS_RSDE_MASK; 
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg);
+}
+
+/**
+ * \brief Disable the reception when the Reed Solomon decoder detects
+ * an non-correctable error. (Default state)
+ *
+ */
+void
+dw_enable_receive_abort_on_RSD_error(void)
+{
+  /* read current value from system configuration register */
+  uint32_t sys_cfg = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
+  /* switch all filtering off and disable filtering */
+  /* switch it all off */
+  sys_cfg &= ~(DW_DIS_RSDE | DW_DIS_RSDE_MASK); 
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg);
+}
+
 /**
  * \brief Enable the extended frame format.
  *      The default setting gives IEEE standard PHR encoding and a maximum data

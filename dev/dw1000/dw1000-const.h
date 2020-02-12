@@ -316,6 +316,8 @@
 #define DW_DIS_DRXB_MASK (0x1UL << 12)  /* \brief dummy */
 #define DW_DIS_PHE       13             /* \brief dummy */
 #define DW_DIS_PHE_MASK  (0x1UL << 13)  /* \brief dummy */
+#define DW_DIS_RSDE      14             /* \brief dummy */
+#define DW_DIS_RSDE_MASK (0x1UL << 14)  /* \brief dummy */
 #define DW_PHR_MODE      16             /* \brief dummy */
 #define DW_PHR_MODE_MASK (0x3UL << 16)  /* \brief dummy */
 #define DW_DIS_STXP      18             /* \brief dummy */

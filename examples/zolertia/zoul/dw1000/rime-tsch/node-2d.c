@@ -131,7 +131,7 @@ create_buffer(struct tsch_neighbor * data)
   current_index++;
   memcpy(&buf[current_index], &(data->last_prop_time.prop_time), 4);
   current_index += 4;
-  memcpy(&buf[current_index], &(data->last_prop_time.last_mesureament), 4);
+  memcpy(&buf[current_index], &(data->last_prop_time.asn), 4);
   current_index += 4;
   memcpy(&buf[current_index], &(data->last_prop_time.tsch_channel), 1);
   current_index += 1;

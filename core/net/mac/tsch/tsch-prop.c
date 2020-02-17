@@ -105,7 +105,7 @@ update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time,
   struct tsch_prop_time n_prop_time;
   n_prop_time.prop_time = prop_time;
   n_prop_time.asn = asn;
-  n_prop_time.asn = tsch_channel;
+  n_prop_time.tsch_channel = tsch_channel;
   n->last_prop_time = n_prop_time;
 
   /* printf("TSCH-prop %ld %lu\n", 

@@ -91,7 +91,7 @@ print_buffer()
     write_byte(buf[1]);
     write_byte(buf[0]);
     write_byte(current_index-1);
-    write_byte(sink_addr.u8[1]);
+    write_byte(linkaddr_node_addr.u8[1]);
     for(int i = 2; i < current_index; i++){
       write_byte((uint8_t) buf[i]);    
     }

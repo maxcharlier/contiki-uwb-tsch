@@ -125,7 +125,7 @@
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 /* by default 3 */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 120
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 301
 
 #if WITH_SECURITY
 
@@ -194,8 +194,3 @@
 #endif /* CONTIKI_TARGET_CC2538DK || CONTIKI_TARGET_ZOUL \
        || CONTIKI_TARGET_OPENMOTE_CC2538 */
 #endif
-
-
-#define SINK_ID 0XA5
-
-#define ROOT_ID SINK_ID

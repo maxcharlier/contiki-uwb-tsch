@@ -67,18 +67,19 @@
 /* 802.15.4 broadcast MAC address  */
 // static linkaddr_t node_1_address = { { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff } };
 
-static linkaddr_t node_1_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_2_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_3_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_4_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_5_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_6_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_7_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_8_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_9_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_10_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_11_address = { { 0XFF, 0XFF } };
-static linkaddr_t node_12_address = { { 0XFF, 0XFF } };
+static linkaddr_t node_1_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_2_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_3_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_4_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_5_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_6_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_7_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_8_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_9_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_10_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_11_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+static linkaddr_t node_12_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } };
+
 static linkaddr_t node_13_address = { { 0XFF, 0XFF } };
 static linkaddr_t node_14_address = { { 0XFF, 0XFF } };
 static linkaddr_t node_15_address = { { 0XFF, 0XFF } };

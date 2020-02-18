@@ -38,6 +38,7 @@
 #include "contiki.h"
 #include "lib/ringbufindex.h"
 #include "net/linkaddr.h"
+#include "net/mac/tsch/tsch-asn.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/mac/mac.h"
 
@@ -116,7 +117,7 @@ void TSCH_CALLBACK_PACKET_READY(void);
 struct tsch_prop_time
 {
   int32_t prop_time;
-  uint32_t asn;  /* ASN of the slot used for the propagation time measurement */
+  struct tsch_asn_t asn;  /* ASN of the slot used for the propagation time measurement */
   uint8_t tsch_channel;
 };
 /* TSCH packet information */

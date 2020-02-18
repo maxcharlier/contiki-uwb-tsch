@@ -36,6 +36,7 @@
 /********** Includes **********/
 
 #include "contiki.h"
+#include "net/mac/tsch/tsch-asn.h"
 #include "net/mac/tsch/tsch-packet.h"
 #include "net/mac/tsch/tsch-queue.h"
 #include "net/mac/tsch/tsch-schedule.h"
@@ -50,6 +51,6 @@ PROCESS_NAME(TSCH_PROP_PROCESS);
 /********** Functions *********/
 
 int is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n, struct tsch_link *link);
-void update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, uint32_t asn, uint8_t tsch_channel);
+void update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, struct tsch_asn_t * asn, uint8_t tsch_channel);
 
 #endif /* __TSCH_LOC_H__ */

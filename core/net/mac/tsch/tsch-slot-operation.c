@@ -1505,7 +1505,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
                 timestamp_tx_m3-timestamp_rx_m2,
                 replier_roundtrip, replier_reply);
 
-              update_neighbor_prop_time(current_neighbor, prop_time, tsch_current_asn.ls4b, current_channel); 
+              update_neighbor_prop_time(current_neighbor, prop_time, &tsch_current_asn, current_channel); 
               // printf("update_neighbor_prop_time \n");
               mac_tx_status = MAC_TX_OK;
             }

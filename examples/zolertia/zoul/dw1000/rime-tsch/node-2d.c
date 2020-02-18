@@ -108,10 +108,10 @@ print_buffer()
       i += 4;
       printf(" %ld",  value);
 
-      /* last mesureament */
-      memcpy(&value, &buf[i], 4);
-      i += 4;
-      printf(" %ld",  value);
+      /* asn */
+      memcpy(&value, &buf[i], 5);
+      i += 5;
+      printf(" %llu",  value);
 
       /* channel */
       printf(" %u",  buf[i]);
@@ -131,8 +131,8 @@ create_buffer(struct tsch_neighbor * data)
   current_index++;
   memcpy(&buf[current_index], &(data->last_prop_time.prop_time), 4);
   current_index += 4;
-  memcpy(&buf[current_index], &(data->last_prop_time.asn), 4);
-  current_index += 4;
+  memcpy(&buf[current_index], &(data->last_prop_time.asn), 5);
+  current_index += 5;
   memcpy(&buf[current_index], &(data->last_prop_time.tsch_channel), 1);
   current_index += 1;
 }

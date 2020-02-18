@@ -39,6 +39,7 @@
 
 
 #include "contiki.h"
+#include "net/mac/tsch/tsch-asn.h"
 #include "net/mac/tsch/tsch-packet.h"
 #include "net/mac/tsch/tsch-prop.h"
 #include "net/mac/tsch/tsch-queue.h"
@@ -68,9 +69,10 @@
       PROCESS_WAIT_EVENT();
       // printf("Got event number %d\n", ev);
       if(ev == PROCESS_EVENT_MSG){
-        printf("New prop time %ld %lu %u\n", 
+        printf("New prop time %ld %u %lu %u\n", 
           ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-          ((struct tsch_neighbor *) data)->last_prop_time.asn, /* least significant 4 bytes */
+          ((struct tsch_neighbor *) data)->last_prop_time.asn.ms1b, /* most significant 1 byte */
+          ((struct tsch_neighbor *) data)->last_prop_time.asn.ls4b, /* least significant 4 bytes */
           ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
       }
     }
@@ -100,17 +102,18 @@ is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n,
 /* Update the propagation time between the node and his neighbor */
 void
 update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, 
-                          uint32_t asn, uint8_t tsch_channel)
+                          struct tsch_asn_t * asn, uint8_t tsch_channel)
 {
   struct tsch_prop_time n_prop_time;
   n_prop_time.prop_time = prop_time;
-  n_prop_time.asn = asn;
+  n_prop_time.asn = * asn; /* Copy the 5 bytes pointed by the pointer * asn 
+  to the n_prop_time.asn struct */
   n_prop_time.tsch_channel = tsch_channel;
   n->last_prop_time = n_prop_time;
 
   /* printf("TSCH-prop %ld %lu\n", 
           prop_time, 
-          asn); */
+          n_prop_time.asn.ls4b); */
 
   /* Send the PROCESS_EVENT_MSG event asynchronously to 
   "tsch_loc_operation", with a pointer to the tsch_neighbor. */

@@ -1444,8 +1444,8 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
           /* Wait to transmit ms3 */
 
-          TSCH_WAIT(pt, t, ack_start_time,
-              tx_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "txMsg3");
+          // TSCH_WAIT(pt, t, ack_start_time,
+          //     tx_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "txMsg3");
 
           /* Wait the end of the msg3. */
           /* send the message, the function wait the end of the transmition */
@@ -1724,7 +1724,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
               loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time]);
               NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
               
-              TSCH_WAIT(pt, t, rx_start_time, tsch_timing[tsch_ts_loc_tx_reply_time], "msg2TX");
+              // TSCH_WAIT(pt, t, rx_start_time, tsch_timing[tsch_ts_loc_tx_reply_time], "msg2TX");
               TSCH_DEBUG_TX_EVENT();
               /* Wait to transmit msg2. */
               mac_tx_status = NETSTACK_RADIO.transmit(packet_len);
@@ -1789,8 +1789,8 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
                   /* Prepare the  ranging packet (msg4) */
                   NETSTACK_RADIO.prepare((const void *)packet_buf, packet_len);
 
-                  TSCH_WAIT(pt, t, rx_start_time, 
-                    packet_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "waitForTxmsg4");
+                  // TSCH_WAIT(pt, t, rx_start_time, 
+                  //   packet_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "waitForTxmsg4");
 
                   /* Wait the end of the msg4. */
                   mac_tx_status = NETSTACK_RADIO.transmit(packet_len);

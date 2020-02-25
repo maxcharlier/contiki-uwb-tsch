@@ -195,7 +195,7 @@
 #define TSCH_DEFAULT_TS_RX_TX              70      /* not used */
 #define TSCH_DEFAULT_TS_MAX_ACK            78   /* do not include SHR */
 #define TSCH_DEFAULT_TS_MAX_TX             177  /* do not include SHR */
-#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    5000
+#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    7000
 
 // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 

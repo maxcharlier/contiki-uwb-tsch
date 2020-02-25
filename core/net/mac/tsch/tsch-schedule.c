@@ -469,6 +469,7 @@ tsch_schedule_create_minimal_test_loc(void)
 {
   struct tsch_slotframe *sf_custom;
   uint8_t offset = 15;
+  uint8_t nb_loc_slot = 1;
   /* First, empty current schedule */
   tsch_schedule_remove_all_slotframes();
   /* Build 6TiSCH minimal schedule.
@@ -488,29 +489,29 @@ tsch_schedule_create_minimal_test_loc(void)
   linkaddr_copy(&node_2_address, &linkaddr_node_addr);
   node_2_address.u8[INDEX_NODE_ID] = 0XD1;
 
-  for (int i = 1; i < 2; i++){
+  for (int i = 1; i < 1 + nb_loc_slot; i++){
     if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_1_address.u8[INDEX_NODE_ID]){
       tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, offset * i, 0);
+          LINK_OPTION_TX, LINK_TYPE_LOC, &node_2_address, offset * i, 0);
     printf("localisation schedule1\n");
     }
     if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_2_address.u8[INDEX_NODE_ID]){
       tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, offset * i, 0);
+          LINK_OPTION_RX, LINK_TYPE_LOC, &node_1_address, offset * i, 0);
     printf("localisation schedule2\n");
     }
   }
 
-    if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_1_address.u8[INDEX_NODE_ID]){
-      tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, offset * 3, 0);
-    printf("localisation schedule1\n");
-    }
-    if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_2_address.u8[INDEX_NODE_ID]){
-      tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, offset * 3, 0);
-    printf("localisation schedule2\n");
-    }
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_1_address.u8[INDEX_NODE_ID]){
+    tsch_schedule_add_link(sf_custom,
+        LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, offset * (1 + nb_loc_slot), 0);
+  printf("localisation schedule1\n");
+  }
+  if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_2_address.u8[INDEX_NODE_ID]){
+    tsch_schedule_add_link(sf_custom,
+        LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, offset * (1 + nb_loc_slot), 0);
+  printf("localisation schedule2\n");
+  }
 
   tsch_schedule_print();
 }
@@ -1223,6 +1224,7 @@ rtimer_clock_t tsch_schedule_get_slotframe_duration(void){
 #endif /* NODEID */
 
 void tsch_schedule_create_minimal(void)
+// void tsch_schedule_create_minimal_tested(void)
 {
   struct tsch_slotframe *sf_custom;
 

@@ -136,16 +136,15 @@ recv_ranging(struct unicast_conn *c, const linkaddr_t *from)
       str = (unsigned char *)packetbuf_dataptr();
       str[packetbuf_datalen()] = '\0';
 
-      for(int i = 0; i < packetbuf_datalen() / 9; i++){
+      for(int i = 0; i < packetbuf_datalen() / 11; i++){
         printf(" %c", (uint8_t) str[current_index]);
         current_index++;
         memcpy(&prop_time, &str[current_index], 4);
         current_index += 4;
         printf(" %ld",  prop_time);
-        memcpy(&prop_time, &str[current_index], 4);
-        current_index += 4;
+        memcpy(&prop_time, &str[current_index], 6);
+        current_index += 6;
         printf(" %ld",  prop_time);
-        current_index += 4;
         /* channel */
         printf(" %u",  str[current_index]);
         current_index += 1;
@@ -162,7 +161,6 @@ static void
 initialize_anchro_prop(void){
   struct tsch_prop_time n_prop_time;
   n_prop_time.prop_time = 0;
-  n_prop_time.last_mesureament = 0;
       
   for (int i =0; i < 4; i++){
     anchors_prop[i]=n_prop_time;
@@ -182,16 +180,16 @@ send_packet(void)
   char buf[MAX_PAYLOAD_LEN];
   uint8_t current_index= 0;
   for (int i=0; i <5; i++){
-    if(anchors_prop[i].last_mesureament > last_transmition){
+    // if(anchors_prop[i].asn > 0){
       buf[current_index] = 0XD0+i;
       current_index++;
       memcpy(&buf[current_index], &(anchors_prop[i].prop_time), 4);
       current_index += 4;
-      memcpy(&buf[current_index], &(anchors_prop[i].last_mesureament), 4);
-      current_index += 4;
+      memcpy(&buf[current_index], &(anchors_prop[i].asn), 5);
+      current_index += 5;
       memcpy(&buf[current_index], &(anchors_prop[i].tsch_channel), 1);
       current_index += 1;
-    }
+    // }
 
   }
   if(current_index > 0 && !linkaddr_cmp(&sink_addr, &linkaddr_node_addr)){
@@ -218,10 +216,11 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
     PROCESS_YIELD();
     /* receive a new propagation time measurement */
     if(ev == PROCESS_EVENT_MSG){
-      printf("Node 0X%02X prop time %ld %lu %u\n", 
+      printf("Node 0X%02X prop time %ld %u %lu %u\n", 
         ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1],
         ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-        ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament,
+        ((struct tsch_neighbor *) data)->last_prop_time.asn.ms1b, /* most significant 1 byte */
+        ((struct tsch_neighbor *) data)->last_prop_time.asn.ls4b, /* least significant 4 bytes */
         ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
 
       // printf("Node 0X%02X anchors_prop index %d\n", 
@@ -231,7 +230,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
 
       struct tsch_prop_time n_prop_time;
       n_prop_time.prop_time = ((struct tsch_neighbor *) data)->last_prop_time.prop_time;
-      n_prop_time.last_mesureament = ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament;
+      n_prop_time.asn = ((struct tsch_neighbor *) data)->last_prop_time.asn;
       n_prop_time.tsch_channel = ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel;
       /* replace older measurement */
       uint8_t i = MAX(0, ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1]-(0XD0));

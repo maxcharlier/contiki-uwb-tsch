@@ -464,8 +464,8 @@ tsch_schedule_create_minimal_old(void)
 /*---------------------------------------------------------------------------*/
 /* Create a 6TiSCH schedule to test the propagation time feature. */
 void
-tsch_schedule_create_minimal_test_loc(void)
-// tsch_schedule_create_minimal(void)
+// tsch_schedule_create_minimal_test_loc(void)
+tsch_schedule_create_minimal(void)
 {
   struct tsch_slotframe *sf_custom;
   uint8_t offset = 15;
@@ -1223,8 +1223,8 @@ rtimer_clock_t tsch_schedule_get_slotframe_duration(void){
 #  error "Node ID not defined. Perhaps you need to tweak target Makefile."
 #endif /* NODEID */
 
-void tsch_schedule_create_minimal(void)
-// void tsch_schedule_create_minimal_tested(void)
+// void tsch_schedule_create_minimal(void)
+void tsch_schedule_create_minimal_tested(void)
 {
   struct tsch_slotframe *sf_custom;
 
@@ -1810,8 +1810,8 @@ void tsch_schedule_create_minimal(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_11_address, 283, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_11_address, 286, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_11_address, 289, 0 },
-#else
-#  error "Unhandled NODEID for static schedule."
+// #else
+// #  error "Unhandled NODEID for static schedule."
 #endif /* NODEID */
     { 0 }
   }, *l;

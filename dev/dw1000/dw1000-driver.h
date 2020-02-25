@@ -86,5 +86,5 @@ extern const struct radio_driver dw1000_driver;
                      / DW_TIMESTAMP_CLOCK_DIVIDER_TO_US))
 
 #define US_TO_RADIO(x)  (((uint64_t) x * DW_TIMESTAMP_CLOCK_DIVIDER_TO_US) \
-						<< DW_TIMESTAMP_CLOCK_OFFSET)
+						* DW_TIMESTAMP_CLOCK_INCREMENT)
 /*---------------------------------------------------------------------------*/

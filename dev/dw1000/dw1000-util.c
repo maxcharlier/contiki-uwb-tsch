@@ -891,7 +891,7 @@ theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght)
  * \param duration A delay in micro second.
  */
 rtimer_clock_t 
-microsecond_to_clock_tik(int duration) {
+microseconds_to_clock_ticks(int duration) {
   return ((( (long int) RTIMER_SECOND) * duration) / 1000000) + 1;
 }
 /**

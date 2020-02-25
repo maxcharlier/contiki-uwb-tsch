@@ -241,7 +241,7 @@ static uint8_t sleep_mode = RADIO_IDLE;
 #define BUSYWAIT_UPDATE_UNTIL(update, cond, max_time) \
   do { \
     rtimer_clock_t timeout = RTIMER_NOW() \
-                             + microsecond_to_clock_tik(max_time); \
+                             + microseconds_to_clock_ticks(max_time); \
     watchdog_periodic(); \
     do { \
       update; \
@@ -515,13 +515,21 @@ dw1000_driver_transmit(unsigned short payload_len)
   if(dw1000_is_delayed_tx){
     /* wait the effective start of the transmission */
     uint64_t sys_time = 0ULL, dx_time = 0ULL;
+
+    // dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);
+    // dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);
+    // printf("dw1000_driver_transmit init %lu %llu %llu\n", RADIO_TO_US(dx_time-sys_time), sys_time, dx_time);
+
     /* We wait for a maximum of 1ms to be improve in case of lower bitrate */
     BUSYWAIT_UPDATE_UNTIL(
-                    watchdog_periodic();\
                     dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);\
-                    dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);,
-                    sys_time >= dx_time, 
-                    1000);
+                    dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);\
+                    watchdog_periodic();,
+                    (sys_time > dx_time), 
+                    (2000));
+    if(sys_time < dx_time){
+      printf("dw1000_driver_transmit wait too long %lu\n", RADIO_TO_US(dx_time-sys_time));
+    }
   }
   else{
     /* No wait for response, no delayed transmission */
@@ -535,7 +543,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
                   watchdog_periodic();, 
                   ((sys_ctrl_lo & DW_TXSTRT_MASK) == 0),
-                  microsecond_to_clock_tik(100));
+                  (100));
 #endif /* DEBUG */
 
   if(DW1000_CONF_CHECKSUM) {
@@ -572,11 +580,17 @@ dw1000_driver_transmit(unsigned short payload_len)
 
     tx_return = RADIO_TX_OK;
   }else{
-    // printf("Is delayed ? %d\n", dw1000_is_delayed_tx);
+  //   printf("Is delayed ? %d\n", dw1000_is_delayed_tx);
     // print_sys_status(dw_read_reg_64(DW_REG_SYS_STATUS, DW_LEN_SYS_STATUS));
 
+  // uint8_t sys_ctrl_lo = 0;
+  // dw_read_reg(DW_REG_SYS_CTRL, 1, &sys_ctrl_lo);
+  // printf("DW_REG_SYS_CTRL 0x%X\n", sys_ctrl_lo);
+
     // dw_idle(); /* error: abort the transmission */
-    dw1000_driver_init();
+    // dw1000_driver_init();
+    PRINTF("dw1000_driver_transmit error  tx\n");
+    // tx_return = RADIO_TX_OK;
   }
 
  
@@ -946,7 +960,7 @@ dw1000_off(void)
   BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_CTRL, 0x0, 1, &sys_ctrl_lo);
                 watchdog_periodic(); /* count_idle++; */, 
                 ((sys_ctrl_lo & DW_TRXOFF_MASK) == 0),
-                microsecond_to_clock_tik(50));
+                (50));
 #endif /* DEBUG */
 
   if(!poll_mode){

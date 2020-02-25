@@ -2575,6 +2575,7 @@ dw_init_delayed_rx(void)
   if((sys_status & DW_HPDWARN_MASK) != 0){
     dw_idle();
     dw_init_rx();
+    printf("dw_init_delayed_rx error\n");
   }
 }
 /**

@@ -77,7 +77,7 @@ theorical_transmission_approx(uint16_t preamble_lenght, uint16_t data_rate,
 unsigned long
 theorical_transmission_payload(uint16_t data_rate, uint32_t data_lenght);
 
-rtimer_clock_t microsecond_to_clock_tik(int duration);
+rtimer_clock_t microseconds_to_clock_ticks(int duration);
 int16_t clock_ticks_to_microsecond(rtimer_clock_t clock_ticks);
 
 int32_t compute_prop_time(int32_t initiator_roundtrip, 

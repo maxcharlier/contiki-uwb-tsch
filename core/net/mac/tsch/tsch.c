@@ -110,8 +110,8 @@ static const uint16_t tsch_default_timing_us[tsch_ts_elements_count] = {
   TSCH_LOC_RX_WAIT,
   TSCH_LOC_RX_OFFSET,
   TSCH_LOC_TX_OFFSET,
-  TSCH_LOC_TX_REPLY_TIME,
   TSCH_LOC_RX_REPLY_TIME,
+  TSCH_LOC_TX_REPLY_TIME,
   TSCH_LOC_UWB_T_SHR
 };
 /* TSCH timeslot timing (in rtimer ticks) */

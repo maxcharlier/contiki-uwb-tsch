@@ -1,0 +1,16 @@
+- <u>com-simult.c</u> Was used for the *uwb-tsch paper* with the logical analyser to performe concurent communications with a GPIO trigger. 
+Allow to change channels, send trigger, transmit when receive the trigger
+- <u>concurrent-channels.c</u> Used to transmit a response from a broacast message to perform concurrent communciations
+- <u>eval-time.c</u> Used with logical analyser to get the duration of the function radio On() / off() and set_channel()
+- <u>localisation/</u> ?
+- <u>master.c</u> Deprecated Old file to performe ranging using ranging request function
+- <u>rime-tsch/</u> Performe rime communication using TSCH (allow ranging)
+- <u>rpl-loc/</u> Performe localisation using RPL routing (requierd udp) using only one file to not send data packet
+- <u>rpl-udp/</u> Used client/server, the client send packet to the server each 15 seconds
+- <u>rpl-udp-pdr/</u> USed in the *uwb-tsch paper* to show the PDR of TSCH with 4 nodes.
+- <u>test-dma.c</u> Test the SPI copy using DMA (not using the DW1000 driver)
+- <u>test-dma-simple.c</u> Test the SPI copy using DMA (**USING** the DW1000 driver)
+- <u>test-led.c</u> Make DW1000 led to a chenillard. If DW1000 is not rechable then the led of the Firefly will change color.
+- <u>test-sleep.c</u> Test the DW1000 sleep feature: put the transceiver to sleep for 2 to 4 seconds, when wake up make blink led like a chenillard and the return to sleep.
+- <u>test-spi.c</u> Test if we can communicate with the DW1000 by reading the ID of the transceiver.
+- <u>tsch-delay.c</u> Like eval-time.c allow to know the duration of some function but used the Decawave clock to get the time (less accurate than eval-time.c)

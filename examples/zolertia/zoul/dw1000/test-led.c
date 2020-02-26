@@ -16,6 +16,8 @@
 #include "dev/udma.h"
 #include "watchdog.h"
 
+#include "dev/leds.h"
+
 #include "dw1000.h"
 #include "dw1000-const.h"
 #include "dw1000-arch.h"
@@ -35,6 +37,25 @@ AUTOSTART_PROCESSES(&dw1000_dma);
 #else
 #define PRINTF(...) do {} while(0)
 #endif
+/*---------------------------------------------------------------------------*/
+static void
+fade(unsigned char l)
+{
+  volatile int i;
+  int k, j;
+  for(k = 0; k < 800; ++k) {
+    j = k > 400 ? 800 - k : k;
+
+    leds_on(l);
+    for(i = 0; i < j; ++i) {
+      asm("nop");
+    }
+    leds_off(l);
+    for(i = 0; i < 400 - j; ++i) {
+      asm("nop");
+    }
+  }
+}
 
 PROCESS_THREAD(dw1000_dma, ev, data)
 {
@@ -54,7 +75,16 @@ PROCESS_THREAD(dw1000_dma, ev, data)
                       linkaddr_node_addr.u8[1], 
                       linkaddr_node_addr.u8[0]);
   printf("NodeID %08lX\n", dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
+  uint32_t node_id = 0XDECA0130;
+  if(dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID) != node_id){
+    while(1){
+      fade(LEDS_RED);
 
+      fade(LEDS_GREEN);
+
+      fade(LEDS_BLUE);
+    } 
+  }
 
   NETSTACK_RADIO.off();
 

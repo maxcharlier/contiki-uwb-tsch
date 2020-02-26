@@ -1,4 +1,4 @@
-CONTIKI = ../../../../..
+CONTIKI = ../../../../../..
 CONTIKI_PROJECT = node
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 

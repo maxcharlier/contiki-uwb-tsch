@@ -44,6 +44,9 @@
 #include "net/rime/rime.h"
 #include "net/mac/tsch/tsch.h"
 
+/* containt def of tsch_schedule_get_slotframe_duration */
+#include "net/mac/tsch/tsch-schedule.h" 
+
 const linkaddr_t coordinator_addr =    { { 0X00, 0X0D } };
 
 /*---------------------------------------------------------------------------*/

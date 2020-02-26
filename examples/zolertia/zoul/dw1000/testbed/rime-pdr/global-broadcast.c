@@ -47,7 +47,7 @@
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
 
-const linkaddr_t coordinator_addr =    { { 0X00, 0X0D } };
+const linkaddr_t coordinator_addr =    { { 0X00, 0XD0 } };
 
 static struct rtimer timer_send;
 
@@ -93,7 +93,7 @@ PROCESS_THREAD(global_pdr_process, ev, data)
   while(1) {
     rtimer_set(&timer_send, RTIMER_NOW() + tsch_schedule_get_slotframe_duration(), 
     0, brodcast_send, NULL);
-    
+
     PROCESS_YIELD();
   }
 

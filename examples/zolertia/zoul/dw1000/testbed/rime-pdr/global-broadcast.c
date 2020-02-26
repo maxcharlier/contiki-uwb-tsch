@@ -49,6 +49,8 @@
 
 const linkaddr_t coordinator_addr =    { { 0X00, 0X0D } };
 
+static struct rtimer timer_send;
+
 /*---------------------------------------------------------------------------*/
 PROCESS(global_pdr_process, "Global PDR");
 AUTOSTART_PROCESSES(&global_pdr_process);
@@ -63,10 +65,21 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 static struct broadcast_conn broadcast;
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(global_pdr_process, ev, data)
+void
+brodcast_send(struct rtimer *timer, void *ptr)
 {
-  static struct etimer et;
-  
+  packetbuf_copyfrom("Hello", 6);
+
+  broadcast_send(&broadcast);
+  printf("broadcast message sent\n");
+
+  /* Re-arm rtimer */
+  rtimer_set(&timer_send, RTIMER_NOW() + tsch_schedule_get_slotframe_duration(), 
+    0, brodcast_send, NULL);
+}
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(global_pdr_process, ev, data)
+{  
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
@@ -78,15 +91,10 @@ PROCESS_THREAD(global_pdr_process, ev, data)
   broadcast_open(&broadcast, 129, &broadcast_call);
 
   while(1) {
-
-    etimer_set(&et, tsch_schedule_get_slotframe_duration());
-
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-
-    packetbuf_copyfrom("Hello", 6);
-
-    broadcast_send(&broadcast);
-    printf("broadcast message sent\n");
+    rtimer_set(&timer_send, RTIMER_NOW() + tsch_schedule_get_slotframe_duration(), 
+    0, brodcast_send, NULL);
+    
+    PROCESS_YIELD();
   }
 
   PROCESS_END();

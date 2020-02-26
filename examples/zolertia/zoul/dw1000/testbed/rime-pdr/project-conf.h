@@ -81,8 +81,11 @@
 #undef TSCH_CONF_AUTOSTART
 #define TSCH_CONF_AUTOSTART 0
 
-/* 6TiSCH minimal schedule length.
- * Larger values result in less frequent active slots: reduces capacity and saves energy. */
+/* 6TiSCH minimal schedule length.*/
+/* Disable the 6TiSCH minimal schedule */
+#define TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL 0
+
+/* Larger values result in less frequent active slots: reduces capacity and saves energy. */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
 #define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 101
 

@@ -1268,7 +1268,7 @@ void tsch_schedule_create_minimal(void)
     uint16_t               timeslot;
     uint16_t               channel_offset;
   } timeslots[] = {
-    { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
+    { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING_ONLY, &tsch_broadcast_address, 0, 0 },
 #if NODEID == 0xD0
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &tsch_broadcast_address, 4, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },

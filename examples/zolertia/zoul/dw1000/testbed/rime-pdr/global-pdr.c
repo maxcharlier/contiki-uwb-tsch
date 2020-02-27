@@ -173,6 +173,9 @@ PROCESS_THREAD(global_pdr_process, ev, data)
 
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
       packetbuf_copyfrom("Hello", 5);
+
+      packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+
       if(!linkaddr_cmp(all_addr[i], &linkaddr_node_addr)) {
         unicast_send(&uc, all_addr[i]);
       }

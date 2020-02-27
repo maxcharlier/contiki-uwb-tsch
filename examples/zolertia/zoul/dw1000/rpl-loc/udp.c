@@ -148,13 +148,13 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
-  PRINTF("Client IPv6 addresses: ");
+  printf("Client IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
     if(uip_ds6_if.addr_list[i].isused &&
        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
+      printf("\n");
       /* hack to make address "final" */
       if (state == ADDR_TENTATIVE) {
 	uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
@@ -188,8 +188,8 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
     if(ev == serial_line_event_message && data != NULL) {
       char *str;
       str = data;
-      if(str[0] == 'r') {
-        PRINTF("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
+      if(str[0] == 'd') {
+        printf("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
         tsch_schedule_print();
         
       }
@@ -238,9 +238,9 @@ PROCESS_THREAD(udp_process, ev, data)
       dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)&ipaddr);
       uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
       rpl_set_prefix(dag, &ipaddr, 64);
-      PRINTF("created a new RPL dag\n");
+      printf("created a new RPL dag\n");
     } else {
-      PRINTF("failed to create a new RPL DAG\n");
+      printf("failed to create a new RPL DAG\n");
     }
   }
   else{
@@ -248,7 +248,7 @@ PROCESS_THREAD(udp_process, ev, data)
   }
 
 
-  PRINTF("UDP process started nbr:%d routes:%d\n",
+  printf("UDP process started nbr:%d routes:%d\n",
          NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
 
   print_local_addresses();

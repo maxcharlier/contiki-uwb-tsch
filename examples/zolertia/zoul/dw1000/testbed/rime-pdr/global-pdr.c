@@ -65,6 +65,7 @@
 
 const linkaddr_t coordinator_addr =    { { 0X00, 0X01 } };
 
+#define MAX_RETRANSMISSIONS 1
 
 /*---------------------------------------------------------------------------*/
 PROCESS(global_pdr_process, "Global connectivity");
@@ -72,44 +73,63 @@ AUTOSTART_PROCESSES(&global_pdr_process);
 
 /*---------------------------------------------------------------------------*/
 static void
-recv_uc(struct unicast_conn *c, const linkaddr_t *from)
+recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno)
 {
    #if PRINT_BYTE
-    /* print R: _NODEADDR_
+    /* print R: _NODEADDR_seqno_
     */
     printf("-R:");
     write_byte(from->u8[1]);
     write_byte(from->u8[0]);
+    write_byte(seqno);
     write_byte((uint8_t) '\n');
   #else /* PRINT_BYTE */  
-    printf("R: 0X%02X%02X \n", from->u8[0], from->u8[1]);
+    printf("R: 0X%02X%02X %d\n", from->u8[0], from->u8[1], seqno);
   #endif /* PRINT_BYTE */
 }
 /*---------------------------------------------------------------------------*/
 static void
-sent_uc(struct unicast_conn *c, int status, int num_tx)
+sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions)
 {
   const linkaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
   if(linkaddr_cmp(dest, &linkaddr_null)) {
     return;
   }
   #if PRINT_BYTE
-    /* print S: _NODEADDR_STATUS_NUM-TX_
+    /* print S: _NODEADDR_retransmissions_
     */
     printf("-S:");
     write_byte(dest->u8[1]);
     write_byte(dest->u8[0]);
-    write_byte(status);
-    write_byte(num_tx);
+    write_byte(retransmissions);
     write_byte((uint8_t) '\n');
   #else /* PRINT_BYTE */  
-    printf("S: 0X%02X%02X stat %d tx %d \n", 
-      dest->u8[0], dest->u8[1], status, num_tx);
+    printf("S: 0X%02X%02X tx %d \n", 
+      dest->u8[0], dest->u8[1], retransmissions);
+  #endif /* PRINT_BYTE */
+}
+static void
+timedout_runicast(struct runicast_conn *c, const linkaddr_t *dest, uint8_t retransmissions)
+{  
+
+  #if PRINT_BYTE
+    /* print L: _NODEADDR_retransmissions_
+    */
+    printf("-L:");
+    write_byte(dest->u8[1]);
+    write_byte(dest->u8[0]);
+    write_byte(retransmissions);
+    write_byte((uint8_t) '\n');
+  #else /* PRINT_BYTE */  
+    printf("L: 0X%02X%02X tx %d \n", 
+      dest->u8[0], dest->u8[1], retransmissions);
   #endif /* PRINT_BYTE */
 }
 /*---------------------------------------------------------------------------*/
-static const struct unicast_callbacks unicast_callbacks = {recv_uc, sent_uc};
-static struct unicast_conn uc;
+static const struct runicast_callbacks runicast_callbacks = {recv_runicast,
+                   sent_runicast,
+                   timedout_runicast};
+static struct runicast_conn runicast;
 
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(global_pdr_process, ev, data)
@@ -152,17 +172,17 @@ PROCESS_THREAD(global_pdr_process, ev, data)
     &node_16_address
   };
   static int i;
-  PROCESS_EXITHANDLER(unicast_close(&uc);)
+  PROCESS_EXITHANDLER(runicast_close(&runicast);)
 
   PROCESS_BEGIN();
 
-  tsch_schedule_fullmesh_data();
+  tsch_schedule_fullmesh_data_rime();
 
   tsch_set_coordinator(linkaddr_cmp(&coordinator_addr, &linkaddr_node_addr));
 
   NETSTACK_MAC.on();
 
-  unicast_open(&uc, 146, &unicast_callbacks);
+  runicast_open(&runicast, 144, &runicast_callbacks);
 
   /* Delay 50 seconds */
   etimer_set(&et, CLOCK_SECOND * 150);
@@ -171,16 +191,20 @@ PROCESS_THREAD(global_pdr_process, ev, data)
 
     for (i = 0; i < 16; i++){
 
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-      packetbuf_copyfrom("Hello", 5);
-
-      packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
-
       if(!linkaddr_cmp(all_addr[i], &linkaddr_node_addr)) {
-        unicast_send(&uc, all_addr[i]);
+
+        /* Delay 1 slotframe */
+        etimer_set(&et, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND);
+
+        packetbuf_copyfrom("Hello", 5);
+
+        // packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);
+
+        runicast_send(&runicast, all_addr[i], MAX_RETRANSMISSIONS);
+
+        PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+
       }
-      /* Delay 1 slotframe */
-      etimer_set(&et, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND);
     }
 
     

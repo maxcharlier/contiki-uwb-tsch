@@ -13,7 +13,7 @@
 #  error "Node ID not defined. Perhaps you need to tweak target Makefile."
 #endif /* NODEID */
 
-void tsch_schedule_fullmesh_data(void)
+void tsch_schedule_fullmesh_data_rime(void)
 {
   struct tsch_slotframe *sf_custom;
 

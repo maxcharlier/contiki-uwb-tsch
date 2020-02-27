@@ -28,22 +28,22 @@ void tsch_schedule_fullmesh_data(void)
 
   #define INDEX_NODE_ID (sizeof(linkaddr_t)-1)
 
-  linkaddr_t node_1_address;
-  linkaddr_t node_2_address;
-  linkaddr_t node_3_address;
-  linkaddr_t node_4_address;
-  linkaddr_t node_5_address;
-  linkaddr_t node_6_address;
-  linkaddr_t node_7_address;
-  linkaddr_t node_8_address;
-  linkaddr_t node_9_address;
-  linkaddr_t node_10_address;
-  linkaddr_t node_11_address;
-  linkaddr_t node_12_address;
-  linkaddr_t node_13_address;
-  linkaddr_t node_14_address;
-  linkaddr_t node_15_address;
-  linkaddr_t node_16_address;
+  static linkaddr_t node_1_address;
+  static linkaddr_t node_2_address;
+  static linkaddr_t node_3_address;
+  static linkaddr_t node_4_address;
+  static linkaddr_t node_5_address;
+  static linkaddr_t node_6_address;
+  static linkaddr_t node_7_address;
+  static linkaddr_t node_8_address;
+  static linkaddr_t node_9_address;
+  static linkaddr_t node_10_address;
+  static linkaddr_t node_11_address;
+  static linkaddr_t node_12_address;
+  static linkaddr_t node_13_address;
+  static linkaddr_t node_14_address;
+  static linkaddr_t node_15_address;
+  static linkaddr_t node_16_address;
   linkaddr_copy(&node_1_address, &linkaddr_node_addr);
   node_1_address.u8[INDEX_NODE_ID] = 0x01;
   linkaddr_copy(&node_2_address, &linkaddr_node_addr);

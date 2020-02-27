@@ -168,6 +168,9 @@ PROCESS_THREAD(global_pdr_process, ev, data)
   /* Delay 50 seconds */
   etimer_set(&et, CLOCK_SECOND * 150);
 
+  tsch_schedule_print();
+
+
   while(1) {
 
     for (i = 0; i < 16; i++){

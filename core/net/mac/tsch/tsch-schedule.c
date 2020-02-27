@@ -1212,6 +1212,13 @@ tsch_schedule_print(void)
 /*---------------------------------------------------------------------------*/
 /* Return the slotframe duration */
 rtimer_clock_t tsch_schedule_get_slotframe_duration(void){
+  if(!tsch_is_locked()) {
+    struct tsch_slotframe *sf = list_head(slotframe_list);
+
+    if(sf != NULL)
+      return (rtimer_clock_t) sf->size.val * US_TO_RTIMERTICKS(TSCH_DEFAULT_TS_TIMESLOT_LENGTH);
+  }
+ 
  return (rtimer_clock_t) TSCH_SCHEDULE_DEFAULT_LENGTH * US_TO_RTIMERTICKS(TSCH_DEFAULT_TS_TIMESLOT_LENGTH);
 }
 /*---------------------------------------------------------------------------*/

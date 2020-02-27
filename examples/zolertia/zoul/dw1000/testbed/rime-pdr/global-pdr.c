@@ -70,7 +70,6 @@ const linkaddr_t coordinator_addr =    { { 0X00, 0X01 } };
 PROCESS(global_pdr_process, "Global connectivity");
 AUTOSTART_PROCESSES(&global_pdr_process);
 
-void tsch_create_schedule(void);
 /*---------------------------------------------------------------------------*/
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
@@ -94,8 +93,6 @@ sent_uc(struct unicast_conn *c, int status, int num_tx)
   if(linkaddr_cmp(dest, &linkaddr_null)) {
     return;
   }
-  printf("unicast message sent to %d.%d: status %d num_tx %d\n",
-    dest->u8[0], dest->u8[1], status, num_tx);
   #if PRINT_BYTE
     /* print S: _NODEADDR_STATUS_NUM-TX_
     */
@@ -118,69 +115,25 @@ static struct unicast_conn uc;
 PROCESS_THREAD(global_pdr_process, ev, data)
 {  
   static struct etimer et;
+  
+  static linkaddr_t node_1_address = { { 0x00, 0X01} };
+  static linkaddr_t node_2_address = { { 0x00, 0X02} };
+  static linkaddr_t node_3_address = { { 0x00, 0X03} };
+  static linkaddr_t node_4_address = { { 0x00, 0X04} };
+  static linkaddr_t node_5_address = { { 0x00, 0X05} };
+  static linkaddr_t node_6_address = { { 0x00, 0X06} };
+  static linkaddr_t node_7_address = { { 0x00, 0X07} };
+  static linkaddr_t node_8_address = { { 0x00, 0X08} };
+  static linkaddr_t node_9_address = { { 0x00, 0X09} };
+  static linkaddr_t node_10_address = { { 0x00, 0X0A} };
+  static linkaddr_t node_11_address = { { 0x00, 0X0B} };
+  static linkaddr_t node_12_address = { { 0x00, 0X0C} };
+  static linkaddr_t node_13_address = { { 0x00, 0X0D} };
+  static linkaddr_t node_14_address = { { 0x00, 0X0E} };
+  static linkaddr_t node_15_address = { { 0x00, 0X0F} };
+  static linkaddr_t node_16_address = { { 0x00, 0X10} };
 
-  PROCESS_EXITHANDLER(unicast_close(&uc);)
-
-  PROCESS_BEGIN();
-
-  tsch_schedule_fullmesh_data();
-
-  tsch_set_coordinator(linkaddr_cmp(&coordinator_addr, &linkaddr_node_addr));
-
-  NETSTACK_MAC.on();
-
-  unicast_open(&uc, 146, &unicast_callbacks);
-  #define INDEX_NODE_ID 1
-  linkaddr_t node_1_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_2_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_3_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_4_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_5_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_6_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_7_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_8_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_9_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_10_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_11_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_12_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_13_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_14_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_15_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_16_address = { { 0xFF, 0xFF } };
-  linkaddr_copy(&node_1_address, &linkaddr_node_addr);
-  node_1_address.u8[INDEX_NODE_ID] = 0x01;
-  linkaddr_copy(&node_2_address, &linkaddr_node_addr);
-  node_2_address.u8[INDEX_NODE_ID] = 0x02;
-  linkaddr_copy(&node_3_address, &linkaddr_node_addr);
-  node_3_address.u8[INDEX_NODE_ID] = 0x03;
-  linkaddr_copy(&node_4_address, &linkaddr_node_addr);
-  node_4_address.u8[INDEX_NODE_ID] = 0x04;
-  linkaddr_copy(&node_5_address, &linkaddr_node_addr);
-  node_5_address.u8[INDEX_NODE_ID] = 0x05;
-  linkaddr_copy(&node_6_address, &linkaddr_node_addr);
-  node_6_address.u8[INDEX_NODE_ID] = 0x06;
-  linkaddr_copy(&node_7_address, &linkaddr_node_addr);
-  node_7_address.u8[INDEX_NODE_ID] = 0x07;
-  linkaddr_copy(&node_8_address, &linkaddr_node_addr);
-  node_8_address.u8[INDEX_NODE_ID] = 0x08;
-  linkaddr_copy(&node_9_address, &linkaddr_node_addr);
-  node_9_address.u8[INDEX_NODE_ID] = 0x09;
-  linkaddr_copy(&node_10_address, &linkaddr_node_addr);
-  node_10_address.u8[INDEX_NODE_ID] = 0x0A;
-  linkaddr_copy(&node_11_address, &linkaddr_node_addr);
-  node_11_address.u8[INDEX_NODE_ID] = 0x0B;
-  linkaddr_copy(&node_12_address, &linkaddr_node_addr);
-  node_12_address.u8[INDEX_NODE_ID] = 0x0C;
-  linkaddr_copy(&node_13_address, &linkaddr_node_addr);
-  node_13_address.u8[INDEX_NODE_ID] = 0x0D;
-  linkaddr_copy(&node_14_address, &linkaddr_node_addr);
-  node_14_address.u8[INDEX_NODE_ID] = 0x0E;
-  linkaddr_copy(&node_15_address, &linkaddr_node_addr);
-  node_15_address.u8[INDEX_NODE_ID] = 0x0F;
-  linkaddr_copy(&node_16_address, &linkaddr_node_addr);
-  node_16_address.u8[INDEX_NODE_ID] = 0x10;
-
-  linkaddr_t* all_addr[16] = {
+  static linkaddr_t* all_addr[16] = {
     &node_1_address,
     &node_2_address,
     &node_3_address,
@@ -199,8 +152,21 @@ PROCESS_THREAD(global_pdr_process, ev, data)
     &node_16_address
   };
 
-    /* Delay 50 seconds */
-    etimer_set(&et, CLOCK_SECOND * 150);
+  PROCESS_EXITHANDLER(unicast_close(&uc);)
+
+  PROCESS_BEGIN();
+
+  tsch_schedule_fullmesh_data();
+
+  tsch_set_coordinator(linkaddr_cmp(&coordinator_addr, &linkaddr_node_addr));
+
+  NETSTACK_MAC.on();
+
+  unicast_open(&uc, 146, &unicast_callbacks);
+
+  /* Delay 50 seconds */
+  etimer_set(&et, CLOCK_SECOND * 150);
+
   while(1) {
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));

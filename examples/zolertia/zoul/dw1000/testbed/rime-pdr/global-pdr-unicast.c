@@ -88,7 +88,11 @@ recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 /*---------------------------------------------------------------------------*/
 static void
 sent_uc(struct unicast_conn *c, int status, int num_tx)
-{
+{  
+  const linkaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
+  if(linkaddr_cmp(dest, &linkaddr_null)) {
+    return;
+  }
   #if PRINT_BYTE
     /* print S: _NODEADDR_status_num_tx
     */

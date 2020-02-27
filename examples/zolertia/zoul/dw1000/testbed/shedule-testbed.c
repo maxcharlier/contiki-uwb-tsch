@@ -5,7 +5,7 @@
 #include "examples/zolertia/zoul/dw1000/testbed/shedule-testbed.h"
 
 
-#define INDEX_NODE_ID 1
+
 
 /* Ensure that the NODEID macro is correctly passed by the Makefile.
    That's not the case for each target platform. */
@@ -13,7 +13,9 @@
 #  error "Node ID not defined. Perhaps you need to tweak target Makefile."
 #endif /* NODEID */
 
-void tsch_schedule_fullmesh_data_rime(void)
+/**
+ * TSCH schedule that allow one time slot in each direction for all node to be full mesh */
+void tsch_schedule_fullmesh_data(void)
 {
   struct tsch_slotframe *sf_custom;
 
@@ -24,22 +26,24 @@ void tsch_schedule_fullmesh_data_rime(void)
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
   sf_custom = tsch_schedule_add_slotframe(0, 301);
 
-  linkaddr_t node_1_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_2_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_3_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_4_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_5_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_6_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_7_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_8_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_9_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_10_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_11_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_12_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_13_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_14_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_15_address = { { 0xFF, 0xFF } };
-  linkaddr_t node_16_address = { { 0xFF, 0xFF } };
+  #define INDEX_NODE_ID (sizeof(linkaddr_t)-1)
+
+  linkaddr_t node_1_address;
+  linkaddr_t node_2_address;
+  linkaddr_t node_3_address;
+  linkaddr_t node_4_address;
+  linkaddr_t node_5_address;
+  linkaddr_t node_6_address;
+  linkaddr_t node_7_address;
+  linkaddr_t node_8_address;
+  linkaddr_t node_9_address;
+  linkaddr_t node_10_address;
+  linkaddr_t node_11_address;
+  linkaddr_t node_12_address;
+  linkaddr_t node_13_address;
+  linkaddr_t node_14_address;
+  linkaddr_t node_15_address;
+  linkaddr_t node_16_address;
   linkaddr_copy(&node_1_address, &linkaddr_node_addr);
   node_1_address.u8[INDEX_NODE_ID] = 0x01;
   linkaddr_copy(&node_2_address, &linkaddr_node_addr);

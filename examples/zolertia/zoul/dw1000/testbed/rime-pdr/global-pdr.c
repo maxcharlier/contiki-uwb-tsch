@@ -89,12 +89,8 @@ recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno)
 }
 /*---------------------------------------------------------------------------*/
 static void
-sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions)
+sent_runicast(struct runicast_conn *c, const linkaddr_t *dest, uint8_t retransmissions)
 {
-  const linkaddr_t *dest = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
-  if(linkaddr_cmp(dest, &linkaddr_null)) {
-    return;
-  }
   #if PRINT_BYTE
     /* print S: _NODEADDR_retransmissions_
     */
@@ -176,7 +172,7 @@ PROCESS_THREAD(global_pdr_process, ev, data)
 
   PROCESS_BEGIN();
 
-  tsch_schedule_fullmesh_data_rime();
+  tsch_schedule_fullmesh_data();
 
   tsch_set_coordinator(linkaddr_cmp(&coordinator_addr, &linkaddr_node_addr));
 

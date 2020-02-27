@@ -151,7 +151,7 @@ PROCESS_THREAD(global_pdr_process, ev, data)
     &node_15_address,
     &node_16_address
   };
-
+  static int i;
   PROCESS_EXITHANDLER(unicast_close(&uc);)
 
   PROCESS_BEGIN();
@@ -169,16 +169,18 @@ PROCESS_THREAD(global_pdr_process, ev, data)
 
   while(1) {
 
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-    for (int i = 0; i < 16; i++){
+    for (i = 0; i < 16; i++){
+
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
       packetbuf_copyfrom("Hello", 5);
       if(!linkaddr_cmp(all_addr[i], &linkaddr_node_addr)) {
         unicast_send(&uc, all_addr[i]);
       }
+      /* Delay 1 slotframe */
+      etimer_set(&et, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND);
     }
 
-    /* Delay 1 slotframe */
-    etimer_set(&et, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND);
+    
 
   }
 

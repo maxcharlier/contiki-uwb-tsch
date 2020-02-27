@@ -232,7 +232,7 @@ runicast_send(struct runicast_conn *c, const linkaddr_t *receiver,
   packetbuf_set_attr(PACKETBUF_ATTR_RELIABLE, 1);
   packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE, PACKETBUF_ATTR_PACKET_TYPE_DATA);
   packetbuf_set_attr(PACKETBUF_ATTR_PACKET_ID, c->sndnxt);
-  packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS, 1);
+  packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS, 3);
   c->max_rxmit = max_retransmissions;
   c->rxmit = 0;
   c->is_tx = 1;

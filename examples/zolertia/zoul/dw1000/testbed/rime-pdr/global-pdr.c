@@ -65,7 +65,7 @@
 
 const linkaddr_t coordinator_addr =    { { 0X00, 0X01 } };
 
-#define MAX_RETRANSMISSIONS 1
+#define MAX_RETRANSMISSIONS 0
 
 /*---------------------------------------------------------------------------*/
 PROCESS(global_pdr_process, "Global connectivity");
@@ -191,7 +191,9 @@ PROCESS_THREAD(global_pdr_process, ev, data)
 
         /* Delay 1 slotframe */
         etimer_set(&et, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND);
-
+        while(runicast_is_transmitting(&runicast)){
+          PROCESS_YIELD();
+        }
         packetbuf_copyfrom("Hello", 5);
 
         // packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 1);

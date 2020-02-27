@@ -65,7 +65,7 @@
 
 const linkaddr_t coordinator_addr =    { { 0X00, 0X01 } };
 
-#define MAX_RETRANSMISSIONS 0
+#define MAX_RETRANSMISSIONS 1
 
 /*---------------------------------------------------------------------------*/
 PROCESS(global_pdr_process, "Global connectivity");

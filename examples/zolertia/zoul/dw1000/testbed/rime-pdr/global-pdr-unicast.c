@@ -82,7 +82,7 @@ recv_uc(struct unicast_conn *c, const linkaddr_t *from)
     write_byte(from->u8[0]);
     write_byte((uint8_t) '\n');
   #else /* PRINT_BYTE */  
-    printf("R: 0X%02X%02X %d\n", from->u8[0], from->u8[1]);
+    printf("R: 0X%02X%02X\n", from->u8[0], from->u8[1]);
   #endif /* PRINT_BYTE */
 }
 /*---------------------------------------------------------------------------*/

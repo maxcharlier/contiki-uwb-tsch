@@ -14,6 +14,10 @@
 #include "net/mac/tsch/tsch.h"
 #include "net/netstack.h"
 
+/* contain the tsch_current_asn */
+#include "net/mac/tsch/tsch-private.h"
+#include "net/mac/tsch/tsch-asn.h"
+
 
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
@@ -45,6 +49,7 @@
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
+#define BUF_LEN 6
 
 // <<<<<<< End timer config
 
@@ -66,7 +71,29 @@ tcpip_handler(void)
   if(uip_newdata()) {
     appdata = (char *)uip_appdata;
     appdata[uip_datalen()] = 0;
-    printf("R:%02x%02x:%d:%s\n", UIP_IP_BUF->srcipaddr.u8[14], UIP_IP_BUF->srcipaddr.u8[15], UIP_TTL - UIP_IP_BUF->ttl + 1,appdata);
+    #if PRINT_BYTE
+    /* print S: _NODEADDR_status_num_tx
+    */
+    printf("-R:");
+    write_byte(UIP_IP_BUF->srcipaddr.u8[15]);
+    write_byte(UIP_IP_BUF->srcipaddr.u8[14]);
+
+    for(int i = 0; i < MIN(BUF_LEN,uip_datalen()) ; i++){
+      write_byte((uint8_t) appdata[i]);    
+    }
+    write_byte((uint8_t) '\n');
+  #else /* PRINT_BYTE */  
+
+    printf("R:%02x%02x:%d:", UIP_IP_BUF->srcipaddr.u8[14], UIP_IP_BUF->srcipaddr.u8[15], appdata[0]);
+    int64_t value = 0;
+    /* asn */
+    memcpy(&value, &appdata[1], 5);
+    printf(" %llu",  value);
+    printf("\n");
+
+    // printf("S: 0X%02X%02X stat %d tx %d \n", 
+    //   dest->u8[0], dest->u8[1], status, num_tx);
+  #endif /* PRINT_BYTE */
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -75,21 +102,44 @@ send_packet(void *ptr)
 {
 	char buf[MAX_PAYLOAD_LEN];
   uip_ds6_nbr_t *nbr;
-  int num;
 
   seq_id++;
-  num = 0;
   printf("send_packet()\n");
+  
+  /* place the seq number and the current asn in the buffer */
+  memcpy(&buf[0], &seq_id, 1);
+  memcpy(&buf[1], &tsch_current_asn, 5);
+
   for(nbr = nbr_table_head(ds6_neighbors);
       nbr != NULL;
       nbr = nbr_table_next(ds6_neighbors, nbr)) {
 
-    sprintf(buf, "%d:%d", seq_id, num);
+  #if PRINT_BYTE
+    /* print R: _NODEADDR_PACKETBUF_LEN_
+      for each prop time:
+      _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
+    */
+    printf("-S:");
+    write_byte(nbr->ipaddr.u8[15]);
+    write_byte(nbr->ipaddr.u8[14]);
+    for(int i = 0; i < BUF_LEN; i++){
+      write_byte((uint8_t) buf[i]);    
+    }
 
-    printf("S:%02x%02x:%d:%d\n", nbr->ipaddr.u8[14],nbr->ipaddr.u8[15], seq_id, num);
+    write_byte((uint8_t) '\n');
 
-    uip_udp_packet_sendto(client_conn, buf, strlen(buf), &(nbr->ipaddr), UIP_HTONS(UDP_PORT));
-    num++;
+  #else /* PRINT_BYTE */  
+    printf("S: 0X%02X%02X:%d:", nbr->ipaddr.u8[14],nbr->ipaddr.u8[15], seq_id);
+    int64_t value = 0;
+    /* asn */
+    memcpy(&value, &buf[1], 5);
+    printf(" %llu",  value);
+    printf("\n");
+  #endif /* PRINT_BYTE */
+
+    // printf("S:%02x%02x:%d:%d\n", nbr->ipaddr.u8[14],nbr->ipaddr.u8[15], seq_id, num);
+
+    uip_udp_packet_sendto(client_conn, buf, BUF_LEN, &(nbr->ipaddr), UIP_HTONS(UDP_PORT));
   }
 
   ctimer_restart(&periodic_timer1);
@@ -115,7 +165,7 @@ set_global_address(void);
 /*---------------------------------------------------------------------------*/
 static void
 print_info(void *ptr){
-  print_local_addresses();
+  // print_local_addresses();
   tsch_schedule_print();
 
   ctimer_restart(&periodic_timer2);

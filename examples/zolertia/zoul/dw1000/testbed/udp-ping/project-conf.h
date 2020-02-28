@@ -74,7 +74,12 @@
 #define TSCH_LOC_THREAD 1
 */
 
+/* QUEUEBUF_CONF_NUM specifies the number of queue buffers. 
+We increase the number to 16 because we have up to 16 nodes */
+// #define QUEUEBUF_CONF_NUM  16
 
+/* Only send on time a unicast message */
+#define TSCH_CONF_MAC_MAX_FRAME_RETRIES  0
 
 /* Do not start TSCH at init, wait for NETSTACK_MAC.on() */
 #undef TSCH_CONF_AUTOSTART

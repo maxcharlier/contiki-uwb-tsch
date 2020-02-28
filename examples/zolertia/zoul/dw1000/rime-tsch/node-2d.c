@@ -100,13 +100,14 @@ print_buffer()
 
   #else /* PRINT_BYTE */  
     printf("R: 0X%02X%02X", buf[0], buf[1]);
-      int32_t value;
+      int64_t value;
       int i = 2;
 
       /* prop time */
       memcpy(&value, &buf[2], 4);
       i += 4;
       printf(" %ld",  value);
+      value = 0;
 
       /* asn */
       memcpy(&value, &buf[i], 5);

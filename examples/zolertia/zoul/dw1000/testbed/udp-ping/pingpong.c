@@ -32,7 +32,7 @@
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
-#define PRINT_BYTE 0
+#define PRINT_BYTE 1
 
   #undef PRINTF
 #if !PRINT_BYTE
@@ -93,7 +93,7 @@ tcpip_handler(void)
       printf("R:%02x%02x:%d:", UIP_IP_BUF->srcipaddr.u8[14], UIP_IP_BUF->srcipaddr.u8[15], appdata[0]);
       /* asn */
       memcpy(&value, &appdata[1], 5);
-      printf("%llu",  value);
+      printf("%llu:",  value);
 
       value = 0;
       memcpy(&value, &tsch_current_asn, 5);
@@ -138,11 +138,11 @@ send_packet(void *ptr)
     write_byte((uint8_t) '\n');
 
   #else /* PRINT_BYTE */  
-    printf("S: 0X%02X%02X:%d:", nbr->ipaddr.u8[14],nbr->ipaddr.u8[15], seq_id);
+    printf("S:0X%02X%02X:%d:", nbr->ipaddr.u8[14],nbr->ipaddr.u8[15], seq_id);
     int64_t value = 0;
     /* asn */
     memcpy(&value, &buf[1], 5);
-    printf(" %llu",  value);
+    printf("%llu",  value);
     printf("\n");
   #endif /* PRINT_BYTE */
 

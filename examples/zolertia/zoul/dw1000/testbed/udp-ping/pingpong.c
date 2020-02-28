@@ -69,31 +69,40 @@ tcpip_handler(void)
   char *appdata;
 
   if(uip_newdata()) {
+    int64_t value = 0;
     appdata = (char *)uip_appdata;
     appdata[uip_datalen()] = 0;
     #if PRINT_BYTE
-    /* print S: _NODEADDR_status_num_tx
-    */
-    printf("-R:");
-    write_byte(UIP_IP_BUF->srcipaddr.u8[15]);
-    write_byte(UIP_IP_BUF->srcipaddr.u8[14]);
+      /* print S: _NODEADDR_status_num_tx
+      */
+      printf("-R:");
+      write_byte(UIP_IP_BUF->srcipaddr.u8[15]);
+      write_byte(UIP_IP_BUF->srcipaddr.u8[14]);
 
-    for(int i = 0; i < MIN(BUF_LEN,uip_datalen()) ; i++){
-      write_byte((uint8_t) appdata[i]);    
-    }
-    write_byte((uint8_t) '\n');
-  #else /* PRINT_BYTE */  
+      for(int i = 0; i < MIN(BUF_LEN,uip_datalen()) ; i++){
+        write_byte((uint8_t) appdata[i]);    
+      }
 
-    printf("R:%02x%02x:%d:", UIP_IP_BUF->srcipaddr.u8[14], UIP_IP_BUF->srcipaddr.u8[15], appdata[0]);
-    int64_t value = 0;
-    /* asn */
-    memcpy(&value, &appdata[1], 5);
-    printf(" %llu",  value);
-    printf("\n");
+      memcpy(&value, &tsch_current_asn, 5);
+      for(int i = 0; i < 5 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+      }
+      write_byte((uint8_t) '\n');
+    #else /* PRINT_BYTE */  
 
-    // printf("S: 0X%02X%02X stat %d tx %d \n", 
-    //   dest->u8[0], dest->u8[1], status, num_tx);
-  #endif /* PRINT_BYTE */
+      printf("R:%02x%02x:%d:", UIP_IP_BUF->srcipaddr.u8[14], UIP_IP_BUF->srcipaddr.u8[15], appdata[0]);
+      /* asn */
+      memcpy(&value, &appdata[1], 5);
+      printf("%llu",  value);
+
+      value = 0;
+      memcpy(&value, &tsch_current_asn, 5);
+      printf("%llu",  value);
+      printf("\n");
+
+      // printf("S: 0X%02X%02X stat %d tx %d \n", 
+      //   dest->u8[0], dest->u8[1], status, num_tx);
+    #endif /* PRINT_BYTE */
   }
 }
 /*---------------------------------------------------------------------------*/

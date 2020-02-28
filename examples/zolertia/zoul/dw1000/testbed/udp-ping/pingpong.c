@@ -142,7 +142,9 @@ send_packet(void *ptr)
     uip_udp_packet_sendto(client_conn, buf, BUF_LEN, &(nbr->ipaddr), UIP_HTONS(UDP_PORT));
   }
 
-  ctimer_restart(&periodic_timer1);
+  // ctimer_restart(&periodic_timer1);
+
+  ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -234,7 +236,7 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   /* interval is a slotframe duration. 
   We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
   */
-  ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 360 * CLOCK_SECOND, send_packet, &periodic_timer1);
 
 
   // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);

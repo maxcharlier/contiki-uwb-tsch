@@ -1,4 +1,4 @@
-- <u>global-broadcast.c</u> Each node send a braacast message per slotframe.
+- <u>global-broadcast.c</u> Each node send a broadcast message per slotframe.
 Upload command:
     
 

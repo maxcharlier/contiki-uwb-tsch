@@ -50,7 +50,7 @@
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t dest_ipaddr;
-static struct ctimer periodic_timer1;
+static struct ctimer periodic_timer1, periodic_timer2;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_ping_process, "Ping Pong");
@@ -79,6 +79,7 @@ send_packet(void *ptr)
 
   seq_id++;
   num = 0;
+  printf("send_packet()\n");
   for(nbr = nbr_table_head(ds6_neighbors);
       nbr != NULL;
       nbr = nbr_table_next(ds6_neighbors, nbr)) {
@@ -106,12 +107,18 @@ print_local_addresses(void)
     if(state == ADDR_TENTATIVE || state == ADDR_PREFERRED) {
       PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
       PRINTF("\n");
-      /* hack to make address "final" */
-      if (state == ADDR_TENTATIVE) {
-  uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
-      }
     }
   }
+}
+static void
+set_global_address(void);
+/*---------------------------------------------------------------------------*/
+static void
+print_info(void *ptr){
+  print_local_addresses();
+  tsch_schedule_print();
+
+  ctimer_restart(&periodic_timer2);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -160,6 +167,7 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
 
   tsch_schedule_fullmesh_data();
+  // tsch_schedule_fullmesh_data_2nodes();
   tsch_schedule_print();
 
 
@@ -176,7 +184,10 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   /* interval is a slotframe duration. 
   We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
   */
-  ctimer_set(&periodic_timer1, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+
+
+  // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);
 
   while(1) {
     PROCESS_YIELD();

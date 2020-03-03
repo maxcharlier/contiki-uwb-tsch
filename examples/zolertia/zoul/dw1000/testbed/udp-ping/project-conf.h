@@ -103,8 +103,8 @@ We increase the number to 16 because we have up to 16 nodes */
 
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
-#define NBR_TABLE_CONF_MAX_NEIGHBORS      12
-#define UIP_CONF_MAX_ROUTES               10
+#define NBR_TABLE_CONF_MAX_NEIGHBORS      20
+#define UIP_CONF_MAX_ROUTES               4
 
 /* Define as minutes */
 #define RPL_CONF_DEFAULT_LIFETIME_UNIT   60

@@ -103,7 +103,7 @@ We increase the number to 16 because we have up to 16 nodes */
 
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
-#define NBR_TABLE_CONF_MAX_NEIGHBORS      20
+#define NBR_TABLE_CONF_MAX_NEIGHBORS      16
 #define UIP_CONF_MAX_ROUTES               4
 
 /* Define as minutes */

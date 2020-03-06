@@ -212,6 +212,7 @@ static int last_tx_status;
 
 
 static int last_rssi;
+static int last_channel;
 
 /* ----------------------------------------------------------------- */
 /* Support for reassembling multiple packets                         */
@@ -1534,6 +1535,10 @@ input(void)
      want to query us for it later. */
   last_rssi = (signed short)packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
+  /* Save the channel of the incoming packet in case the upper layer will
+     want to query us for it later. */
+  last_channel = (signed short)packetbuf_attr(PACKETBUF_ATTR_CHANNEL);
+
 #if SICSLOWPAN_CONF_FRAG
 
   /*
@@ -1794,6 +1799,12 @@ int
 sicslowpan_get_last_rssi(void)
 {
   return last_rssi;
+}
+/*--------------------------------------------------------------------*/
+int
+sicslowpan_get_last_channel(void)
+{
+  return last_channel;
 }
 /*--------------------------------------------------------------------*/
 const struct network_driver sicslowpan_driver = {

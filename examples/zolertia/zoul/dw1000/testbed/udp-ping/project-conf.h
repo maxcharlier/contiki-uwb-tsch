@@ -103,8 +103,8 @@ We increase the number to 16 because we have up to 16 nodes */
 
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
-#define NBR_TABLE_CONF_MAX_NEIGHBORS      16
-#define UIP_CONF_MAX_ROUTES               4
+#define NBR_TABLE_CONF_MAX_NEIGHBORS      15
+#define UIP_CONF_MAX_ROUTES               3
 
 /* Define as minutes */
 #define RPL_CONF_DEFAULT_LIFETIME_UNIT   60
@@ -113,5 +113,14 @@ We increase the number to 16 because we have up to 16 nodes */
 #define RPL_CONF_DEFAULT_LIFETIME        10
 
 #define RPL_CONF_WITH_STORING 1
+
+//8 is the default value
+#define QUEUEBUF_CONF_NUM                    8
+
+// 4 is the default value
+#define TSCH_CONF_MAX_INCOMING_PACKETS      4
+
+// enable IPv6 Neigborg solicitation
+#define UIP_CONF_ND6_SEND_NS          1
 
 #endif /* __PROJECT_CONF_H__ */

@@ -167,47 +167,50 @@ send_packet(void *ptr)
   memcpy(&buf[0], &seq_id, 1);
   memcpy(&buf[1], &tsch_current_asn, 5);
 
-  for(int i = 0; i < number_of_transmission_per_timer; i++) {
-    /* check to not send message to our addr */
-    if((sending_index + i + 1) != NODEID){
+  /* first we check if we have neighbor (if it's the case we have join TSCH) */
+  if(nbr_table_head(ds6_neighbors) != NULL){
+    for(int i = 0; i < number_of_transmission_per_timer; i++) {
+      /* check to not send message to our addr */
+      if((sending_index + i + 1) != NODEID){
 
-    #if PRINT_BYTE
-      /* print R: _NODEADDR_PACKETBUF_LEN_
-        for each prop time:
-        _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
-      */
-      // printf("-S:");
-      write_byte((uint8_t) '-');
-      write_byte((uint8_t) 'S');
-      write_byte((uint8_t) ':');
-      write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[15]);
-      write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[14]);
-      for(int i = 0; i < BUF_LEN; i++){
-        write_byte((uint8_t) buf[i]);    
+      #if PRINT_BYTE
+        /* print R: _NODEADDR_PACKETBUF_LEN_
+          for each prop time:
+          _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
+        */
+        // printf("-S:");
+        write_byte((uint8_t) '-');
+        write_byte((uint8_t) 'S');
+        write_byte((uint8_t) ':');
+        write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[15]);
+        write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[14]);
+        for(int i = 0; i < BUF_LEN; i++){
+          write_byte((uint8_t) buf[i]);    
+        }
+
+        write_byte((uint8_t) '\n');
+
+      #else /* PRINT_BYTE */  
+        printf("%d\n", (sending_index + i)%len_local_neighborg);
+        printf("S:0X%02X%02X:%d:", 
+          (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[14],
+          (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[15], seq_id);
+        int64_t value = 0;
+        /* asn */
+        memcpy(&value, &buf[1], 5);
+        printf("%llu",  value);
+        printf("\n");
+      #endif /* PRINT_BYTE */
+
+        uip_udp_packet_sendto(client_conn, buf, BUF_LEN, local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
       }
-
-      write_byte((uint8_t) '\n');
-
-    #else /* PRINT_BYTE */  
-      printf("%d\n", (sending_index + i)%len_local_neighborg);
-      printf("S:0X%02X%02X:%d:", 
-        (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[14],
-        (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[15], seq_id);
-      int64_t value = 0;
-      /* asn */
-      memcpy(&value, &buf[1], 5);
-      printf("%llu",  value);
-      printf("\n");
-    #endif /* PRINT_BYTE */
-
-      uip_udp_packet_sendto(client_conn, buf, BUF_LEN, local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
+      if((sending_index + i)%len_local_neighborg == 0){
+        seq_id ++;
+      }
     }
-    if((sending_index + i)%len_local_neighborg == 0){
-      seq_id ++;
-    }
+
+    sending_index += number_of_transmission_per_timer;
   }
-
-  sending_index += number_of_transmission_per_timer;
   // ctimer_restart(&periodic_timer1);
 
   ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
@@ -303,7 +306,7 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   /* interval is a slotframe duration. 
   We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
   */
-  ctimer_set(&periodic_timer1, 360 * CLOCK_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 600 * CLOCK_SECOND, send_packet, &periodic_timer1);
   // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
 
 

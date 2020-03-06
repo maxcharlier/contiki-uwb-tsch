@@ -28,55 +28,55 @@ void tsch_schedule_fullmesh_data(void)
 
   #define INDEX_NODE_ID (sizeof(linkaddr_t)-1)
 
-  static linkaddr_t node_1_address;
-  static linkaddr_t node_2_address;
-  static linkaddr_t node_3_address;
-  static linkaddr_t node_4_address;
-  static linkaddr_t node_5_address;
-  static linkaddr_t node_6_address;
-  static linkaddr_t node_7_address;
-  static linkaddr_t node_8_address;
-  static linkaddr_t node_9_address;
-  static linkaddr_t node_10_address;
-  static linkaddr_t node_11_address;
-  static linkaddr_t node_12_address;
-  static linkaddr_t node_13_address;
-  static linkaddr_t node_14_address;
-  static linkaddr_t node_15_address;
-  static linkaddr_t node_16_address;
-  linkaddr_copy(&node_1_address, &linkaddr_node_addr);
-  node_1_address.u8[INDEX_NODE_ID] = 0x01;
-  linkaddr_copy(&node_2_address, &linkaddr_node_addr);
-  node_2_address.u8[INDEX_NODE_ID] = 0x02;
-  linkaddr_copy(&node_3_address, &linkaddr_node_addr);
-  node_3_address.u8[INDEX_NODE_ID] = 0x03;
-  linkaddr_copy(&node_4_address, &linkaddr_node_addr);
-  node_4_address.u8[INDEX_NODE_ID] = 0x04;
-  linkaddr_copy(&node_5_address, &linkaddr_node_addr);
-  node_5_address.u8[INDEX_NODE_ID] = 0x05;
-  linkaddr_copy(&node_6_address, &linkaddr_node_addr);
-  node_6_address.u8[INDEX_NODE_ID] = 0x06;
-  linkaddr_copy(&node_7_address, &linkaddr_node_addr);
-  node_7_address.u8[INDEX_NODE_ID] = 0x07;
-  linkaddr_copy(&node_8_address, &linkaddr_node_addr);
-  node_8_address.u8[INDEX_NODE_ID] = 0x08;
-  linkaddr_copy(&node_9_address, &linkaddr_node_addr);
-  node_9_address.u8[INDEX_NODE_ID] = 0x09;
-  linkaddr_copy(&node_10_address, &linkaddr_node_addr);
-  node_10_address.u8[INDEX_NODE_ID] = 0x0A;
-  linkaddr_copy(&node_11_address, &linkaddr_node_addr);
-  node_11_address.u8[INDEX_NODE_ID] = 0x0B;
-  linkaddr_copy(&node_12_address, &linkaddr_node_addr);
-  node_12_address.u8[INDEX_NODE_ID] = 0x0C;
-  linkaddr_copy(&node_13_address, &linkaddr_node_addr);
-  node_13_address.u8[INDEX_NODE_ID] = 0x0D;
-  linkaddr_copy(&node_14_address, &linkaddr_node_addr);
-  node_14_address.u8[INDEX_NODE_ID] = 0x0E;
-  linkaddr_copy(&node_15_address, &linkaddr_node_addr);
-  node_15_address.u8[INDEX_NODE_ID] = 0x0F;
-  linkaddr_copy(&node_16_address, &linkaddr_node_addr);
-  node_16_address.u8[INDEX_NODE_ID] = 0x10;
-  
+  #if NODEID != 0x01
+    static const linkaddr_t node_1_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x01 } };
+  #endif /* NODEID */
+  #if NODEID != 0x02
+    static const linkaddr_t node_2_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x02 } };
+  #endif /* NODEID */
+  #if NODEID != 0x03
+    static const linkaddr_t node_3_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x03 } };
+  #endif /* NODEID */
+  #if NODEID != 0x04
+    static const linkaddr_t node_4_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x04 } };
+  #endif /* NODEID */
+  #if NODEID != 0x05
+    static const linkaddr_t node_5_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x05 } };
+  #endif /* NODEID */
+  #if NODEID != 0x06
+    static const linkaddr_t node_6_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x06 } };
+  #endif /* NODEID */
+  #if NODEID != 0x07
+    static const linkaddr_t node_7_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x07 } };
+  #endif /* NODEID */
+  #if NODEID != 0x08
+    static const linkaddr_t node_8_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x08 } };
+  #endif /* NODEID */
+  #if NODEID != 0x09
+    static const linkaddr_t node_9_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x09 } };
+  #endif /* NODEID */
+  #if NODEID != 0x0A
+    static const linkaddr_t node_10_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0A } };
+  #endif /* NODEID */
+  #if NODEID != 0x0B
+    static const linkaddr_t node_11_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0B } };
+  #endif /* NODEID */
+  #if NODEID != 0x0C
+    static const linkaddr_t node_12_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0C } };
+  #endif /* NODEID */
+  #if NODEID != 0x0D
+    static const linkaddr_t node_13_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0D } };
+  #endif /* NODEID */
+  #if NODEID != 0x0E
+    static const linkaddr_t node_14_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0E } };
+  #endif /* NODEID */
+  #if NODEID != 0x0F
+    static const linkaddr_t node_15_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0F } };
+  #endif /* NODEID */
+  #if NODEID != 0x10
+    static const linkaddr_t node_16_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x10 } };
+  #endif /* NODEID */
+
 
   const struct {
     struct tsch_slotframe *slotframe;

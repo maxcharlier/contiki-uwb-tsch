@@ -2,7 +2,7 @@ CONTIKI = ../../../../../..
 
 include Makefile.target
 
-CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
+CFLAGS += -std=gnu99 -DPROJECT_CONF_H=\"project-conf.h\"
 
 CONTIKI_WITH_IPV6 = 1
 

@@ -41,6 +41,9 @@
 #ifndef __PROJECT_CONF_H__
 #define __PROJECT_CONF_H__
 
+#undef LPM_CONF_ENABLE
+#define LPM_CONF_ENABLE 0
+
 /* Netstack layers */
 #undef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC     tschmac_driver

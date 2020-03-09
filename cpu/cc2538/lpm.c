@@ -374,6 +374,7 @@ lpm_register_peripheral(lpm_periph_permit_pm1_func_t permit_pm1_func)
 void
 lpm_init()
 {
+# error "LPM should not be enabled!"
   /*
    * The main loop calls lpm_enter() when we have no more events to service.
    * By default, we will enter PM0 unless lpm_enter() decides otherwise

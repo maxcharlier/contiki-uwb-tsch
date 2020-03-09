@@ -41,6 +41,10 @@
 #ifndef __PROJECT_CONF_H__
 #define __PROJECT_CONF_H__
 
+
+#undef LPM_CONF_ENABLE
+#define LPM_CONF_ENABLE 0
+
 /* Netstack layers */
 #undef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC     tschmac_driver
@@ -68,7 +72,7 @@
 /* TSCH logging. 0: disabled. 1: basic log. 2: with delayed
  * log messages from interrupt */
 #undef TSCH_LOG_CONF_LEVEL
-#define TSCH_LOG_CONF_LEVEL 0
+#define TSCH_LOG_CONF_LEVEL 1
 
 /* We not use a specific thread for the localisation
 #define TSCH_LOC_THREAD 1
@@ -103,7 +107,7 @@ We increase the number to 16 because we have up to 16 nodes */
 
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
-#define NBR_TABLE_CONF_MAX_NEIGHBORS      15
+#define NBR_TABLE_CONF_MAX_NEIGHBORS      16
 #define UIP_CONF_MAX_ROUTES               3
 
 /* Define as minutes */

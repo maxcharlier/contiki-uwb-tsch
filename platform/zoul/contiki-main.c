@@ -316,7 +316,8 @@ main(void)
     } while(r > 0);
 
     /* We have serviced all pending events. Enter a Low-Power mode. */
-    lpm_enter();
+    /* Disable sleep mode */
+    /* lpm_enter(); */
   }
 }
 /*---------------------------------------------------------------------------*/

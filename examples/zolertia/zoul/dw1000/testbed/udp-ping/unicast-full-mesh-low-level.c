@@ -37,7 +37,7 @@
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
-#define PRINT_BYTE 0
+#define PRINT_BYTE 1
 
 #undef PRINTF
 #if !PRINT_BYTE
@@ -222,16 +222,21 @@ send_packet(void *ptr)
     client_conn->rport = UIP_HTONS(UDP_PORT);
 
     uip_udp_conn = client_conn;
-    uip_udp_conn->rport = client_conn->rport;
+    // uip_udp_conn->rport = client_conn->rport;
     uip_slen = BUF_LEN;
 
     memmove(&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN], buf, BUF_LEN);
+
     /* create the ipv6 header */
-    // uip_process(UIP_UDP_SEND_CONN);
+    uip_process(UIP_UDP_SEND_CONN);
 
     /* should call tcpip_ipv6_output() 
     this function create the nbr table but in our case we dont need this, we call tcpip_output() (is output function is set by sicslowpan) we set as parameter the node addr used in the scedule. */
-    // tcpip_output((const uip_lladdr_t *) mac_neighborg_addr[(sending_index + i)%len_local_neighborg]);
+
+    tcpip_output((const uip_lladdr_t *) mac_neighborg_addr[(sending_index + i)%len_local_neighborg]);
+
+    uip_clear_buf(); /* set uip_len to 0 and avoid transmitting the message two times */
+    uip_slen = 0; 
 
     /* Restore old IP addr/port */
     uip_ipaddr_copy(&client_conn->ripaddr, &curaddr);
@@ -245,6 +250,7 @@ send_packet(void *ptr)
 
     sending_index += number_of_transmission_per_timer;
   }
+
   // ctimer_restart(&periodic_timer1);
 
   ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
@@ -340,8 +346,8 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   /* interval is a slotframe duration. 
   We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
   */
-  // ctimer_set(&periodic_timer1, 600 * CLOCK_SECOND, send_packet, &periodic_timer1);
-  ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 600 * CLOCK_SECOND, send_packet, &periodic_timer1);
+  // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
 
 
   // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);

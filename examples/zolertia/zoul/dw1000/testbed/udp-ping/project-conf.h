@@ -72,7 +72,7 @@
 /* TSCH logging. 0: disabled. 1: basic log. 2: with delayed
  * log messages from interrupt */
 #undef TSCH_LOG_CONF_LEVEL
-#define TSCH_LOG_CONF_LEVEL 1
+#define TSCH_LOG_CONF_LEVEL 0
 
 /* We not use a specific thread for the localisation
 #define TSCH_LOC_THREAD 1

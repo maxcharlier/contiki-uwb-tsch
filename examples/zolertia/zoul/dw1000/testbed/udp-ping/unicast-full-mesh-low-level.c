@@ -99,16 +99,16 @@ static const uip_ipaddr_t * local_neighborg_addr[] = {
 
 
 
-static const int len_local_neighborg=2;
-static const int number_of_transmission_per_timer=1;
+static const int len_local_neighborg=16;
+static const int number_of_transmission_per_timer=3;
 
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_ping_process, "Ping Pong");
 AUTOSTART_PROCESSES(&udp_ping_process);
 /*---------------------------------------------------------------------------*/
-static int seq_id=0;
-static int sending_index=0;
+static uint seq_id=0;
+static uint sending_index=0;
 
 static void
 tcpip_handler(void)
@@ -176,7 +176,7 @@ send_packet(void *ptr)
 
   /* first we check if we have neighbor (if it's the case we have join TSCH) */
   if(nbr_table_head(ds6_neighbors) != NULL){
-    for(int i = 0; i < number_of_transmission_per_timer; i++) {
+    for(uint i = 0; i < number_of_transmission_per_timer; i++) {
       /* check to not send message to our addr */
       if( (((sending_index + i)%len_local_neighborg) +1) != NODEID){
 
@@ -249,6 +249,8 @@ send_packet(void *ptr)
     }
 
     sending_index += number_of_transmission_per_timer;
+    if(sending_index >= len_local_neighborg) /* avoid overflow */
+      sending_index -= len_local_neighborg;
   }
 
   // ctimer_restart(&periodic_timer1);

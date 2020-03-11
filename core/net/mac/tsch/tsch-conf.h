@@ -199,6 +199,8 @@
 
 // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
 
+#define TSCH_CONF_LOCALISATION              1
+
 #define TSCH_LOC_RX_GUARD					  519
 #define TSCH_LOC_RX_WAIT					  (TSCH_LOC_RX_GUARD + TSCH_LOC_RX_GUARD + UWB_T_SHR)
 #define TSCH_LOC_RX_OFFSET 					(TSCH_LOC_RX_GUARD)
@@ -258,5 +260,12 @@
 #else
 #define TSCH_SLOT_START_BEFOREHAND 0
 #endif
+
+/* Used to enable TSCH localisation slot */
+#ifdef TSCH_CONF_LOCALISATION
+#define TSCH_LOCALISATION TSCH_CONF_LOCALISATION
+#else
+#define TSCH_LOCALISATION 0
+#endif 
 
 #endif /* __TSCH_CONF_H__ */

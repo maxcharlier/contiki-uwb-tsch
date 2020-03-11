@@ -242,8 +242,10 @@ static struct pt slot_operation_pt;
 /* Sub-protothreads of tsch_slot_operation */
 static PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t));
-static PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t));
-static PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t));
+#if TSCH_LOCALISATION
+  static PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t));
+  static PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t));
+#endif /* TSCH_LOCALISATION*/
 
 /*---------------------------------------------------------------------------*/
 /* TSCH locking system. TSCH is locked during slot operations */
@@ -1152,6 +1154,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         tsch_radio_on(TSCH_RADIO_CMD_ON_START_OF_TIMESLOT);
         /* Decide whether it is a TX/RX/IDLE or OFF slot */
         /* Actual slot operation */
+#if TSCH_LOCALISATION
         /* Is a localization slot ? */
         if(current_link->link_type == LINK_TYPE_LOC){
           if(current_link->link_options & LINK_OPTION_TX){
@@ -1167,7 +1170,9 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
               PT_SPAWN(&slot_operation_pt, &slot_rx_loc_pt, tsch_rx_loc_slot(&slot_rx_loc_pt, t));          
           }
         }
-        else if(current_packet != NULL) {
+        else 
+#endif /* TSCH_LOCALISATION */
+          if(current_packet != NULL) {
           /* We have something to transmit, do the following:
            * 1. send
            * 2. update_backoff_state(current_neighbor)
@@ -1179,7 +1184,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
           /* Listen */
           static struct pt slot_rx_pt;                  
           PT_SPAWN(&slot_operation_pt, &slot_rx_pt, tsch_rx_slot(&slot_rx_pt, t));
-        }
+        }     
       }
       TSCH_DEBUG_SLOT_END();
     }
@@ -1250,6 +1255,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
   PT_END(&slot_operation_pt);
 }
 /*---------------------------------------------------------------------------*/
+#if TSCH_LOCALISATION
 static
 PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 {
@@ -1850,6 +1856,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
 
   PT_END(pt);
 }
+#endif /* TSCH_LOCALISATION */
 /*---------------------------------------------------------------------------*/
 /* Set global time before starting slot operation,
  * with a rtimer time and an ASN */

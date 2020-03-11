@@ -106,13 +106,15 @@ static const uint16_t tsch_default_timing_us[tsch_ts_elements_count] = {
   TSCH_DEFAULT_TS_RX_TX,
   TSCH_DEFAULT_TS_MAX_ACK,
   TSCH_DEFAULT_TS_MAX_TX,
-  TSCH_DEFAULT_TS_TIMESLOT_LENGTH,  
-  TSCH_LOC_RX_WAIT,
+  TSCH_DEFAULT_TS_TIMESLOT_LENGTH  
+#if TSCH_LOCALISATION
+  ,TSCH_LOC_RX_WAIT,
   TSCH_LOC_RX_OFFSET,
   TSCH_LOC_TX_OFFSET,
   TSCH_LOC_RX_REPLY_TIME,
   TSCH_LOC_TX_REPLY_TIME,
   TSCH_LOC_UWB_T_SHR
+#endif /* TSCH_LOCALISATION */
 };
 /* TSCH timeslot timing (in rtimer ticks) */
 rtimer_clock_t tsch_timing[tsch_ts_elements_count];
@@ -212,16 +214,7 @@ tsch_reset(void)
   TSCH_ASN_INIT(tsch_current_asn, 0, 0);
   current_link = NULL;
   /* Reset timeslot timing to defaults */
-
-  printf("TSCH TSCH_CONF_SLOT_START_BEFOREHAND %u\n", TSCH_CONF_SLOT_START_BEFOREHAND);
-  printf("TSCH TSCH_SLOT_START_BEFOREHAND %u\n", TSCH_SLOT_START_BEFOREHAND);
-  printf("TSCH UWB_T_SHR %u\n", UWB_T_SHR);
-  printf("TSCH RADIO_DELAY_BEFORE_TX %u\n", RADIO_DELAY_BEFORE_TX);
-  printf("TSCH RADIO_DELAY_BEFORE_RX %u\n", RADIO_DELAY_BEFORE_RX);
-  printf("TSCH RADIO_DELAY_BEFORE_DETECT %u\n", RADIO_DELAY_BEFORE_DETECT);
-  printf("TSCH slot parameter\n");
   for(i = 0; i < tsch_ts_elements_count; i++) {
-    printf("us %u, ticks %ld\n",  tsch_default_timing_us[i], US_TO_RTIMERTICKS(tsch_default_timing_us[i]));
     tsch_timing[i] = US_TO_RTIMERTICKS(tsch_default_timing_us[i]);
   }
 #ifdef TSCH_CALLBACK_LEAVING_NETWORK

@@ -424,7 +424,7 @@
 
 
 
-#define RADIO_DRIVER_UWB 			0
+#define RADIO_DRIVER_UWB 			1
 
 #endif /* BOARD_H_ */
 

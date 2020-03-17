@@ -1084,8 +1084,7 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     return RADIO_RESULT_INVALID_VALUE;
   case RADIO_PARAM_CHANNEL:
 #if DW1000_TSCH
-    if(value < 0 || value > 7) {
-      /* channel 6 is not supported by the DW1000*/
+    if(value < 0 || value > 11) {
       return RADIO_RESULT_INVALID_VALUE;
     }
     uint8_t receive_state = receive_on;
@@ -1760,6 +1759,22 @@ dw1000_set_tsch_channel(uint8_t channel){
       break;
     case 7:
       dw1000_conf.channel = DW_CHANNEL_5;
+      dw1000_conf.prf = DW_PRF_64_MHZ;
+      break;
+    case 8:
+      dw1000_conf.channel = DW_CHANNEL_4;
+      dw1000_conf.prf = DW_PRF_16_MHZ;
+      break;
+    case 9:
+      dw1000_conf.channel = DW_CHANNEL_4;
+      dw1000_conf.prf = DW_PRF_64_MHZ;
+      break;
+    case 10:
+      dw1000_conf.channel = DW_CHANNEL_7;
+      dw1000_conf.prf = DW_PRF_16_MHZ;
+      break;
+    case 11:
+      dw1000_conf.channel = DW_CHANNEL_7;
       dw1000_conf.prf = DW_PRF_64_MHZ;
       break;
   }

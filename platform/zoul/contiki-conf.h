@@ -413,7 +413,7 @@ typedef uint32_t rtimer_clock_t;
 
   #define DW1000_CHANNEL              0
   #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
-  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_128
   #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
 
@@ -428,7 +428,7 @@ typedef uint32_t rtimer_clock_t;
     The length of the SFD is 64 symbols at 110 kbps and 
     16 symbols for all other bit rates 
     (according to the transceiver configuration)*/
-  #define UWB_T_SHR                  ((uint16_t) (256+16))
+  #define UWB_T_SHR                  ((uint16_t) (128+16))
 
   /* time from calling transmit() until the SFD byte has been sent 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1

@@ -1337,7 +1337,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
     /* calculate TX duration based on sent packet len */
     tx_duration = TSCH_PACKET_DURATION(packet_len);
     /* limit tx_time to its max value */
-    tx_duration = MIN(tx_duration, tsch_timing[tsch_ts_max_tx]);
+    tx_duration = MIN(tx_duration, tsch_timing[tsch_ts_max_ack]);
 
     if(mac_tx_status == RADIO_TX_OK) {
       // printf("tsch_tx_loc_slot mac_tx_status == RADIO_TX_OK\n");
@@ -1349,7 +1349,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
       uint16_t rx_timeout_us;
 
 
-      rx_timeout_us = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_max_tx]+tsch_timing[tsch_ts_loc_uwb_t_shr]);
+      rx_timeout_us = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_max_ack]+tsch_timing[tsch_ts_loc_uwb_t_shr]);
       NETSTACK_RADIO.set_object(RADIO_RX_TIMEOUT_US, &rx_timeout_us, sizeof(uint16_t));
 
       /* Schedule a delayed reception (msg2)  */ 

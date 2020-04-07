@@ -1696,25 +1696,26 @@ dw1000_driver_config(dw1000_channel_t channel, dw1000_data_rate_t data_rate,
     dw1000_conf.pac_size = DW_PAC_SIZE_64;
   }
 
-  if(preamble_length >= 512){
-    /* avoid RX state bug: use the sniff mode with a 50/50 approach*/
-    dw_set_snif_mode(1, 3, dw1000_conf.pac_size*3);
-  }
-  if(preamble_length == 256){
-    /* bug fix: improve ranging reliability at 6.8 Mbps */
-    dw1000_conf.pac_size = DW_PAC_SIZE_8;
-  }
+  // if(preamble_length >= 512){
+  //    avoid RX state bug: use the sniff mode with a 50/50 approach
+  //   dw_set_snif_mode(1, 3, dw1000_conf.pac_size*3);
+  // }
+  // if(preamble_length == 256){
+  //    bug fix: improve ranging reliability at 6.8 Mbps 
+  //   dw1000_conf.pac_size = DW_PAC_SIZE_8;
+  // }
 
-  if(data_rate == DW_DATA_RATE_110_KBPS) {
-    /* 64 symbols */
-    dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;  
-  } else if(data_rate == DW_DATA_RATE_850_KBPS) {
-    /* 16 symbols */
-    dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;
-  } else { /* 6800 kbps */
-    /* 8 symbols */
+  // if(data_rate == DW_DATA_RATE_110_KBPS) {
+  //   /* 64 symbols */
+  //   dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;  
+  // } else if(data_rate == DW_DATA_RATE_850_KBPS) {
+  //   /* 16 symbols */
+  //   dw1000_conf.sfd_type = DW_SFD_NON_STANDARD;
+  // } else { /* 6800 kbps */
+  //   /* 8 symbols */
+  //   dw1000_conf.sfd_type = DW_SFD_STANDARD;
+  // }
     dw1000_conf.sfd_type = DW_SFD_STANDARD;
-  }
 
   dw_set_default_antenna_delay(prf);
 

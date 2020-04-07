@@ -165,48 +165,67 @@ typedef enum {
 /*===========================================================================*/
 /*============================= Configuration ===============================*/
 
+#define DW_TRANCEIVE_ASYNC 1
+#define DW_TRANCEIVE_SYNC 2
 /**
  * \brief Specifies if a wireless transaction should be sync or async.
  * Default for statically allocated variables is async.
  */
 typedef enum {
-  DW_TRANCEIVE_ASYNC = 0, /* \brief Asynchronous communication. Default. */
-  DW_TRANCEIVE_SYNC       /* \brief Synchronous communication. */
+  E_DW_TRANCEIVE_ASYNC = DW_TRANCEIVE_ASYNC, /* \brief Asynchronous communication. Default. */
+  E_DW_TRANCEIVE_SYNC = DW_TRANCEIVE_SYNC   /* \brief Synchronous communication. */
 } dw1000_tranceive_t;
 
+#define DW_PRF_16_MHZ 16
+#define DW_PRF_64_MHZ 64
 /**
  * \brief Specifies which pulse repetition frequency the preamble and data
  * sections should use.
  */
 typedef enum {
-  DW_PRF_16_MHZ = 1, /* 16 MHz Pulse repetition */
-  DW_PRF_64_MHZ = 2  /* 64 MHz Pulse repetition */
+  E_DW_PRF_16_MHZ = DW_PRF_16_MHZ, /* 16 MHz Pulse repetition */
+  E_DW_PRF_64_MHZ = DW_PRF_64_MHZ  /* 64 MHz Pulse repetition */
 } dw1000_prf_t;
 
+#define DW_CHANNEL_1 1
+#define DW_CHANNEL_2 2
+#define DW_CHANNEL_3 3
+#define DW_CHANNEL_4 4
+#define DW_CHANNEL_5 5
+#define DW_CHANNEL_7 7
 /**
  * \brief Selects the centre frequency and bandwidth for communication. The
  * dw1000 supports a subset of the 16 channels defined in the IEEE 802.15.4
  * UWB PHY.
  */
 typedef enum {
-  DW_CHANNEL_1 = 1, /* C-Freq: 3494.4 MHz, BWD: 499.2  MHz */
-  DW_CHANNEL_2 = 2, /* C-Freq: 3993.6 MHz, BWD: 499.2  MHz */
-  DW_CHANNEL_3 = 3, /* C-Freq: 4492.8 MHz, BWD: 499.2  MHz */
-  DW_CHANNEL_4 = 4, /* C-Freq: 3993.6 MHz, BWD: 1331.2 MHz */
-  DW_CHANNEL_5 = 5, /* C-Freq: 6489.6 MHz, BWD: 499.2  MHz */
-  /* DW_CHANNEL_6 = 6,  Not supported */
-  DW_CHANNEL_7 = 7  /* C-Freq: 6489.6 MHz, BWD: 1081.6 MHz */
-    /* DW_CHANNEL_8  = 8,  Not supported */
-    /* DW_CHANNEL_9  = 9,  Not supported */
-    /* DW_CHANNEL_10 = 10, Not supported */
-    /* DW_CHANNEL_11 = 11, Not supported */
-    /* DW_CHANNEL_12 = 12, Not supported */
-    /* DW_CHANNEL_13 = 13, Not supported */
-    /* DW_CHANNEL_14 = 14, Not supported */
-    /* DW_CHANNEL_15 = 15, Not supported */
-    /* DW_CHANNEL_16 = 16  Not supported */
+  E_DW_CHANNEL_1 = DW_CHANNEL_1, /* C-Freq: 3494.4 MHz, BWD: 499.2  MHz */
+  E_DW_CHANNEL_2 = DW_CHANNEL_2, /* C-Freq: 3993.6 MHz, BWD: 499.2  MHz */
+  E_DW_CHANNEL_3 = DW_CHANNEL_3, /* C-Freq: 4492.8 MHz, BWD: 499.2  MHz */
+  E_DW_CHANNEL_4 = DW_CHANNEL_4, /* C-Freq: 3993.6 MHz, BWD: 1331.2 MHz */
+  E_DW_CHANNEL_5 = DW_CHANNEL_5, /* C-Freq: 6489.6 MHz, BWD: 499.2  MHz */
+  /* DW_CHANNEL_6,  Not supported */
+  E_DW_CHANNEL_7 = DW_CHANNEL_7  /* C-Freq: 6489.6 MHz, BWD: 1081.6 MHz */
+    /* DW_CHANNEL_8,  Not supported */
+    /* DW_CHANNEL_9,  Not supported */
+    /* DW_CHANNEL_10, Not supported */
+    /* DW_CHANNEL_11, Not supported */
+    /* DW_CHANNEL_12, Not supported */
+    /* DW_CHANNEL_13, Not supported */
+    /* DW_CHANNEL_14, Not supported */
+    /* DW_CHANNEL_15, Not supported */
+    /* DW_CHANNEL_16  Not supported */
 } dw1000_channel_t;
 
+
+#define DW_PREAMBLE_LENGTH_64 64      /* Uses 64 symbols */
+#define DW_PREAMBLE_LENGTH_128 128    /* Uses 128 symbols */
+#define DW_PREAMBLE_LENGTH_256 256    /* Uses 256 symbols */
+#define DW_PREAMBLE_LENGTH_512 512    /* Uses 512 symbols */
+#define DW_PREAMBLE_LENGTH_1024 1024  /* Uses 1024 symbols */
+#define DW_PREAMBLE_LENGTH_1536 1536  /* Uses 1536 symbols */
+#define DW_PREAMBLE_LENGTH_2048 2048  /* Uses 2048 symbols */
+#define DW_PREAMBLE_LENGTH_4096 4096  /* Uses 4096 symbols */
 /**
  * \brief The preamble is part of the synchronisation frame. This option
  * configures the number of symbols in the preamble.
@@ -216,43 +235,98 @@ typedef enum {
  *
  */
 typedef enum {
-  DW_PREAMBLE_LENGTH_64 = 64,     /* Uses 64 symbols */
-  DW_PREAMBLE_LENGTH_128 = 128,   /* Uses 128 symbols */
-  DW_PREAMBLE_LENGTH_256 = 256,   /* Uses 256 symbols */
-  DW_PREAMBLE_LENGTH_512 = 512,   /* Uses 512 symbols */
-  DW_PREAMBLE_LENGTH_1024 = 1024, /* Uses 1024 symbols */
-  DW_PREAMBLE_LENGTH_1536 = 1536, /* Uses 1536 symbols */
-  DW_PREAMBLE_LENGTH_2048 = 2048, /* Uses 2048 symbols */
-  DW_PREAMBLE_LENGTH_4096 = 4096  /* Uses 4096 symbols */
+  E_DW_PREAMBLE_LENGTH_64 = DW_PREAMBLE_LENGTH_64,   /* Uses 64 symbols */
+  E_DW_PREAMBLE_LENGTH_128 = DW_PREAMBLE_LENGTH_128,  /* Uses 128 symbols */
+  E_DW_PREAMBLE_LENGTH_256 = DW_PREAMBLE_LENGTH_256,  /* Uses 256 symbols */
+  E_DW_PREAMBLE_LENGTH_512 = DW_PREAMBLE_LENGTH_512,  /* Uses 512 symbols */
+  E_DW_PREAMBLE_LENGTH_1024 = DW_PREAMBLE_LENGTH_1024, /* Uses 1024 symbols */
+  E_DW_PREAMBLE_LENGTH_1536 = DW_PREAMBLE_LENGTH_1536, /* Uses 1536 symbols */
+  E_DW_PREAMBLE_LENGTH_2048 = DW_PREAMBLE_LENGTH_2048, /* Uses 2048 symbols */
+  E_DW_PREAMBLE_LENGTH_4096 = DW_PREAMBLE_LENGTH_4096  /* Uses 4096 symbols */
 } dw1000_preamble_length_t;
 
+#define DW_PREAMBLE_CODE_1 1
+#define DW_PREAMBLE_CODE_2 2
+#define DW_PREAMBLE_CODE_3 3
+#define DW_PREAMBLE_CODE_4 4
+#define DW_PREAMBLE_CODE_5 5
+#define DW_PREAMBLE_CODE_6 6
+#define DW_PREAMBLE_CODE_7 7
+#define DW_PREAMBLE_CODE_8 8
+#define DW_PREAMBLE_CODE_9 9
+#define DW_PREAMBLE_CODE_10 10
+#define DW_PREAMBLE_CODE_11 11
+#define DW_PREAMBLE_CODE_12 12
+#define DW_PREAMBLE_CODE_13 13 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_14 14 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_15 15 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_16 16 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_17 17
+#define DW_PREAMBLE_CODE_18 18
+#define DW_PREAMBLE_CODE_19 19
+#define DW_PREAMBLE_CODE_20 20
+#define DW_PREAMBLE_CODE_21 21 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_22 22 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_23 23 /* DPS preamble code */
+#define DW_PREAMBLE_CODE_24 24 /* DPS preamble code */
 /**
  * \brief The preamble code determines the specific pulse sequence of 
  *        the preamble.
+ * Dynamic Preamble Select (DPS) preamble code can be used with a PRF 
+ * of 64 MHz for adding security in ranging exchange. 
+ * See the user manual to have more information.
  */
 typedef enum {
-  DW_PREAMBLE_CODE_1 = 1,
-  DW_PREAMBLE_CODE_2 = 2,
-  DW_PREAMBLE_CODE_3 = 3,
-  DW_PREAMBLE_CODE_4 = 4,
-  DW_PREAMBLE_CODE_5 = 5,
-  DW_PREAMBLE_CODE_6 = 5,
-  DW_PREAMBLE_CODE_7 = 7,
-  DW_PREAMBLE_CODE_8 = 8,
-  DW_PREAMBLE_CODE_9 = 9,
-  DW_PREAMBLE_CODE_10 = 10,
-  DW_PREAMBLE_CODE_11 = 11,
-  DW_PREAMBLE_CODE_12 = 12,
-  /* DW_PREAMBLE_CODE_13 = 13, */
-  /* DW_PREAMBLE_CODE_14 = 14, */
-  /* DW_PREAMBLE_CODE_15 = 15, */
-  /* DW_PREAMBLE_CODE_16 = 16, */
-  DW_PREAMBLE_CODE_17 = 17,
-  DW_PREAMBLE_CODE_18 = 18,
-  DW_PREAMBLE_CODE_19 = 19,
-  DW_PREAMBLE_CODE_20 = 20
+  E_DW_PREAMBLE_CODE_1 = DW_PREAMBLE_CODE_1,
+  E_DW_PREAMBLE_CODE_2 = DW_PREAMBLE_CODE_2,
+  E_DW_PREAMBLE_CODE_3 = DW_PREAMBLE_CODE_3,
+  E_DW_PREAMBLE_CODE_4 = DW_PREAMBLE_CODE_4,
+  E_DW_PREAMBLE_CODE_5 = DW_PREAMBLE_CODE_5,
+  E_DW_PREAMBLE_CODE_6 = DW_PREAMBLE_CODE_6,
+  E_DW_PREAMBLE_CODE_7 = DW_PREAMBLE_CODE_7,
+  E_DW_PREAMBLE_CODE_8 = DW_PREAMBLE_CODE_8,
+  E_DW_PREAMBLE_CODE_9 = DW_PREAMBLE_CODE_9,
+  E_DW_PREAMBLE_CODE_10 = DW_PREAMBLE_CODE_10,
+  E_DW_PREAMBLE_CODE_11 = DW_PREAMBLE_CODE_11,
+  E_DW_PREAMBLE_CODE_12 = DW_PREAMBLE_CODE_12,
+  E_DW_PREAMBLE_CODE_13 = DW_PREAMBLE_CODE_13,
+  E_DW_PREAMBLE_CODE_14 = DW_PREAMBLE_CODE_14,
+  E_DW_PREAMBLE_CODE_15 = DW_PREAMBLE_CODE_15,
+  E_DW_PREAMBLE_CODE_16 = DW_PREAMBLE_CODE_16,
+  E_DW_PREAMBLE_CODE_17 = DW_PREAMBLE_CODE_17,
+  E_DW_PREAMBLE_CODE_18 = DW_PREAMBLE_CODE_18,
+  E_DW_PREAMBLE_CODE_19 = DW_PREAMBLE_CODE_19,
+  E_DW_PREAMBLE_CODE_20 = DW_PREAMBLE_CODE_20,
+  E_DW_PREAMBLE_CODE_21 = DW_PREAMBLE_CODE_21,
+  E_DW_PREAMBLE_CODE_22 = DW_PREAMBLE_CODE_22,
+  E_DW_PREAMBLE_CODE_23 = DW_PREAMBLE_CODE_23,
+  E_DW_PREAMBLE_CODE_24 = DW_PREAMBLE_CODE_24
 } dw1000_preamble_code_t;
 
+#define DW_LDE_REPC_1 0x5998U
+#define DW_LDE_REPC_2 0x5998U
+#define DW_LDE_REPC_3 0x51EAU
+#define DW_LDE_REPC_4 0x428EU
+#define DW_LDE_REPC_5 0x451EU
+#define DW_LDE_REPC_6 0x2E14U
+#define DW_LDE_REPC_7 0x8000U
+#define DW_LDE_REPC_8 0x51EAU
+#define DW_LDE_REPC_9 0x28F4U
+#define DW_LDE_REPC_10  0x3332U
+#define DW_LDE_REPC_11  0x3AE0U
+#define DW_LDE_REPC_12  0x3D70U
+#define DW_LDE_REPC_13  0x3AE0U
+#define DW_LDE_REPC_14  0x35C2U
+#define DW_LDE_REPC_15  0x2B84U
+#define DW_LDE_REPC_16  0x35C2U
+#define DW_LDE_REPC_17  0x3332U
+#define DW_LDE_REPC_18  0x35C2U
+#define DW_LDE_REPC_19  0x35C2U
+#define DW_LDE_REPC_20  0x47AEU
+#define DW_LDE_REPC_21  0x3AE0U
+#define DW_LDE_REPC_22  0x3850U
+#define DW_LDE_REPC_23  0x30A2U
+#define DW_LDE_REPC_24  0x3850U
 /**
  * \brief   LDE Replica Coefficient configuration
  *      ref: Table 48: Sub-Register 0x2E:2804 – LDE_REPC
@@ -262,33 +336,37 @@ typedef enum {
  *			Table 48 have to be divided by 8,
  */
 typedef enum {
-  /* DW_LDE_REPC_0  = 0x5998U, */
-  DW_LDE_REPC_1 = 0x5999U,
-  DW_LDE_REPC_2 = 0x5999U,
-  DW_LDE_REPC_3 = 0x51EAU,
-  DW_LDE_REPC_4 = 0x428EU,
-  DW_LDE_REPC_5 = 0x451EU,
-  DW_LDE_REPC_6 = 0x2E14U,
-  DW_LDE_REPC_7 = 0x8000U,
-  DW_LDE_REPC_8 = 0x51EAU,
-  DW_LDE_REPC_9 = 0x28F5U,
-  DW_LDE_REPC_10 = 0x3332U,
-  DW_LDE_REPC_11 = 0x3AE0U,
-  DW_LDE_REPC_12 = 0x3D70U,
-  /* DW_LDE_REPC_13 = 0x3AE0U, */
-  /* DW_LDE_REPC_14 = 0x35C2U, */
-  /* DW_LDE_REPC_15 = 0x2B84U, */
-  /* DW_LDE_REPC_16 = 0x35C2U, */
-  DW_LDE_REPC_17 = 0x3333U,
-  DW_LDE_REPC_18 = 0x35C2U,
-  DW_LDE_REPC_19 = 0x35C2U,
-  DW_LDE_REPC_20 = 0x47AEU,
-  /* DW_LDE_REPC_21 = 0x47AEU, */
-  /* DW_LDE_REPC_22 = 0x3850U, */
-  /* DW_LDE_REPC_23 = 0x30A2U, */
-  /* DW_LDE_REPC_24 = 0x3850U */
+  E_DW_LDE_REPC_1 = DW_LDE_REPC_1,
+  E_DW_LDE_REPC_2 = DW_LDE_REPC_2,
+  E_DW_LDE_REPC_3 = DW_LDE_REPC_3,
+  E_DW_LDE_REPC_4 = DW_LDE_REPC_4,
+  E_DW_LDE_REPC_5 = DW_LDE_REPC_5,
+  E_DW_LDE_REPC_6 = DW_LDE_REPC_6,
+  E_DW_LDE_REPC_7 = DW_LDE_REPC_7,
+  E_DW_LDE_REPC_8 = DW_LDE_REPC_8,
+  E_DW_LDE_REPC_9 = DW_LDE_REPC_9,
+  E_DW_LDE_REPC_10 = DW_LDE_REPC_10,
+  E_DW_LDE_REPC_11 = DW_LDE_REPC_11,
+  E_DW_LDE_REPC_12 = DW_LDE_REPC_12,
+  E_DW_LDE_REPC_13 = DW_LDE_REPC_13,
+  E_DW_LDE_REPC_14 = DW_LDE_REPC_14, 
+  E_DW_LDE_REPC_15 = DW_LDE_REPC_15, 
+  E_DW_LDE_REPC_16 = DW_LDE_REPC_16, 
+  E_DW_LDE_REPC_17 = DW_LDE_REPC_17,
+  E_DW_LDE_REPC_18 = DW_LDE_REPC_18,
+  E_DW_LDE_REPC_19 = DW_LDE_REPC_19,
+  E_DW_LDE_REPC_20 = DW_LDE_REPC_20,
+  E_DW_LDE_REPC_21 = DW_LDE_REPC_21,
+  E_DW_LDE_REPC_22 = DW_LDE_REPC_22,
+  E_DW_LDE_REPC_23 = DW_LDE_REPC_23,
+  E_DW_LDE_REPC_24 = DW_LDE_REPC_24
 } dw1000_LDE_replica_coeff_t;
 
+
+#define DW_PAC_SIZE_8  8
+#define DW_PAC_SIZE_16 16
+#define DW_PAC_SIZE_32 32
+#define DW_PAC_SIZE_64 64
 /**
  * \brief   Preamble Acquisition Chunk, the chunk size in which the
  *			preamble is processed. A larger PAC size is generally better
@@ -298,12 +376,15 @@ typedef enum {
  * \warning A PAC size of 64 cannot detect a preamble of length 64.
  */
 typedef enum {
-  DW_PAC_SIZE_8 = 8,
-  DW_PAC_SIZE_16 = 16,
-  DW_PAC_SIZE_32 = 32,
-  DW_PAC_SIZE_64 = 64
+  E_DW_PAC_SIZE_8 = DW_PAC_SIZE_8,
+  E_DW_PAC_SIZE_16 = DW_PAC_SIZE_16,
+  E_DW_PAC_SIZE_32 = DW_PAC_SIZE_32,
+  E_DW_PAC_SIZE_64 = DW_PAC_SIZE_64
 } dw1000_pac_size_t;
 
+#define DW_SFD_STANDARD 0  /* SFD as specified in IEEE 802.15.4. */
+#define DW_SFD_NON_STANDARD 1  /* Decawave SFD. */
+#define DW_SFD_USER_SPECIFIED 2 /* Indicates that a custom SFD has been defined. */
 /**
  * \brief   Select SFD (Start of frame delimiter). The dw1000 can use
  *			the SFD defined in IEEE 802.15.4 and a Decawave specific
@@ -316,11 +397,15 @@ typedef enum {
  * \warning As of 2014-10-17 the user specified SFD has not been implemented.
  */
 typedef enum {
-  DW_SFD_STANDARD = 0,  /* SFD as specified in IEEE 802.15.4. */
-  DW_SFD_NON_STANDARD,  /* Decawave SFD. */
-  DW_SFD_USER_SPECIFIED /* Indicates that a custom SFD has been defined. */
+  E_DW_SFD_STANDARD = DW_SFD_STANDARD,  /* SFD as specified in IEEE 802.15.4. */
+  E_DW_SFD_NON_STANDARD = DW_SFD_NON_STANDARD,  /* Decawave SFD. */
+  E_DW_SFD_USER_SPECIFIED = DW_SFD_USER_SPECIFIED /* Indicates that a custom SFD has been defined. */
 } dw1000_sfd_type_t;
 
+
+#define DW_DATA_RATE_110_KBPS  110
+#define DW_DATA_RATE_850_KBPS  850
+#define DW_DATA_RATE_6800_KBPS  6800
 /**
  * \brief   DW1000 data transfer rate selection.
  *
@@ -336,9 +421,9 @@ typedef enum {
  *			message always fails.
  */
 typedef enum {
-  DW_DATA_RATE_110_KBPS = 110,
-  DW_DATA_RATE_850_KBPS = 850,
-  DW_DATA_RATE_6800_KBPS = 6800
+  E_DW_DATA_RATE_110_KBPS = DW_DATA_RATE_110_KBPS,
+  E_DW_DATA_RATE_850_KBPS = DW_DATA_RATE_850_KBPS,
+  E_DW_DATA_RATE_6800_KBPS = DW_DATA_RATE_6800_KBPS
 } dw1000_data_rate_t;
 
 /**

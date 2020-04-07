@@ -96,6 +96,121 @@
 #define TSCH_SLEEP 0
 #endif /* TSCH_CONF_SLEEP */
 
+
+#ifdef UWB_T_SHR
+  /* UWB SHR defined -> UWB timeslot */
+  /* /!\ Make sure to have correctly defined the MACRO UWB_T_SHR */
+
+  #include "dev/dw1000/dw1000.h"
+  /* Guard time for the ACK lower than the reception because we don't have clock drift (only clock inacuracy error) */
+  #define TSCH_RX_GUARD                      519
+  #define TSCH_ACK_GUARD                     122
+
+  /* Delay between the end of reception of a message and the start of the transmission of ACK ( start of the preamble) */
+  #define TSCH_ACK_DELAY                     610 
+
+  /* MIN slot frame duration:
+    2 RX_GUARD + T_SRH + TX_MAX + ACK_DELAY + T_SRH + ACK_MAX + ACK_GUARD
+    = 2 RX_GUARD + ACK_DELAY + 2 T_SRH + TX_MAX + ACK_MAX + ACK_GUARD
+    MIN  LOC slot frame duration:
+    2 RX__LOC_GUARD + T_SRH + ACK_MAX + (ACK_DELAY + T_SRH + ACK_MAX) *3
+    = 2 RX_LOC_GUARD + 4 ACK_DELAY + 4 T_SRH + 4 ACK_MAX */
+
+
+
+  // #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
+  #if DW1000_DATA_RATE == DW_DATA_RATE_6800_KBPS
+    /* Calculate packet tx/rx duration in RTIMER ticks based on sent
+     * packet length in bytes with 802.15.4 UWB 110, 850 or 6810 kbps data rate.
+     * One byte = 32us at 250 kbps.
+     * One byte = 72.73us at 110 kbps.
+     * One byte = 9.4us at 850 kbps.
+     * One byte = 1.17us at 6810 kbps.
+     * Add 2 bytes for CRC
+     * Add 172 for the PHR transmission at 110 kbps
+     * Add 22 for the PHR transmission at 850 kpbs or more
+     * The SHR is not take into account here (see UWB_T_SHR)
+     * The value do not need to be perfectly correct because
+     * the value will by round in RTIMER tick*/
+    #undef TSCH_PACKET_DURATION
+    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (117 * (len + 2))/100))
+    /* MAX ACK frame = 43 bytes 
+    The following value are based on the real transmission duration 
+    ( including the reedSolomon) */
+    #define TSCH_DEFAULT_TS_MAX_ACK            78   /* do not include SHR */
+    #define TSCH_DEFAULT_TS_MAX_TX             177  /* do not include SHR */
+    /* min slot frame duration (premable 128) 4225 (loc) or 2563 (data) */
+
+  #elif DW1000_DATA_RATE == DW_DATA_RATE_850_KBPS
+    #undef TSCH_PACKET_DURATION
+    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (94 * (len + 2))/10))
+    #define TSCH_DEFAULT_TS_MAX_ACK            473   /* do not include SHR */
+    #define TSCH_DEFAULT_TS_MAX_TX             1261  /* do not include SHR */
+
+    /* min slot frame duration (premable 512) 6845 (loc) or 4570 (data) */
+
+  #elif DW1000_DATA_RATE == DW_DATA_RATE_110_KBPS
+    #undef TSCH_PACKET_DURATION
+    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(172 + (72 * (len + 2))))
+
+    #define TSCH_DEFAULT_TS_MAX_ACK            3783   /* do not include SHR */
+    #define TSCH_DEFAULT_TS_MAX_TX             10084  /* do not include SHR */
+
+  /* min slot frame duration (premable 1024) 22397 (loc) or 17917 (data) */
+  #else
+    #error "TSCH: Unsupported UWB Data rate."
+  #endif /* DW1000_DATA_RATE */
+
+
+  #if TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 5000
+    /* UWB_T_SHR = (Preamble lenght + 16) at 6.8 mbps */
+    #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    5000
+  #elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 7500
+    /* UWB_T_SHR = (Preamble lenght + 16) at 850 mbps */
+    #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    7500
+  #elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 25000
+    // #error "we come here"
+    /* UWB_T_SHR = (Preamble lenght + 64) at 110 mbps */
+    #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    25000
+  #endif /*TSCH_CONF_DEFAULT_TIMESLOT_LENGTH */
+
+  /* In UWB we can not perform a CCA. 
+      We define TS_CCA and TS_CCA_OFFSET but there are not used */
+  #define TSCH_DEFAULT_TS_CCA_OFFSET         500     /* not relevant */
+  #define TSCH_DEFAULT_TS_CCA                128     /* not relevant */
+  #define TSCH_DEFAULT_TS_RX_TX              70      /* not used */
+
+  /* TSCH implementation requierd to PAWN a new protothread at the start 
+      of the RX and TX slot, one a 8MHz MCU it take more than 750µs*/
+  #define TSCH_MIN_START_SLOT                400
+  #define TSCH_RX_OFFSET                     MAX(TSCH_RX_GUARD, TSCH_MIN_START_SLOT)
+
+  #undef TSCH_CONF_RX_WAIT
+  #define TSCH_CONF_RX_WAIT                  (TSCH_RX_GUARD + TSCH_RX_GUARD + UWB_T_SHR)
+
+  #define TSCH_DEFAULT_TS_TX_OFFSET          (TSCH_RX_OFFSET + TSCH_RX_GUARD + UWB_T_SHR)
+  #define TSCH_DEFAULT_TS_RX_OFFSET          TSCH_RX_OFFSET
+
+  #define TSCH_DEFAULT_TS_RX_ACK_DELAY       (TSCH_ACK_DELAY-TSCH_ACK_GUARD)
+  #define TSCH_DEFAULT_TS_TX_ACK_DELAY       (TSCH_ACK_DELAY+UWB_T_SHR)
+  #define TSCH_DEFAULT_TS_RX_WAIT            TSCH_CONF_RX_WAIT
+  #define TSCH_DEFAULT_TS_ACK_WAIT           (TSCH_ACK_GUARD + TSCH_ACK_GUARD + UWB_T_SHR)
+
+  /* Localisation configuration */
+  #define TSCH_CONF_LOCALISATION              1
+
+  #define TSCH_LOC_RX_GUARD           519
+  #define TSCH_LOC_REPLY_DELAY        450
+
+  #define TSCH_LOC_RX_REPLY_TIME      (TSCH_LOC_REPLY_DELAY)
+  #define TSCH_LOC_TX_REPLY_TIME      (TSCH_LOC_REPLY_DELAY+UWB_T_SHR)
+  #define TSCH_LOC_UWB_T_SHR          UWB_T_SHR
+  #define TSCH_LOC_RX_WAIT            (TSCH_LOC_RX_GUARD + TSCH_LOC_RX_GUARD + UWB_T_SHR)
+  #define TSCH_LOC_RX_OFFSET          (TSCH_LOC_RX_GUARD)
+  #define TSCH_LOC_TX_OFFSET          (TSCH_LOC_RX_GUARD+TSCH_LOC_RX_GUARD+UWB_T_SHR)
+
+
+#else
 /* The default timeslot timing in the standard is a guard time of
  * 2200 us, a Tx offset of 2120 us and a Rx offset of 1120 us.
  * As a result, the listening device has a guard time not centered
@@ -109,7 +224,6 @@
  * guard time is user-configurable with TSCH_CONF_RX_WAIT.
 
  * (TS_TX_OFFSET - (TS_RX_WAIT / 2)) instead */
-
 #if TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 10000
 /* Default timeslot timing as per IEEE 802.15.4e */
 
@@ -163,59 +277,11 @@
 #define TSCH_DEFAULT_TS_MAX_TX             4256
 #define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    65000
 
-/*  Default UWB TSCH channel operation 
-    In UWB we can not perform a CCA. 
-    We define TS_CCA and TS_CCA_OFFSET but there are not used */
-#elif TSCH_CONF_DEFAULT_TIMESLOT_LENGTH == 5000
-#define TSCH_DEFAULT_TS_CCA_OFFSET         500     /* not relevant */
-#define TSCH_DEFAULT_TS_CCA                128      /* not relevant */
-
-/* /!\ Make sure to have correctly defined the MACRO UWB_T_SHR */
-
-#define TSCH_RX_GUARD                      519
-
-/* TSCH implementation requierd to PAWN a new protothread at the start 
-    of the RX and TX slot, one a 8MHz MCU it take more than 750µs*/
-#define TSCH_MIN_START_SLOT                400
-#define TSCH_RX_OFFSET                     MAX(TSCH_RX_GUARD, TSCH_MIN_START_SLOT)
-
-#undef TSCH_CONF_RX_WAIT
-#define TSCH_CONF_RX_WAIT                  (TSCH_RX_GUARD + TSCH_RX_GUARD + UWB_T_SHR)
-
-#define TSCH_DEFAULT_TS_TX_OFFSET          (TSCH_RX_OFFSET + TSCH_RX_GUARD + UWB_T_SHR)
-#define TSCH_DEFAULT_TS_RX_OFFSET          TSCH_RX_OFFSET
-
-#define TSCH_ACK_GUARD                     122
-#define TSCH_ACK_DELAY                     610
-
-#define TSCH_DEFAULT_TS_RX_ACK_DELAY       (TSCH_ACK_DELAY-TSCH_ACK_GUARD)
-#define TSCH_DEFAULT_TS_TX_ACK_DELAY       (TSCH_ACK_DELAY+UWB_T_SHR)
-#define TSCH_DEFAULT_TS_RX_WAIT            TSCH_CONF_RX_WAIT
-#define TSCH_DEFAULT_TS_ACK_WAIT           (TSCH_ACK_GUARD + TSCH_ACK_GUARD + UWB_T_SHR)
-#define TSCH_DEFAULT_TS_RX_TX              70      /* not used */
-#define TSCH_DEFAULT_TS_MAX_ACK            78   /* do not include SHR */
-#define TSCH_DEFAULT_TS_MAX_TX             177  /* do not include SHR */
-#define TSCH_DEFAULT_TS_TIMESLOT_LENGTH    5000
-
-// #define TSCH_CONF_ADAPTIVE_TIMESYNC 0
-
-#define TSCH_CONF_LOCALISATION              1
-
-#define TSCH_LOC_RX_GUARD					  519
-#define TSCH_LOC_RX_WAIT					  (TSCH_LOC_RX_GUARD + TSCH_LOC_RX_GUARD + UWB_T_SHR)
-#define TSCH_LOC_RX_OFFSET 					(TSCH_LOC_RX_GUARD)
-#define TSCH_LOC_TX_OFFSET 					(TSCH_LOC_RX_GUARD+TSCH_LOC_RX_GUARD+UWB_T_SHR)
-
-#define TSCH_LOC_REPLY_DELAY				450
-#define TSCH_LOC_RX_REPLY_TIME      (TSCH_LOC_REPLY_DELAY)
-#define TSCH_LOC_TX_REPLY_TIME			(TSCH_LOC_REPLY_DELAY+UWB_T_SHR)
-#define TSCH_LOC_UWB_T_SHR          UWB_T_SHR
-
-
-
 #else
 #error "TSCH: Unsupported default timeslot length"
 #endif
+
+#endif /* #ifndef UWB_T_SHR */
 
 /* A custom feature allowing upper layers to assign packets to
  * a specific slotframe and link */

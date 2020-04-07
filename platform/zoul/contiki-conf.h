@@ -402,6 +402,8 @@ typedef uint32_t rtimer_clock_t;
 
 #if RADIO_DRIVER_UWB
 
+  #include "dev/dw1000/dw1000.h"
+
   /* configuration of the DW1000 radio driver */
   #undef NETSTACK_CONF_RADIO
   #define NETSTACK_CONF_RADIO         dw1000_driver
@@ -412,8 +414,7 @@ typedef uint32_t rtimer_clock_t;
   #endif
 
   #define DW1000_CHANNEL              0
-  #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
-  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_128
+  #define DW1000_DATA_RATE            DW_DATA_RATE_110_KBPS
   #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
 
@@ -422,14 +423,25 @@ typedef uint32_t rtimer_clock_t;
 
   #define DW1000_ARCH_CONF_DMA        1
 
-
-  /* Preamble transmission + SFD symbols
-    1 µs by preamble symbols and 1 µs by SFD symbols
-    The length of the SFD is 64 symbols at 110 kbps and 
-    16 symbols for all other bit rates 
-    (according to the transceiver configuration)*/
+#if DW1000_DATA_RATE == DW_DATA_RATE_6800_KBPS
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_128
+  /* UWB_T_SHR = (Preamble lenght + 16) at 6.8 mbps */
   #define UWB_T_SHR                  ((uint16_t) (128+16))
+  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   5000
 
+#elif DW1000_DATA_RATE == DW_DATA_RATE_850_KBPS
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_512
+  /* UWB_T_SHR = (Preamble lenght + 16) at 850 mbps */
+  #define UWB_T_SHR                  ((uint16_t) (512+16))
+  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   7500
+
+#else /* DW1000_DATA_RATE == DW_DATA_RATE_110_KBPS */
+  #define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_1024
+  /* UWB_T_SHR = (Preamble lenght + 64) at 110 mbps */
+  #define UWB_T_SHR                  ((uint16_t) (1024+64))
+
+  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   25000
+#endif /* DW1000_DATA_RATE */
   /* time from calling transmit() until the SFD byte has been sent 
   Can be recomputed be adding the macro "RADIO_DELAY_MEASUREMENT" to 1
   in the radio driver and be calling NETSTACK_CONF_RADIO.transmit()
@@ -460,33 +472,18 @@ typedef uint32_t rtimer_clock_t;
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3}
   #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3, 9, 10, 8, 11}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){7}
-  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 3}
+  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 3, 7}
   #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
   // #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     (uint8_t[]){ 3}
   #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  12
+  // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  2
   // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  8
-  #define TSCH_CONF_DEFAULT_TIMESLOT_LENGTH   5000
 
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
 
   // #define TSCH_CONF_MAX_INCOMING_PACKETS      8
 
-
-  /* Calculate packet tx/rx duration in RTIMER ticks based on sent
-   * packet length in bytes with 802.15.4 UWB 110, 850 or 6810 kbps data rate.
-   * One byte = 32us at 250 kbps.
-   * One byte = 53.3us at 110 kbps.
-   * One byte = 9.4us at 850 kbps.
-   * One byte = 1.17us at 6810 kbps.
-   * Add two bytes for CRC
-   * Add 172 for the PHR transmission at 110 kbps
-   * Add 22 for the PHR transmission at 850 kpbs or more
-   * The SHR is not take into account here (see UWB_T_SHR)
-   * The value do not need to be perfectly correct because
-   * the value will by round in RTIMER tick*/
-  #undef TSCH_PACKET_DURATION
-  #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (117 * (len + 2))/100))
   
   /* We use the SFD timestamp gived by the DW1000 transceiver to do the synchronization */
   #define TSCH_CONF_RESYNC_WITH_SFD_TIMESTAMPS 1

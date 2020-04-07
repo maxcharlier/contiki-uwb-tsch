@@ -996,25 +996,26 @@ dw_set_datarate_and_sfd(dw1000_data_rate_t data_rate, dw1000_sfd_type_t sfd_type
   /* For the Transmit Frame Control Register, we focus on the TXBR (bit 13-14).
    Thus we only touch the 2nd byte */
   dw_read_subreg(DW_REG_TX_FCTRL, 1, 1, (uint8_t *) &tx_fctrl_val);
-  tx_fctrl_val &= ~DW_TXBR_MASK;
+  /* suppres previews bit rate */
+  tx_fctrl_val &= ~(DW_TXBR_MASK >> 8);
 
   switch(data_rate) {
   case DW_DATA_RATE_110_KBPS:
     /* Enable Receiver Mode 110 kbps data rate */
     sys_cfg_val |= (1UL << (DW_RXM110K - 16)) & (DW_RXM110K_MASK >> 16);
-    /* 110 kbps bite rate */
+    /* 110 kbps bit rate */
     tx_fctrl_val |= (0x00UL << (DW_TXBR - 8)) & (DW_TXBR_MASK >> 8);
     break;
   case DW_DATA_RATE_850_KBPS:
     /* Disable Receiver Mode 110 kbps data rate */
     sys_cfg_val &= ~(DW_RXM110K_MASK >> 16); 
-    /* 850 kbps bite rate */
+    /* 850 kbps bit rate */
     tx_fctrl_val |= (0x01UL << (DW_TXBR - 8)) & (DW_TXBR_MASK >> 8);
     break;
   case DW_DATA_RATE_6800_KBPS:
     /* Disable Receiver Mode 110 kbps data rate */
     sys_cfg_val &= ~(DW_RXM110K_MASK >> 16); 
-    /* 6800 kbps bite rate */
+    /* 6800 kbps bit  rate */
     tx_fctrl_val |= (0x02UL << (DW_TXBR - 8)) & (DW_TXBR_MASK >> 8);
     break;
   }
@@ -1096,10 +1097,9 @@ dw_lde_repc_config(dw1000_preamble_code_t preamble_code,
     case DW_PREAMBLE_CODE_5:
       lde_repc = ((uint16_t)DW_LDE_REPC_5);
       break;
-    /* DW_PREAMBLE_CODE_6 same as 5 */
-    /* case DW_PREAMBLE_CODE_6: */
-    /*   lde_repc = ((uint16_t) DW_LDE_REPC_6); */
-    /*   break; */
+    case DW_PREAMBLE_CODE_6:
+      lde_repc = ((uint16_t)DW_LDE_REPC_6);
+      break;
     case DW_PREAMBLE_CODE_7:
       lde_repc = ((uint16_t)DW_LDE_REPC_7);
       break;
@@ -1118,6 +1118,18 @@ dw_lde_repc_config(dw1000_preamble_code_t preamble_code,
     case DW_PREAMBLE_CODE_12:
       lde_repc = ((uint16_t)DW_LDE_REPC_12);
       break;
+    case DW_PREAMBLE_CODE_13: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_13);
+      break;
+    case DW_PREAMBLE_CODE_14: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_14);
+      break;
+    case DW_PREAMBLE_CODE_15: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_15);
+      break;
+    case DW_PREAMBLE_CODE_16: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_16);
+      break;
     case DW_PREAMBLE_CODE_17:
       lde_repc = ((uint16_t)DW_LDE_REPC_17);
       break;
@@ -1129,6 +1141,18 @@ dw_lde_repc_config(dw1000_preamble_code_t preamble_code,
       break;
     case DW_PREAMBLE_CODE_20:
       lde_repc = ((uint16_t)DW_LDE_REPC_20);
+      break;
+    case DW_PREAMBLE_CODE_21: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_21);
+      break;
+    case DW_PREAMBLE_CODE_22: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_22);
+      break;
+    case DW_PREAMBLE_CODE_23: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_23);
+      break;
+    case DW_PREAMBLE_CODE_24: /* DPS Preamble code */
+      lde_repc = ((uint16_t)DW_LDE_REPC_24);
       break;
   }
   /* From the user manual v2.10, p170:

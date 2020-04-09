@@ -330,8 +330,10 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   // PRINTF("UDP client process started nbr:%d routes:%d\n",
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
 
-  tsch_schedule_fullmesh_data();
+  // tsch_schedule_fullmesh_data();
   // tsch_schedule_fullmesh_data_2nodes();
+  tsch_schedule_fullmesh_data_110kbps();
+  
   tsch_schedule_print();
 
 

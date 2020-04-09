@@ -957,8 +957,6 @@ void tsch_schedule_fullmesh_data_2nodes(void)
 #elif NODEID == 0x02
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 8, 0 },
-#else
-#  error "Unhandled NODEID for static schedule."
 #endif /* NODEID */
     { 0 }
   }, *l;

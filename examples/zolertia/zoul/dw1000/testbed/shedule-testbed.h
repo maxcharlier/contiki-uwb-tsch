@@ -22,6 +22,5 @@ extern const linkaddr_t * mac_neighborg_addr[16];
 
 
 void tsch_schedule_fullmesh_data(void);
-void tsch_schedule_alt(void);
 void tsch_schedule_fullmesh_data_2nodes(void);
 void tsch_schedule_fullmesh_data_110kbps(void);

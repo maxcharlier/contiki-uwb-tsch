@@ -602,7 +602,7 @@ void tsch_schedule_fullmesh_data_2nodes(void)
 
   /* Build schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_custom = tsch_schedule_add_slotframe(0, 101);
+  sf_custom = tsch_schedule_add_slotframe(0, 11);
 
   
       static linkaddr_t node_1_address;
@@ -622,11 +622,15 @@ void tsch_schedule_fullmesh_data_2nodes(void)
   } timeslots[] = {
     { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
 #if NODEID == 0x01
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 4, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 8, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 2, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 4, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 7, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 9, 0 },
 #elif NODEID == 0x02
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 8, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 2, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 7, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 9, 0 },
 #endif /* NODEID */
     { 0 }
   }, *l;

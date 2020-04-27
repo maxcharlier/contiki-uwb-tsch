@@ -143,7 +143,8 @@
 
   #elif DW1000_DATA_RATE == DW_DATA_RATE_850_KBPS
     #undef TSCH_PACKET_DURATION
-    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (94 * (len + 2))/10))
+    #define REEDSOLOMON_OVERRED       130
+    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(REEDSOLOMON_OVERRED + 22 + (94 * (len + 2))/10))
     #define TSCH_DEFAULT_TS_MAX_ACK            473   /* do not include SHR */
     #define TSCH_DEFAULT_TS_MAX_TX             1261  /* do not include SHR */
 
@@ -151,7 +152,8 @@
 
   #elif DW1000_DATA_RATE == DW_DATA_RATE_110_KBPS
     #undef TSCH_PACKET_DURATION
-    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(172 + (72 * (len + 2))))
+    #define REEDSOLOMON_OVERRED       130
+    #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(REEDSOLOMON_OVERRED + 172 + (72 * (len + 2))))
 
     #define TSCH_DEFAULT_TS_MAX_ACK            3783   /* do not include SHR */
     #define TSCH_DEFAULT_TS_MAX_TX             10084  /* do not include SHR */

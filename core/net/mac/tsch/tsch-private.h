@@ -48,10 +48,11 @@
 #include "net/linkaddr.h"
 #include "net/mac/tsch/tsch-asn.h"
 #include "net/mac/tsch/tsch-conf.h"
+#include "watchdog.h"
+
 #if CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64
 #include "lib/simEnvChange.h"
 #include "sys/cooja_mt.h"
-#include "watchdog.h"
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
 
 /************ Types ***********/

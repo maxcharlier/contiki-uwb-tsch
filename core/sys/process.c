@@ -48,6 +48,7 @@
 #include "sys/process.h"
 #include "sys/arg.h"
 
+#include "sys/rtimer.h"
 /*
  * Pointer to the currently running process structure.
  */
@@ -80,13 +81,19 @@ static volatile unsigned char poll_requested;
 
 static void call_process(struct process *p, process_event_t ev, process_data_t data);
 
-#define DEBUG 0
+#define DEBUG 1
+#define PRINT_BYTE 1
 #if DEBUG
 #include <stdio.h>
 #define PRINTF(...) printf(__VA_ARGS__)
 #else
 #define PRINTF(...)
 #endif
+#if PRINT_BYTE 
+  #include "dev/uart.h"
+  #define DBG_CONF_UART               0
+  #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+#endif /* PRINT_BYTE */
 
 /*---------------------------------------------------------------------------*/
 process_event_t
@@ -114,8 +121,30 @@ process_start(struct process *p, process_data_t data)
   p->state = PROCESS_STATE_RUNNING;
   PT_INIT(&p->pt);
 
-  PRINTF("process: starting '%s'\n", PROCESS_NAME_STRING(p));
-
+  // PRINTF("%lu process: starting '%s'\n", RTIMER_NOW(), PROCESS_NAME_STRING(p));
+  #if DEBUG
+    #if PRINT_BYTE
+      /* print S: _NODEADDR_status_num_tx
+      */
+      uint32_t value = RTIMER_NOW();
+      write_byte((uint8_t) '-');
+      write_byte((uint8_t) 'P');
+      write_byte((uint8_t) ':');
+      write_byte((uint8_t) 'S'); //start
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+10); 
+      for(int i = 0; i < 4 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+      }
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+      for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+      {
+          printf("%c", PROCESS_NAME_STRING(p)[i]);
+      }
+      write_byte((uint8_t) '\n');
+    #else /* PRINT_BYTE */  
+      PRINTF("%lu start_p '%s'\n", RTIMER_NOW(), PROCESS_NAME_STRING(p));
+    #endif /* PRINT_BYTE */  
+  #endif /* DEBUG */
   /* Post a synchronous initialization event to the process. */
   process_post_synch(p, PROCESS_EVENT_INIT, data);
 }
@@ -126,7 +155,30 @@ exit_process(struct process *p, struct process *fromprocess)
   register struct process *q;
   struct process *old_current = process_current;
 
-  PRINTF("process: exit_process '%s'\n", PROCESS_NAME_STRING(p));
+  // PRINTF("%lu process: exit_process '%s'\n", RTIMER_NOW(), PROCESS_NAME_STRING(p));
+  #if DEBUG
+    #if PRINT_BYTE
+      /* print S: _NODEADDR_status_num_tx
+      */
+      uint32_t value = RTIMER_NOW();
+      write_byte((uint8_t) '-');
+      write_byte((uint8_t) 'P');
+      write_byte((uint8_t) ':');
+      write_byte((uint8_t) 'E'); //exit
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+10);
+      for(int i = 0; i < 4 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+      }
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+      for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+      {
+          printf("%c", PROCESS_NAME_STRING(p)[i]);
+      }
+      write_byte((uint8_t) '\n');
+    #else /* PRINT_BYTE */  
+      PRINTF("%lu exit_p '%s'\n", RTIMER_NOW(), PROCESS_NAME_STRING(p));
+    #endif /* PRINT_BYTE */  
+  #endif /* DEBUG */
 
   /* Make sure the process is in the process list before we try to
      exit it. */
@@ -178,13 +230,59 @@ call_process(struct process *p, process_event_t ev, process_data_t data)
 
 #if DEBUG
   if(p->state == PROCESS_STATE_CALLED) {
-    printf("process: process '%s' called again with event %d\n", PROCESS_NAME_STRING(p), ev);
+    // printf("%lu process: process '%s' called again with event %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
+    #if PRINT_BYTE
+      /* print S: _NODEADDR_status_num_tx
+      */
+      uint32_t value = RTIMER_NOW();
+      write_byte((uint8_t) '-');
+      write_byte((uint8_t) 'P');
+      write_byte((uint8_t) ':');
+      write_byte((uint8_t) 'C'); //call
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+11); 
+      for(int i = 0; i < 4 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+      }
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+      for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+      {
+          printf("%c", PROCESS_NAME_STRING(p)[i]);
+      }
+      write_byte((uint8_t) ev);
+      write_byte((uint8_t) '\n');
+    #else /* PRINT_BYTE */  
+      printf("%lu call '%s' evt %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
+    #endif /* PRINT_BYTE */  
+
   }
 #endif /* DEBUG */
   
   if((p->state & PROCESS_STATE_RUNNING) &&
      p->thread != NULL) {
-    PRINTF("process: calling process '%s' with event %d\n", PROCESS_NAME_STRING(p), ev);
+    // PRINTF("%lu process: calling process '%s' with event %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
+    #if PRINT_BYTE
+      /* print S: _NODEADDR_status_num_tx
+      */
+      uint32_t value = RTIMER_NOW();
+      write_byte((uint8_t) '-');
+      write_byte((uint8_t) 'P');
+      write_byte((uint8_t) ':');
+      write_byte((uint8_t) 'C'); //call
+      write_byte((uint8_t) (strlen(PROCESS_NAME_STRING(p))+11)); 
+      for(int i = 0; i < 4 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+      }
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+      for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+      {
+          printf("%c", PROCESS_NAME_STRING(p)[i]);
+      }
+      write_byte((uint8_t) ev);
+      write_byte((uint8_t) '\n');
+    #else /* PRINT_BYTE */  
+      printf("%lu call '%s' evt %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
+    #endif /* PRINT_BYTE */  
+
     process_current = p;
     p->state = PROCESS_STATE_CALLED;
     ret = p->thread(&p->pt, ev, data);
@@ -324,21 +422,117 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
   process_num_events_t snum;
 
   if(PROCESS_CURRENT() == NULL) {
-    PRINTF("process_post: NULL process posts event %d to process '%s', nevents %d\n",
-	   ev,PROCESS_NAME_STRING(p), nevents);
+    // PRINTF("%lu process_post: NULL process posts event %d to process '%s', nevents %d\n",RTIMER_NOW(), 
+	   // ev,PROCESS_NAME_STRING(p), nevents);
+    #if DEBUG
+      #if PRINT_BYTE
+        /* print S: _NODEADDR_status_num_tx
+        */
+        uint32_t value = RTIMER_NOW();
+        write_byte((uint8_t) '-');
+        write_byte((uint8_t) 'P');
+        write_byte((uint8_t) ':');
+        write_byte((uint8_t) 'P'); //post
+        write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+17); 
+        for(int i = 0; i < 4 ; i++){
+          write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+        }
+        write_byte((uint8_t) 4);
+        write_byte((uint8_t) 'N');
+        write_byte((uint8_t) 'U');
+        write_byte((uint8_t) 'L');
+        write_byte((uint8_t) 'L'); 
+        write_byte((uint8_t) ev);
+
+        write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+        for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+        {
+            printf("%c", PROCESS_NAME_STRING(p)[i]);
+        }
+        write_byte((uint8_t) nevents);
+        write_byte((uint8_t) 0); // not broadcast
+        write_byte((uint8_t) '\n');
+      #else /* PRINT_BYTE */ 
+      PRINTF("%lu post: NULL evt %d proc '%s', nevts %d\n", RTIMER_NOW(), 
+     ev,PROCESS_NAME_STRING(p), nevents);
+      #endif /* PRINT_BYTE */  
+    #endif /* DEBUG */
   } else {
-    PRINTF("process_post: Process '%s' posts event %d to process '%s', nevents %d\n",
-	   PROCESS_NAME_STRING(PROCESS_CURRENT()), ev,
-	   p == PROCESS_BROADCAST? "<broadcast>": PROCESS_NAME_STRING(p), nevents);
+    // PRINTF("%lu process_post: Process '%s' posts event %d to process '%s', nevents %d\n",RTIMER_NOW(), 
+	   // PROCESS_NAME_STRING(PROCESS_CURRENT()), ev,
+	   // p == PROCESS_BROADCAST? "<broadcast>": PROCESS_NAME_STRING(p), nevents);
+    #if DEBUG
+      #if PRINT_BYTE
+        /* print S: _NODEADDR_status_num_tx
+        */
+        uint32_t value = RTIMER_NOW();
+        write_byte((uint8_t) '-');
+        write_byte((uint8_t) 'P');
+        write_byte((uint8_t) ':');
+        write_byte((uint8_t) 'P'); //post
+        write_byte((uint8_t) (strlen(PROCESS_NAME_STRING(PROCESS_CURRENT())) + strlen(PROCESS_NAME_STRING(p)) +14)); 
+        for(int i = 0; i < 4 ; i++){
+          write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+        }
+        write_byte((uint8_t) strlen(PROCESS_NAME_STRING(PROCESS_CURRENT())));
+        for (int i =0; i<strlen(PROCESS_NAME_STRING(PROCESS_CURRENT())); i++)
+        {
+            printf("%c", PROCESS_NAME_STRING(PROCESS_CURRENT())[i]);
+        }
+        write_byte((uint8_t) ev);
+        write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+        for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+        {
+            printf("%c", PROCESS_NAME_STRING(p)[i]);
+        }
+        write_byte((uint8_t) nevents);
+        write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast
+        write_byte((uint8_t) '\n');
+      #else /* PRINT_BYTE */ 
+      PRINTF("%lu post: proc '%s' evt %d proc '%s', nevts %d\n",RTIMER_NOW(), 
+       PROCESS_NAME_STRING(PROCESS_CURRENT()), ev,
+       p == PROCESS_BROADCAST? "<broadcast>": PROCESS_NAME_STRING(p), nevents);
+      #endif /* PRINT_BYTE */  
+    #endif /* DEBUG */
   }
   
   if(nevents == PROCESS_CONF_NUMEVENTS) {
 #if DEBUG
-    if(p == PROCESS_BROADCAST) {
-      printf("soft panic: event queue is full when broadcast event %d was posted from %s\n", ev, PROCESS_NAME_STRING(process_current));
-    } else {
-      printf("soft panic: event queue is full when event %d was posted to %s from %s\n", ev, PROCESS_NAME_STRING(p), PROCESS_NAME_STRING(process_current));
-    }
+    #if PRINT_BYTE
+      /* print S: _NODEADDR_status_num_tx
+      */
+      uint32_t value = RTIMER_NOW();
+      write_byte((uint8_t) '-');
+      write_byte((uint8_t) 'P');
+      write_byte((uint8_t) ':');
+      write_byte((uint8_t) 'B'); //soft-panic
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+17); 
+      for(int i = 0; i < 4 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+      }
+      write_byte((uint8_t) 4)
+;      write_byte((uint8_t) 'N');
+      write_byte((uint8_t) 'U');
+      write_byte((uint8_t) 'L');
+      write_byte((uint8_t) 'L'); 
+      write_byte((uint8_t) ev);
+
+      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+      for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+      {
+          printf("%c", PROCESS_NAME_STRING(p)[i]);
+      }
+      write_byte((uint8_t) nevents);
+      write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast
+      write_byte((uint8_t) '\n');
+    #else /* PRINT_BYTE */ 
+      if(p == PROCESS_BROADCAST) {
+      printf("%lu soft panic: event queue is full when broadcast event %d was posted from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(process_current));
+      } else {
+        printf("%lu soft panic: event queue is full when event %d was posted to %s from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(p), PROCESS_NAME_STRING(process_current));
+      }
+    #endif /* PRINT_BYTE */  
+    
 #endif /* DEBUG */
     return PROCESS_ERR_FULL;
   }

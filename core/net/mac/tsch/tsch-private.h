@@ -130,7 +130,9 @@ void tsch_disassociate(void);
     cooja_mt_yield(); \
   };
 #else
+/* #define BUSYWAIT_UNTIL_ABS(cond, t0, offset) \
+  do {watchdog_periodic(); } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), (t0) + (offset))) ; */
 #define BUSYWAIT_UNTIL_ABS(cond, t0, offset) \
-  do {watchdog_periodic(); } while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), (t0) + (offset))) ;
+  while(!(cond) && RTIMER_CLOCK_LT(RTIMER_NOW(), (t0) + (offset))) ;
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
 #endif /* __TSCH_PRIVATE_H__ */

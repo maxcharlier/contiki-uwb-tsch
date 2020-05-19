@@ -61,6 +61,7 @@
 #include "dev/udma.h"
 #include "assert.h"
 #include "dev/ioc.h"
+#include "watchdog.h"
 
 #include <stdio.h>
 /*---------------------------------------------------------------------------*/
@@ -248,7 +249,7 @@ dw1000_arch_spi_dma(uint8_t *read_buf, const uint8_t *write_buf, uint16_t len,
   udma_channel_enable(DW1000_CONF_TX_DMA_SPI_CHAN);
 
   /* Wait for the transfer to complete. */
-  while(udma_channel_get_mode(DW1000_CONF_RX_DMA_SPI_CHAN)
+  do{watchdog_periodic();} while(udma_channel_get_mode(DW1000_CONF_RX_DMA_SPI_CHAN)
          != UDMA_CHCTL_XFERMODE_STOP);
 
   /* Disable uDMA for the SSI FIFO */

@@ -433,7 +433,7 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
         write_byte((uint8_t) 'P');
         write_byte((uint8_t) ':');
         write_byte((uint8_t) 'P'); //post
-        write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+17); 
+        write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+18); 
         for(int i = 0; i < 4 ; i++){
           write_byte((uint8_t) ((uint8_t*)&value)[i]);    
         }
@@ -498,41 +498,75 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
   
   if(nevents == PROCESS_CONF_NUMEVENTS) {
 #if DEBUG
-    #if PRINT_BYTE
-      /* print S: _NODEADDR_status_num_tx
-      */
-      uint32_t value = RTIMER_NOW();
-      write_byte((uint8_t) '-');
-      write_byte((uint8_t) 'P');
-      write_byte((uint8_t) ':');
-      write_byte((uint8_t) 'B'); //soft-panic
-      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p))+17); 
-      for(int i = 0; i < 4 ; i++){
-        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
-      }
-      write_byte((uint8_t) 4)
-;      write_byte((uint8_t) 'N');
-      write_byte((uint8_t) 'U');
-      write_byte((uint8_t) 'L');
-      write_byte((uint8_t) 'L'); 
-      write_byte((uint8_t) ev);
+    if(p == PROCESS_BROADCAST) {
+      // PRINTF("%lu process_post: NULL process posts event %d to process '%s', nevents %d\n",RTIMER_NOW(), 
+       // ev,PROCESS_NAME_STRING(p), nevents);
 
-      write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
-      for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
-      {
-          printf("%c", PROCESS_NAME_STRING(p)[i]);
-      }
-      write_byte((uint8_t) nevents);
-      write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast
-      write_byte((uint8_t) '\n');
-    #else /* PRINT_BYTE */ 
-      if(p == PROCESS_BROADCAST) {
-      printf("%lu soft panic: event queue is full when broadcast event %d was posted from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(process_current));
-      } else {
+        #if PRINT_BYTE
+          /* print S: _NODEADDR_status_num_tx
+          */
+          uint32_t value = RTIMER_NOW();
+          write_byte((uint8_t) '-');
+          write_byte((uint8_t) 'P');
+          write_byte((uint8_t) ':');
+          write_byte((uint8_t) 'B'); //soft-panic
+          write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current))+18); 
+          for(int i = 0; i < 4 ; i++){
+            write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+          }
+          write_byte((uint8_t) 4);
+          write_byte((uint8_t) 'N');
+          write_byte((uint8_t) 'U');
+          write_byte((uint8_t) 'L');
+          write_byte((uint8_t) 'L'); 
+          write_byte((uint8_t) ev);
+
+          write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current)));
+          for (int i =0; i<strlen(PROCESS_NAME_STRING(process_current)); i++)
+          {
+              printf("%c", PROCESS_NAME_STRING(process_current)[i]);
+          }
+          write_byte((uint8_t) nevents);
+          write_byte((uint8_t) 0); // not broadcast
+          write_byte((uint8_t) '\n');
+        #else /* PRINT_BYTE */ 
+        printf("%lu soft panic: event queue is full when broadcast event %d was posted from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(process_current));
+        #endif /* PRINT_BYTE */  
+    } else {
+      // PRINTF("%lu process_post: Process '%s' posts event %d to process '%s', nevents %d\n",RTIMER_NOW(), 
+       // PROCESS_NAME_STRING(PROCESS_CURRENT()), ev,
+       // p == PROCESS_BROADCAST? "<broadcast>": PROCESS_NAME_STRING(p), nevents);
+
+        #if PRINT_BYTE
+          /* print S: _NODEADDR_status_num_tx
+          */
+          uint32_t value = RTIMER_NOW();
+          write_byte((uint8_t) '-');
+          write_byte((uint8_t) 'P');
+          write_byte((uint8_t) ':');
+          write_byte((uint8_t) 'B'); //soft-panic
+          write_byte((uint8_t) (strlen(PROCESS_NAME_STRING(p)) + strlen(PROCESS_NAME_STRING(process_current)) +14)); 
+          for(int i = 0; i < 4 ; i++){
+            write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+          }
+          write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
+          for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
+          {
+              printf("%c", PROCESS_NAME_STRING(p)[i]);
+          }
+          write_byte((uint8_t) ev);
+          write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current));
+          for (int i =0; i<strlen(PROCESS_NAME_STRING(process_current)); i++)
+          {
+              printf("%c",PROCESS_NAME_STRING(process_current)[i]);
+          }
+          write_byte((uint8_t) nevents);
+          write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast
+          write_byte((uint8_t) '\n');
+        #else /* PRINT_BYTE */ 
         printf("%lu soft panic: event queue is full when event %d was posted to %s from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(p), PROCESS_NAME_STRING(process_current));
-      }
-    #endif /* PRINT_BYTE */  
-    
+        #endif /* PRINT_BYTE */  
+    }
 #endif /* DEBUG */
     return PROCESS_ERR_FULL;
   }

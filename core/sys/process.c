@@ -555,7 +555,7 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
               printf("%c", PROCESS_NAME_STRING(p)[i]);
           }
           write_byte((uint8_t) ev);
-          write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current));
+          write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current)));
           for (int i =0; i<strlen(PROCESS_NAME_STRING(process_current)); i++)
           {
               printf("%c",PROCESS_NAME_STRING(process_current)[i]);

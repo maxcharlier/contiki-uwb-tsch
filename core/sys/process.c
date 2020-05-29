@@ -138,7 +138,7 @@ process_start(struct process *p, process_data_t data)
       write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
       for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
       {
-          printf("%c", PROCESS_NAME_STRING(p)[i]);
+          write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
       }
       write_byte((uint8_t) '\n');
     #else /* PRINT_BYTE */  
@@ -172,7 +172,7 @@ exit_process(struct process *p, struct process *fromprocess)
       write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
       for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
       {
-          printf("%c", PROCESS_NAME_STRING(p)[i]);
+          write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
       }
       write_byte((uint8_t) '\n');
     #else /* PRINT_BYTE */  
@@ -246,7 +246,7 @@ call_process(struct process *p, process_event_t ev, process_data_t data)
       write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
       for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
       {
-          printf("%c", PROCESS_NAME_STRING(p)[i]);
+          write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
       }
       write_byte((uint8_t) ev);
       write_byte((uint8_t) '\n');
@@ -275,7 +275,7 @@ call_process(struct process *p, process_event_t ev, process_data_t data)
       write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
       for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
       {
-          printf("%c", PROCESS_NAME_STRING(p)[i]);
+          write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
       }
       write_byte((uint8_t) ev);
       write_byte((uint8_t) '\n');
@@ -447,7 +447,7 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
         write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
         for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
         {
-            printf("%c", PROCESS_NAME_STRING(p)[i]);
+            write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
         }
         write_byte((uint8_t) nevents);
         write_byte((uint8_t) 0); // not broadcast
@@ -477,13 +477,13 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
         write_byte((uint8_t) strlen(PROCESS_NAME_STRING(PROCESS_CURRENT())));
         for (int i =0; i<strlen(PROCESS_NAME_STRING(PROCESS_CURRENT())); i++)
         {
-            printf("%c", PROCESS_NAME_STRING(PROCESS_CURRENT())[i]);
+            write_byte((uint8_t) PROCESS_NAME_STRING(PROCESS_CURRENT())[i]);
         }
         write_byte((uint8_t) ev);
         write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
         for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
         {
-            printf("%c", PROCESS_NAME_STRING(p)[i]);
+            write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
         }
         write_byte((uint8_t) nevents);
         write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast
@@ -506,15 +506,15 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
           /* print S: _NODEADDR_status_num_tx
           */
           uint32_t value = RTIMER_NOW();
-          write_byte((uint8_t) '-');
-          write_byte((uint8_t) 'P');
-          write_byte((uint8_t) ':');
+          write_byte((uint8_t) '-'); //0
+          write_byte((uint8_t) 'P'); //1
+          write_byte((uint8_t) ':'); // 2
           write_byte((uint8_t) 'B'); //soft-panic
           write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current))+18); 
           for(int i = 0; i < 4 ; i++){
             write_byte((uint8_t) ((uint8_t*)&value)[i]);    
           }
-          write_byte((uint8_t) 4);
+          write_byte((uint8_t) 4); // 9
           write_byte((uint8_t) 'N');
           write_byte((uint8_t) 'U');
           write_byte((uint8_t) 'L');
@@ -524,7 +524,7 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
           write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current)));
           for (int i =0; i<strlen(PROCESS_NAME_STRING(process_current)); i++)
           {
-              printf("%c", PROCESS_NAME_STRING(process_current)[i]);
+              write_byte((uint8_t) PROCESS_NAME_STRING(process_current)[i]);
           }
           write_byte((uint8_t) nevents);
           write_byte((uint8_t) 0); // not broadcast
@@ -552,13 +552,13 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
           write_byte((uint8_t) strlen(PROCESS_NAME_STRING(p)));
           for (int i =0; i<strlen(PROCESS_NAME_STRING(p)); i++)
           {
-              printf("%c", PROCESS_NAME_STRING(p)[i]);
+              write_byte((uint8_t) PROCESS_NAME_STRING(p)[i]);
           }
           write_byte((uint8_t) ev);
           write_byte((uint8_t) strlen(PROCESS_NAME_STRING(process_current)));
           for (int i =0; i<strlen(PROCESS_NAME_STRING(process_current)); i++)
           {
-              printf("%c",PROCESS_NAME_STRING(process_current)[i]);
+              write_byte((uint8_t)PROCESS_NAME_STRING(process_current)[i]);
           }
           write_byte((uint8_t) nevents);
           write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast

@@ -275,6 +275,8 @@ tsch_get_lock(void)
         simProcessRunValue = 1;
         cooja_mt_yield();
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
+        
+        watchdog_periodic();
       }
       busy_wait_time = RTIMER_NOW() - busy_wait_time;
     }

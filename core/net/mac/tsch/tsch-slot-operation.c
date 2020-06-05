@@ -270,12 +270,22 @@ tsch_get_lock(void)
     if(tsch_in_slot_operation) {
       busy_wait = 1;
       busy_wait_time = RTIMER_NOW();
+      write_byte((uint8_t) '-');
+      write_byte((uint8_t) 'P');
+      write_byte((uint8_t) ':');
+      write_byte((uint8_t) 'T'); //TSCH
+      write_byte((uint8_t) (9)); 
+      for(int i = 0; i < 4 ; i++){
+        write_byte((uint8_t) ((uint8_t*)&busy_wait_time)[i]);    
+      }
+      write_byte((uint8_t) '\n');
+
       while(tsch_in_slot_operation) {
 #if CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64
         simProcessRunValue = 1;
         cooja_mt_yield();
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
-        
+
         watchdog_periodic();
       }
       busy_wait_time = RTIMER_NOW() - busy_wait_time;

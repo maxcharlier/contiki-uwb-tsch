@@ -78,6 +78,9 @@
   #include "sys/clock.h"
   #include "dev/gpio.h"
 
+  #include "dev/uart.h"
+  #define DBG_CONF_UART               0
+  #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
   #define DWM1000_PD2_PORT           GPIO_D_NUM
   #define DWM1000_PD2_PIN            2
   #define PD2_TRIGGER() do { \
@@ -270,15 +273,17 @@ tsch_get_lock(void)
     if(tsch_in_slot_operation) {
       busy_wait = 1;
       busy_wait_time = RTIMER_NOW();
-      write_byte((uint8_t) '-');
-      write_byte((uint8_t) 'P');
-      write_byte((uint8_t) ':');
-      write_byte((uint8_t) 'T'); //TSCH
-      write_byte((uint8_t) (9)); 
-      for(int i = 0; i < 4 ; i++){
-        write_byte((uint8_t) ((uint8_t*)&busy_wait_time)[i]);    
-      }
-      write_byte((uint8_t) '\n');
+      #ifdef DEBUG_GPIO_TSCH
+        write_byte((uint8_t) '-');
+        write_byte((uint8_t) 'P');
+        write_byte((uint8_t) ':');
+        write_byte((uint8_t) 'T'); //TSCH
+        write_byte((uint8_t) (9)); 
+        for(int i = 0; i < 4 ; i++){
+          write_byte((uint8_t) ((uint8_t*)&busy_wait_time)[i]);    
+        }
+        write_byte((uint8_t) '\n');
+      #endif /* DEBUG_GPIO_TSCH */
 
       while(tsch_in_slot_operation) {
 #if CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64

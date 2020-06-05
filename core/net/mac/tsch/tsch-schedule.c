@@ -62,6 +62,10 @@
 #endif /* TSCH_LOG_LEVEL */
 #include "net/net-debug.h"
 
+  #include "dev/uart.h"
+  #define DBG_CONF_UART               0
+  #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+
 /* Pre-allocated space for links */
 MEMB(link_memb, struct tsch_link, TSCH_SCHEDULE_MAX_LINKS);
 /* Pre-allocated space for slotframes */
@@ -81,6 +85,27 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
     /* A slotframe with this handle already exists */
     return NULL;
   }
+
+    uint32_t value = RTIMER_NOW();
+    write_byte((uint8_t) '-');
+    write_byte((uint8_t) 'P');
+    write_byte((uint8_t) ':');
+    write_byte((uint8_t) 'T'); //TSCH
+    write_byte((uint8_t) (9+9)); 
+    for(int i = 0; i < 4 ; i++){
+      write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+    }
+    write_byte((uint8_t) 8);
+    write_byte((uint8_t) 'S');
+    write_byte((uint8_t) 'c');
+    write_byte((uint8_t) 'e');
+    write_byte((uint8_t) 'd'); 
+    write_byte((uint8_t) 'u'); 
+    write_byte((uint8_t) 'l'); 
+    write_byte((uint8_t) 'e'); 
+    write_byte((uint8_t) '5');  
+    write_byte((uint8_t) '\n');
+
 
   if(tsch_get_lock()) {
     struct tsch_slotframe *sf = memb_alloc(&slotframe_memb);
@@ -123,7 +148,26 @@ tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe)
     while((l = list_head(slotframe->links_list))) {
       tsch_schedule_remove_link(slotframe, l);
     }
-
+    
+    uint32_t value = RTIMER_NOW();
+    write_byte((uint8_t) '-');
+    write_byte((uint8_t) 'P');
+    write_byte((uint8_t) ':');
+    write_byte((uint8_t) 'T'); //TSCH
+    write_byte((uint8_t) (9+9)); 
+    for(int i = 0; i < 4 ; i++){
+      write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+    }
+    write_byte((uint8_t) 8);
+    write_byte((uint8_t) 'S');
+    write_byte((uint8_t) 'c');
+    write_byte((uint8_t) 'e');
+    write_byte((uint8_t) 'd'); 
+    write_byte((uint8_t) 'u'); 
+    write_byte((uint8_t) 'l'); 
+    write_byte((uint8_t) 'e'); 
+    write_byte((uint8_t) '1');  
+    write_byte((uint8_t) '\n');
     /* Now that the slotframe has no links, remove it. */
     if(tsch_get_lock()) {
       PRINTF("TSCH-schedule: remove slotframe %u %u\n", slotframe->handle, slotframe->size.val);
@@ -185,6 +229,27 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
     /* Start with removing the link currently installed at this timeslot (needed
      * to keep neighbor state in sync with link options etc.) */
     tsch_schedule_remove_link_by_timeslot(slotframe, timeslot);
+
+    uint32_t value = RTIMER_NOW();
+    write_byte((uint8_t) '-');
+    write_byte((uint8_t) 'P');
+    write_byte((uint8_t) ':');
+    write_byte((uint8_t) 'T'); //TSCH
+    write_byte((uint8_t) (9+9)); 
+    for(int i = 0; i < 4 ; i++){
+      write_byte((uint8_t) ((uint8_t*)&value)[i]);       
+    }
+    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 'S');
+    write_byte((uint8_t) 'c');
+    write_byte((uint8_t) 'e');
+    write_byte((uint8_t) 'd'); 
+    write_byte((uint8_t) 'u'); 
+    write_byte((uint8_t) 'l'); 
+    write_byte((uint8_t) 'e'); 
+    write_byte((uint8_t) '2');  
+    write_byte((uint8_t) '\n');
+
     if(!tsch_get_lock()) {
       PRINTF("TSCH-schedule:! add_link memb_alloc couldn't take lock\n");
     } else {
@@ -241,6 +306,27 @@ int
 tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
 {
   if(slotframe != NULL && l != NULL && l->slotframe_handle == slotframe->handle) {
+    uint32_t value = RTIMER_NOW();
+    write_byte((uint8_t) '-');
+    write_byte((uint8_t) 'P');
+    write_byte((uint8_t) ':');
+    write_byte((uint8_t) 'T'); //TSCH
+    write_byte((uint8_t) (9+9)); 
+    for(int i = 0; i < 4 ; i++){
+      write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+    }
+    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 'S');
+    write_byte((uint8_t) 'c');
+    write_byte((uint8_t) 'e');
+    write_byte((uint8_t) 'd'); 
+    write_byte((uint8_t) 'u'); 
+    write_byte((uint8_t) 'l'); 
+    write_byte((uint8_t) 'e'); 
+    write_byte((uint8_t) '3');  
+    write_byte((uint8_t) '\n');
+
+
     if(tsch_get_lock()) {
       uint8_t link_options;
       linkaddr_t addr;
@@ -396,6 +482,28 @@ tsch_schedule_get_next_active_link(struct tsch_asn_t *asn, uint16_t *time_offset
 int
 tsch_schedule_init(void)
 {
+
+    uint32_t value = RTIMER_NOW();
+    write_byte((uint8_t) '-');
+    write_byte((uint8_t) 'P');
+    write_byte((uint8_t) ':');
+    write_byte((uint8_t) 'T'); //TSCH
+    write_byte((uint8_t) (9+9)); 
+    for(int i = 0; i < 4 ; i++){
+      write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+    }
+    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 'S');
+    write_byte((uint8_t) 'c');
+    write_byte((uint8_t) 'e');
+    write_byte((uint8_t) 'd'); 
+    write_byte((uint8_t) 'u'); 
+    write_byte((uint8_t) 'l'); 
+    write_byte((uint8_t) 'e'); 
+    write_byte((uint8_t) '4');  
+    write_byte((uint8_t) '\n');
+
+
   if(tsch_get_lock()) {
     memb_init(&link_memb);
     memb_init(&slotframe_memb);

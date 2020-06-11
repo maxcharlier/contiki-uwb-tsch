@@ -15,7 +15,7 @@ ifeq ($(BOARD), remote)
   override BOARD = remote-reva
 endif
 
-PYTHON = python
+PYTHON = python3
 BSL_FLAGS += -e -w -v
 
 BSL_SPEED ?= 115200

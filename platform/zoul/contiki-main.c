@@ -84,6 +84,16 @@
 
 #include "net/rime/rime.h"
 
+
+  #include "sys/clock.h"
+  #include "sys/etimer.h"
+
+  #include "dev/uart.h"
+  #define DBG_CONF_UART               0
+  #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+
+  PROCESS(startup_process, "Startup delay process");
+  // AUTOSTART_PROCESSES(&startup_process);
 /*---------------------------------------------------------------------------*/
  #define STARTUP_CONF_VERBOSE 1
 #if STARTUP_CONF_VERBOSE
@@ -97,6 +107,9 @@
 #else
 #define PUTS(s)
 #endif
+
+#define START_DELAY_SECONDS   ((uint16_t) 600)
+
 /*---------------------------------------------------------------------------*/
 /** \brief Board specific iniatialisation */
 void board_init(void);
@@ -275,24 +288,26 @@ main(void)
 
   rtc_init();
 
-  netstack_init();
 
-  set_rf_params();
-  PRINTF(" Net: ");
-  PRINTF("%s\n", NETSTACK_NETWORK.name);
-  PRINTF(" MAC: ");
-  PRINTF("%s\n", NETSTACK_MAC.name);
-  PRINTF(" RDC: ");
-  PRINTF("%s\n", NETSTACK_RDC.name);
+  process_start(&startup_process, NULL);
+  // netstack_init();
 
-  PRINTF(" SPI Clock: ");
-  PRINTF("SPI0: %lu Hz, SPI1: %lu Hz\n", spix_get_clock_freq(0), spix_get_clock_freq(1));
+  // set_rf_params();
+  // PRINTF(" Net: ");
+  // PRINTF("%s\n", NETSTACK_NETWORK.name);
+  // PRINTF(" MAC: ");
+  // PRINTF("%s\n", NETSTACK_MAC.name);
+  // PRINTF(" RDC: ");
+  // PRINTF("%s\n", NETSTACK_RDC.name);
 
-#if NETSTACK_CONF_WITH_IPV6
-  memcpy(&uip_lladdr.addr, &linkaddr_node_addr, sizeof(uip_lladdr.addr));
-  queuebuf_init();
-  process_start(&tcpip_process, NULL);
-#endif /* NETSTACK_CONF_WITH_IPV6 */
+  // PRINTF(" SPI Clock: ");
+  // PRINTF("SPI0: %lu Hz, SPI1: %lu Hz\n", spix_get_clock_freq(0), spix_get_clock_freq(1));
+
+// #if NETSTACK_CONF_WITH_IPV6
+//   memcpy(&uip_lladdr.addr, &linkaddr_node_addr, sizeof(uip_lladdr.addr));
+//   queuebuf_init();
+//   process_start(&tcpip_process, NULL);
+// #endif /* NETSTACK_CONF_WITH_IPV6 */
 
   process_start(&sensors_process, NULL);
 #if PLATFORM_HAS_BUTTON
@@ -301,10 +316,11 @@ main(void)
   energest_init();
   ENERGEST_ON(ENERGEST_TYPE_CPU);
 
-  autostart_start(autostart_processes);
+  // autostart_start(autostart_processes);
 
   watchdog_start();
   fade(LEDS_GREEN);
+
 
   while(1) {
     uint8_t r;
@@ -325,3 +341,66 @@ main(void)
  * @}
  * @}
  */
+
+PROCESS_THREAD(startup_process, ev, data)
+{
+  static struct etimer start_delay_timer;
+  static uint16_t start_delay_iteration;
+  PROCESS_BEGIN();
+
+  start_delay_iteration = 0;
+
+  etimer_set(&start_delay_timer, CLOCK_SECOND);
+
+    // printf("test before while\n");
+  while(start_delay_iteration < START_DELAY_SECONDS){
+    // printf("test after while\n");
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&start_delay_timer));
+    // printf("test\n");
+    uint32_t value = RTIMER_NOW();
+    write_byte((uint8_t) '-');
+    write_byte((uint8_t) 'P');
+    write_byte((uint8_t) ':');
+    write_byte((uint8_t) 'T'); //TSCH
+    write_byte((uint8_t) (9+8)); 
+    for(int i = 0; i < 4 ; i++){
+      write_byte((uint8_t) ((uint8_t*)&value)[i]);    
+    }
+    write_byte((uint8_t) 7);
+    write_byte((uint8_t) 'D');
+    write_byte((uint8_t) 'e');
+    write_byte((uint8_t) 'l');
+    write_byte((uint8_t) 'l'); 
+    write_byte((uint8_t) 'a'); 
+    write_byte((uint8_t) 'y'); 
+    write_byte((uint8_t) (start_delay_iteration & 0XFF));  
+    write_byte((uint8_t) '\n');
+
+    start_delay_iteration += 1;
+
+    etimer_reset(&start_delay_timer);
+  }
+
+  netstack_init();
+
+  set_rf_params();
+  PRINTF(" Net: ");
+  PRINTF("%s\n", NETSTACK_NETWORK.name);
+  PRINTF(" MAC: ");
+  PRINTF("%s\n", NETSTACK_MAC.name);
+  PRINTF(" RDC: ");
+  PRINTF("%s\n", NETSTACK_RDC.name);
+
+  PRINTF(" SPI Clock: ");
+  PRINTF("SPI0: %lu Hz, SPI1: %lu Hz\n", spix_get_clock_freq(0), spix_get_clock_freq(1));
+
+#if NETSTACK_CONF_WITH_IPV6
+  memcpy(&uip_lladdr.addr, &linkaddr_node_addr, sizeof(uip_lladdr.addr));
+  queuebuf_init();
+  process_start(&tcpip_process, NULL);
+#endif /* NETSTACK_CONF_WITH_IPV6 */
+
+  autostart_start(autostart_processes);
+
+  PROCESS_END();
+}

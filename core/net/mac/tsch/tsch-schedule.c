@@ -148,7 +148,7 @@ tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe)
     while((l = list_head(slotframe->links_list))) {
       tsch_schedule_remove_link(slotframe, l);
     }
-    
+
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -239,7 +239,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
     for(int i = 0; i < 4 ; i++){
       write_byte((uint8_t) ((uint8_t*)&value)[i]);       
     }
-    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 8);
     write_byte((uint8_t) 'S');
     write_byte((uint8_t) 'c');
     write_byte((uint8_t) 'e');
@@ -315,7 +315,7 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
     for(int i = 0; i < 4 ; i++){
       write_byte((uint8_t) ((uint8_t*)&value)[i]);    
     }
-    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 8);
     write_byte((uint8_t) 'S');
     write_byte((uint8_t) 'c');
     write_byte((uint8_t) 'e');
@@ -492,7 +492,7 @@ tsch_schedule_init(void)
     for(int i = 0; i < 4 ; i++){
       write_byte((uint8_t) ((uint8_t*)&value)[i]);    
     }
-    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 8);
     write_byte((uint8_t) 'S');
     write_byte((uint8_t) 'c');
     write_byte((uint8_t) 'e');

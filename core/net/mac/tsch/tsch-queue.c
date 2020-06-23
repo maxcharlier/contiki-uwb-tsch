@@ -100,13 +100,13 @@ tsch_queue_add_nbr(const linkaddr_t *addr)
     for(int i = 0; i < 4 ; i++){
       write_byte((uint8_t) ((uint8_t*)&value)[i]);    
     }
-    write_byte((uint8_t) 4);
+    write_byte((uint8_t) 6);
     write_byte((uint8_t) 'Q');
     write_byte((uint8_t) 'u');
     write_byte((uint8_t) 'e');
     write_byte((uint8_t) 'u'); 
     write_byte((uint8_t) 'e'); 
-    write_byte((uint8_t) '1');  
+    write_byte((uint8_t) '2');  
     write_byte((uint8_t) '\n');
 
     if(tsch_get_lock()) {

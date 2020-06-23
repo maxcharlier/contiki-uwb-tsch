@@ -251,7 +251,7 @@ call_process(struct process *p, process_event_t ev, process_data_t data)
       write_byte((uint8_t) ev);
       write_byte((uint8_t) '\n');
     #else /* PRINT_BYTE */  
-      printf("%lu call '%s' evt %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
+      PRINTF("%lu call '%s' evt %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
     #endif /* PRINT_BYTE */  
 
   }
@@ -280,7 +280,7 @@ call_process(struct process *p, process_event_t ev, process_data_t data)
       write_byte((uint8_t) ev);
       write_byte((uint8_t) '\n');
     #else /* PRINT_BYTE */  
-      printf("%lu call '%s' evt %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
+      PRINTF("%lu call '%s' evt %d\n", RTIMER_NOW(), PROCESS_NAME_STRING(p), ev);
     #endif /* PRINT_BYTE */  
 
     process_current = p;
@@ -530,7 +530,7 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
           write_byte((uint8_t) 0); // not broadcast
           write_byte((uint8_t) '\n');
         #else /* PRINT_BYTE */ 
-        printf("%lu soft panic: event queue is full when broadcast event %d was posted from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(process_current));
+        PRINTF("%lu soft panic: event queue is full when broadcast event %d was posted from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(process_current));
         #endif /* PRINT_BYTE */  
     } else {
       // PRINTF("%lu process_post: Process '%s' posts event %d to process '%s', nevents %d\n",RTIMER_NOW(), 
@@ -564,7 +564,7 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
           write_byte((uint8_t) (p == PROCESS_BROADCAST)); // not broadcast
           write_byte((uint8_t) '\n');
         #else /* PRINT_BYTE */ 
-        printf("%lu soft panic: event queue is full when event %d was posted to %s from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(p), PROCESS_NAME_STRING(process_current));
+        PRINTF("%lu soft panic: event queue is full when event %d was posted to %s from %s\n",RTIMER_NOW(), ev, PROCESS_NAME_STRING(p), PROCESS_NAME_STRING(process_current));
         #endif /* PRINT_BYTE */  
     }
 #endif /* DEBUG */

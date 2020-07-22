@@ -278,10 +278,15 @@ tsch_get_lock(void)
         write_byte((uint8_t) 'P');
         write_byte((uint8_t) ':');
         write_byte((uint8_t) 'T'); //TSCH
-        write_byte((uint8_t) (9)); 
+        write_byte((uint8_t) (14)); 
         for(int i = 0; i < 4 ; i++){
           write_byte((uint8_t) ((uint8_t*)&busy_wait_time)[i]);    
         }
+        write_byte((uint8_t) 4);
+        write_byte((uint8_t) 'N');
+        write_byte((uint8_t) 'U');
+        write_byte((uint8_t) 'L');
+        write_byte((uint8_t) 'L'); 
         write_byte((uint8_t) '\n');
       #endif /* DEBUG_GPIO_TSCH */
 

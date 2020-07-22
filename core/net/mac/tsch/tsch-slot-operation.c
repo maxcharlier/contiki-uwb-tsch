@@ -73,7 +73,7 @@
 
 
 /* Just for the debugging of TSCH */
-// #define DEBUG_GPIO_TSCH 1
+#define DEBUG_GPIO_TSCH 1
 #ifdef DEBUG_GPIO_TSCH
   #include "sys/clock.h"
   #include "dev/gpio.h"

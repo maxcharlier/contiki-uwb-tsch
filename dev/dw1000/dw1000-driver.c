@@ -142,6 +142,9 @@
 
 /* Just for the debugging of TSCH */
 #define DEBUG_GPIO_TSCH 1
+// #define DEBUG_GPIO_TSCH_SLEEP 1
+
+
 #ifdef DEBUG_GPIO_TSCH
   #include "dev/gpio.h"
 
@@ -153,15 +156,6 @@
   #define LISTEN_SET() do { \
       GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
   } while(0)
-
-  #define DWM1000_SLEEP_PORT           GPIO_A_NUM
-  #define DWM1000_SLEEP_PIN            2
-  #define SLEEP_CLR() do { \
-      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
-  } while(0)
-  #define SLEEP_SET() do { \
-      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
-  } while(0)
   #define DWM1000_SEND_PORT             GPIO_D_NUM
   #define DWM1000_SEND_PIN              0
   #define SEND_CLR() do { \
@@ -171,9 +165,6 @@
       GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SEND_PORT), GPIO_PIN_MASK(DWM1000_SEND_PIN)); \
   } while(0)
   #define INIT_GPIO_DEBUG() do {\
-    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
-    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
-    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
     GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
     GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
     GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_LISTEN_PORT), GPIO_PIN_MASK(DWM1000_LISTEN_PIN)); \
@@ -184,12 +175,31 @@
 #else
   #define LISTEN_CLR() do {} while(0)
   #define LISTEN_SET() do {} while(0)
-  #define SLEEP_CLR() do {} while(0)
-  #define SLEEP_SET() do {} while(0)
   #define SEND_CLR() do {} while(0)
   #define SEND_SET() do {} while(0)
   #define INIT_GPIO_DEBUG() do {} while(0)
 #endif /* DEBUG_GPIO_TSCH */
+
+#ifdef DEBUG_GPIO_TSCH_SLEEP
+  #include "dev/gpio.h"
+  #define DWM1000_SLEEP_PORT           GPIO_A_NUM
+  #define DWM1000_SLEEP_PIN            2
+  #define SLEEP_CLR() do { \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+  } while(0)
+  #define SLEEP_SET() do { \
+      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+  } while(0)
+  #define INIT_GPIO_SLEEP_DEBUG() do {\
+    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_SLEEP_PORT), GPIO_PIN_MASK(DWM1000_SLEEP_PIN)); \
+  } while (0)
+#else
+  #define SLEEP_CLR() do {} while(0)
+  #define SLEEP_SET() do {} while(0)
+  #define INIT_GPIO_SLEEP_DEBUG() do {} while(0)
+#endif /* DEBUG_GPIO_TSCH_SLEEP */
 /* END : Just for the debugging of TSCH */
 
 /* Time to read the current time on the DW1000 using SPI in microsecond */
@@ -416,6 +426,7 @@ dw1000_driver_init(void)
   dw1000_driver_init_down = 1;
   dw1000_arch_gpio8_setup_irq();
   INIT_GPIO_DEBUG();
+  INIT_GPIO_SLEEP_DEBUG();
 
   return 1;
 }

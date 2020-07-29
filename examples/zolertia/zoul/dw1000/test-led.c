@@ -59,6 +59,7 @@ fade(unsigned char l)
 
 PROCESS_THREAD(dw1000_dma, ev, data)
 {
+  static struct etimer blinck_timer;
   PROCESS_BEGIN();
 
   // init_gpio();
@@ -78,11 +79,14 @@ PROCESS_THREAD(dw1000_dma, ev, data)
   uint32_t node_id = 0XDECA0130;
   if(dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID) != node_id){
     while(1){
+      printf("error led\n");
       fade(LEDS_RED);
 
       fade(LEDS_GREEN);
 
       fade(LEDS_BLUE);
+      
+      PROCESS_YIELD();
     } 
   }
 
@@ -90,7 +94,12 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 
     // dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
   static uint8_t value = 1;
+
+
+  etimer_set(&blinck_timer, CLOCK_SECOND/2);
   for(;;) {
+    printf("blinck led\n");
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&blinck_timer));
     uint32_t data;  /* active blinking mode */
     data = dw_read_subreg_32(DW_REG_PMSC, DW_SUBREG_PMSC_LEDC, 
                               DW_SUBLEN_PMSC_LEDC);
@@ -108,10 +117,14 @@ PROCESS_THREAD(dw1000_dma, ev, data)
     if(value == 0X10){
       value= 1;
     }
-    clock_delay_usec(0XFFFF);
-    clock_delay_usec(0XFFFF);
-    clock_delay_usec(0XFFFF);
+    // PROCESS_YIELD();
+    // clock_delay_usec(0XFFFF);
+    // clock_delay_usec(0XFFFF);
+    // clock_delay_usec(0XFFFF);
+    // PROCESS_YIELD();
     // printf("value %d\n", value);
+    
+    etimer_reset(&blinck_timer);
   }
   printf("end\n");
   PROCESS_END();

@@ -71,9 +71,11 @@
 #include "sys/cooja_mt.h"
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
 
-
 /* Just for the debugging of TSCH */
 #define DEBUG_GPIO_TSCH 1
+/* only enable the TX slot end port, other info comes from dw1000-driver.c */
+// #define DEBUG_SYNC_LOGICAL 1 
+
 #ifdef DEBUG_GPIO_TSCH
   #include "sys/clock.h"
   #include "dev/gpio.h"
@@ -81,43 +83,78 @@
   #include "dev/uart.h"
   #define DBG_CONF_UART               0
   #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
-  #define DWM1000_PD2_PORT           GPIO_D_NUM
-  #define DWM1000_PD2_PIN            2
-  #define PD2_TRIGGER() do { \
-      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
-      clock_delay_usec(1); \
-      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
-  } while(0)  
-  #define DWM1000_PD0_PORT           GPIO_D_NUM
-  #define DWM1000_PD0_PIN            0
-  #define PD0_TRIGGER() do { \
-      GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
-      clock_delay_usec(1); \
-      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
-  } while(0)
-  /* First PD2, after PD0 */
-  #define TSCH_DEBUG_INIT() do {\
-    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
-    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
-    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
-    GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
-    GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
-    GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
-  } while(0)
 
-  #define TSCH_DEBUG_RX_EVENT() do {\
-    PD2_TRIGGER();\
-  } while(0)
-  #define TSCH_DEBUG_TX_EVENT() do {\
-    PD2_TRIGGER();\
-    PD2_TRIGGER();\
-  } while(0)
-  #define TSCH_DEBUG_SLOT_START() do {\
-    PD0_TRIGGER();\
-  } while(0)
-  #define TSCH_DEBUG_SLOT_END() do {\
-    PD0_TRIGGER();\
-  } while(0)
+  #ifdef DEBUG_SYNC_LOGICAL
+    /* We use the logical analyser on 3 pin (PD2 (RX), PD0 (TX) and PA2 (slot end))
+      to see if the synchronisation work correctly.
+      In this file we will define the TSCH_DEBUG_SLOT_END macro and enable the other macro in the driver of the transceiver. */
+    #define TSCH_DEBUG_RX_EVENT()
+    #define TSCH_DEBUG_TX_EVENT()
+    #define TSCH_DEBUG_SLOT_END()
+    #define DWM1000_PA2_PORT           GPIO_A_NUM
+    #define DWM1000_PA2_PIN            2
+    #define TSCH_DEBUG_SLOT_START() do { \
+        GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PA2_PORT), GPIO_PIN_MASK(DWM1000_PA2_PIN)); \
+        clock_delay_usec(1); \
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PA2_PORT), GPIO_PIN_MASK(DWM1000_PA2_PIN)); \
+    } while(0)
+
+    #define DWM1000_PB3_PORT           GPIO_A_NUM
+    #define DWM1000_PB3_PIN            6
+    #define PB3_TRIGGER() do { \
+        GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
+        clock_delay_usec(1); \
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
+    } while(0)
+
+    #define TSCH_DEBUG_INIT() do {\
+      GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_PA2_PORT), GPIO_PIN_MASK(DWM1000_PA2_PIN)); \
+      GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PA2_PORT), GPIO_PIN_MASK(DWM1000_PA2_PIN)); \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PA2_PORT), GPIO_PIN_MASK(DWM1000_PA2_PIN)); \
+      GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
+      GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
+    } while(0)
+  #else
+    #define DWM1000_PD2_PORT           GPIO_D_NUM
+    #define DWM1000_PD2_PIN            2
+    #define PD2_TRIGGER() do { \
+        GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
+        clock_delay_usec(1); \
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
+    } while(0)  
+    #define DWM1000_PD0_PORT           GPIO_D_NUM
+    #define DWM1000_PD0_PIN            0
+    #define PD0_TRIGGER() do { \
+        GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
+        clock_delay_usec(1); \
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
+    } while(0)
+    /* First PD2, after PD0 */
+    #define TSCH_DEBUG_INIT() do {\
+      GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
+      GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD2_PORT), GPIO_PIN_MASK(DWM1000_PD2_PIN)); \
+      GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
+      GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
+      GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PD0_PORT), GPIO_PIN_MASK(DWM1000_PD0_PIN)); \
+    } while(0)
+
+    #define TSCH_DEBUG_RX_EVENT() do {\
+      PD2_TRIGGER();\
+    } while(0)
+    #define TSCH_DEBUG_TX_EVENT() do {\
+      PD2_TRIGGER();\
+      PD2_TRIGGER();\
+    } while(0)
+    #define TSCH_DEBUG_SLOT_START() do {\
+      PD0_TRIGGER();\
+    } while(0)
+    #define TSCH_DEBUG_SLOT_END() do {\
+      PD0_TRIGGER();\
+    } while(0)
+    #define PB3_TRIGGER()
+  #endif /* DEBUG_SYNC_LOGICAL */
 #endif /* DEBUG_GPIO_TSCH */
 /* END : Just for the debugging of TSCH */
 
@@ -844,7 +881,7 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
   #endif /* TSCH_SLEEP */
 
 #ifdef DEBUG_GPIO_TSCH
-  TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+  // TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   
 #endif /* DEBUG_GPIO_TSCH */
 
@@ -1082,7 +1119,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
   #endif /* TSCH_SLEEP */ 
 
 #ifdef DEBUG_GPIO_TSCH
-  TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+  // TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   
 #endif /* DEBUG_GPIO_TSCH */
 
@@ -1102,6 +1139,8 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
   /* Loop over all active slots */
   while(tsch_is_associated) {
 
+        PB3_TRIGGER();
+        GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); 
     if(current_link == NULL || tsch_lock_requested) { /* Skip slot operation if there is no link
                                                           or if there is a pending request for getting the lock */
       /* Issue a log whenever skipping a slot */
@@ -1114,7 +1153,6 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       );
     } else {
       int is_active_slot;
-      TSCH_DEBUG_SLOT_START();
       tsch_in_slot_operation = 1;
       /* Reset drift correction */
       drift_correction = 0;
@@ -1170,6 +1208,8 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
           TSCH_SCHEDULE_AND_YIELD(&slot_operation_pt, t, current_slot_start- US_TO_RTIMERTICKS(150), 0, "wait");
         #endif /* TSCH_SLEEP */
 
+        TSCH_WAIT(&slot_operation_pt, t, current_slot_start, 0, "wait");
+        TSCH_DEBUG_SLOT_START();
 
         /* Hop channel */
         current_channel = tsch_calculate_channel(&tsch_current_asn, current_link->channel_offset);
@@ -1213,6 +1253,8 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       TSCH_DEBUG_SLOT_END();
     }
 
+
+        PB3_TRIGGER();
     /* End of slot operation, schedule next slot or resynchronize */
 
     /* Do we need to resynchronize? i.e., wait for EB again */
@@ -1223,6 +1265,10 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
                 "! leaving the network, last sync %u",
                           (unsigned)TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn));
       );
+    
+    printf("! leaving the network, last sync %u\n",
+                          (unsigned)TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn));
+
       last_timesource_neighbor = NULL;
       tsch_disassociate();
     } else {
@@ -1234,6 +1280,8 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       rtimer_clock_t time_to_next_active_slot;
       /* Schedule next wakeup skipping slots if missed deadline */
       do {
+
+        PB3_TRIGGER();
         if(current_link != NULL
             && current_link->link_options & LINK_OPTION_TX
             && current_link->link_options & LINK_OPTION_SHARED) {
@@ -1268,10 +1316,11 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
                           time_to_next_active_slot-TSCH_SLOT_START_BEFOREHAND,
                           rtimer_now);
                       );
-      
-        
+
       } while(!tsch_schedule_slot_operation(t, prev_slot_start-TSCH_SLOT_START_BEFOREHAND, time_to_next_active_slot, "main"));
     }
+
+        GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); 
 
     tsch_in_slot_operation = 0;
     PT_YIELD(&slot_operation_pt);
@@ -1569,7 +1618,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
   #endif /* TSCH_SLEEP */
     
   #ifdef DEBUG_GPIO_TSCH
-    TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+    // TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
   #endif /* DEBUG_GPIO_TSCH */
 
   PT_END(pt);
@@ -1872,7 +1921,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
   #endif /* TSCH_SLEEP */
 
   #ifdef DEBUG_GPIO_TSCH
-    TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
+    // TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start, tsch_timing[tsch_ts_timeslot_length], "Timeslot Lenght");
     
   #endif /* DEBUG_GPIO_TSCH */
 

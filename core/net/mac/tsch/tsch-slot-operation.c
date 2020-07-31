@@ -115,7 +115,7 @@
       GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
       GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); \
     } while(0)
-  #else
+  #else/* if not def DEBUG_SYNC_LOGICAL */
     #define DWM1000_PD2_PORT           GPIO_D_NUM
     #define DWM1000_PD2_PIN            2
     #define PD2_TRIGGER() do { \
@@ -1138,9 +1138,10 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
   /* Loop over all active slots */
   while(tsch_is_associated) {
-
+      #ifdef DEBUG_SYNC_LOGICAL
         PB3_TRIGGER();
         GPIO_SET_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); 
+      #endif /* DEBUG_SYNC_LOGICAL*/
     if(current_link == NULL || tsch_lock_requested) { /* Skip slot operation if there is no link
                                                           or if there is a pending request for getting the lock */
       /* Issue a log whenever skipping a slot */
@@ -1319,9 +1320,10 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 
       } while(!tsch_schedule_slot_operation(t, prev_slot_start-TSCH_SLOT_START_BEFOREHAND, time_to_next_active_slot, "main"));
     }
-
+      #ifdef DEBUG_SYNC_LOGICAL
         GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); 
-
+      #endif /* DEBUG_SYNC_LOGICAL */
+        
     tsch_in_slot_operation = 0;
     PT_YIELD(&slot_operation_pt);
   }

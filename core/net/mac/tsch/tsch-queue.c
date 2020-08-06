@@ -63,9 +63,12 @@
 #endif /* TSCH_LOG_LEVEL */
 #include "net/net-debug.h"
 
+
+#ifdef TSCH_DEBUG_QUEUE
   #include "dev/uart.h"
   #define DBG_CONF_UART               0
   #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+#endif /* TSCH_DEBUG_QUEUE */
 
 /* Check if TSCH_QUEUE_NUM_PER_NEIGHBOR is power of two */
 #if (TSCH_QUEUE_NUM_PER_NEIGHBOR & (TSCH_QUEUE_NUM_PER_NEIGHBOR - 1)) != 0
@@ -90,7 +93,7 @@ tsch_queue_add_nbr(const linkaddr_t *addr)
   /* If we have an entry for this neighbor already, we simply update it */
   n = tsch_queue_get_nbr(addr);
   if(n == NULL) { 
-
+#ifdef TSCH_DEBUG_QUEUE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -108,6 +111,7 @@ tsch_queue_add_nbr(const linkaddr_t *addr)
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '2');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_QUEUE */
 
     if(tsch_get_lock()) {
       /* Allocate a neighbor */
@@ -235,6 +239,7 @@ tsch_queue_remove_nbr(struct tsch_neighbor *n)
 {
   if(n != NULL) {
 
+#ifdef TSCH_DEBUG_QUEUE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -252,6 +257,7 @@ tsch_queue_remove_nbr(struct tsch_neighbor *n)
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '1');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_QUEUE */
 
     if(tsch_get_lock()) {
 

@@ -45,6 +45,12 @@
 #undef LPM_CONF_ENABLE
 #define LPM_CONF_ENABLE 0
 
+// #define TSCH_DEBUG_SCHEDULE 1
+// #define TSCH_DEBUG_QUEUE 1
+// #define DEBUG_STARTUP 1
+// #define DEBUG_GPIO_TSCH 1
+
+
 /* Netstack layers */
 #undef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC     tschmac_driver

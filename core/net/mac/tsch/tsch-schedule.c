@@ -62,9 +62,11 @@
 #endif /* TSCH_LOG_LEVEL */
 #include "net/net-debug.h"
 
+#ifdef TSCH_DEBUG_SCHEDULE
   #include "dev/uart.h"
   #define DBG_CONF_UART               0
   #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+#endif /* TSCH_DEBUG_SCHEDULE */
 
 /* Pre-allocated space for links */
 MEMB(link_memb, struct tsch_link, TSCH_SCHEDULE_MAX_LINKS);
@@ -86,6 +88,8 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
     return NULL;
   }
 
+
+#ifdef TSCH_DEBUG_SCHEDULE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -105,6 +109,7 @@ tsch_schedule_add_slotframe(uint16_t handle, uint16_t size)
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '5');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_SCHEDULE */
 
 
   if(tsch_get_lock()) {
@@ -149,6 +154,7 @@ tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe)
       tsch_schedule_remove_link(slotframe, l);
     }
 
+#ifdef TSCH_DEBUG_SCHEDULE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -168,6 +174,9 @@ tsch_schedule_remove_slotframe(struct tsch_slotframe *slotframe)
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '1');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_SCHEDULE */
+
+
     /* Now that the slotframe has no links, remove it. */
     if(tsch_get_lock()) {
       PRINTF("TSCH-schedule: remove slotframe %u %u\n", slotframe->handle, slotframe->size.val);
@@ -230,6 +239,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
      * to keep neighbor state in sync with link options etc.) */
     tsch_schedule_remove_link_by_timeslot(slotframe, timeslot);
 
+#ifdef TSCH_DEBUG_SCHEDULE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -249,6 +259,7 @@ tsch_schedule_add_link(struct tsch_slotframe *slotframe,
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '2');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_SCHEDULE */
 
     if(!tsch_get_lock()) {
       PRINTF("TSCH-schedule:! add_link memb_alloc couldn't take lock\n");
@@ -306,6 +317,8 @@ int
 tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
 {
   if(slotframe != NULL && l != NULL && l->slotframe_handle == slotframe->handle) {
+    
+#ifdef TSCH_DEBUG_SCHEDULE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -325,6 +338,7 @@ tsch_schedule_remove_link(struct tsch_slotframe *slotframe, struct tsch_link *l)
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '3');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_SCHEDULE */
 
 
     if(tsch_get_lock()) {
@@ -483,6 +497,7 @@ int
 tsch_schedule_init(void)
 {
 
+#ifdef TSCH_DEBUG_SCHEDULE
     uint32_t value = RTIMER_NOW();
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'P');
@@ -502,6 +517,7 @@ tsch_schedule_init(void)
     write_byte((uint8_t) 'e'); 
     write_byte((uint8_t) '4');  
     write_byte((uint8_t) '\n');
+#endif /* TSCH_DEBUG_SCHEDULE */
 
 
   if(tsch_get_lock()) {

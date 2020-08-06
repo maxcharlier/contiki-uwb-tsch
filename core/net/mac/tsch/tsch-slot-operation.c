@@ -72,7 +72,8 @@
 #endif /* CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64 */
 
 /* Just for the debugging of TSCH */
-#define DEBUG_GPIO_TSCH 1
+// #define DEBUG_GPIO_TSCH 1
+
 /* only enable the TX slot end port, other info comes from dw1000-driver.c */
 // #define DEBUG_SYNC_LOGICAL 1 
 
@@ -1323,7 +1324,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       #ifdef DEBUG_SYNC_LOGICAL
         GPIO_CLR_PIN(GPIO_PORT_TO_BASE(DWM1000_PB3_PORT), GPIO_PIN_MASK(DWM1000_PB3_PIN)); 
       #endif /* DEBUG_SYNC_LOGICAL */
-        
+
     tsch_in_slot_operation = 0;
     PT_YIELD(&slot_operation_pt);
   }

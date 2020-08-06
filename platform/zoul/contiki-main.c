@@ -95,7 +95,7 @@
 
   /* Duration of the startup delay */
   #define START_DELAY_SECONDS   ((uint16_t) 600)
-#enfif  /* DEBUG_STARTUP */
+#endif  /* DEBUG_STARTUP */
 
 PROCESS(startup_process, "Startup delay process");
 // AUTOSTART_PROCESSES(&startup_process);

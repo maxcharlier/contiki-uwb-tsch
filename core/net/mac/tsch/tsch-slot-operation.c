@@ -1256,7 +1256,9 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
     }
 
 
+      #ifdef DEBUG_SYNC_LOGICAL
         PB3_TRIGGER();
+      #endif /* DEBUG_SYNC_LOGICAL*/
     /* End of slot operation, schedule next slot or resynchronize */
 
     /* Do we need to resynchronize? i.e., wait for EB again */
@@ -1283,7 +1285,10 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       /* Schedule next wakeup skipping slots if missed deadline */
       do {
 
+      #ifdef DEBUG_SYNC_LOGICAL
         PB3_TRIGGER();
+      #endif /* DEBUG_SYNC_LOGICAL*/
+
         if(current_link != NULL
             && current_link->link_options & LINK_OPTION_TX
             && current_link->link_options & LINK_OPTION_SHARED) {

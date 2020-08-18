@@ -414,7 +414,7 @@ typedef uint32_t rtimer_clock_t;
   #endif
 
   #define DW1000_CHANNEL              0
-  #define DW1000_DATA_RATE            DW_DATA_RATE_110_KBPS
+  #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
   #define DW1000_PRF                  DW_PRF_16_MHZ
   #define DW1000_TSCH                 1
 
@@ -468,14 +468,14 @@ typedef uint32_t rtimer_clock_t;
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   /* We avoid to used the TSCH channel 2 and 5 that use physical channel 2 */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
-  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 7, 6, 4, 0, 2, 3}
+  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 7, 6, 4, 0, 2, 3}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3}
-  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3, 9, 10, 8, 11}
+  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3, 9, 10, 8, 11}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){7}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 3, 7}
   #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
   // #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     (uint8_t[]){ 3}
-  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  12
+  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  6
   // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  2
   // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  8
 

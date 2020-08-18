@@ -93,11 +93,9 @@
 
 /* configure if TSCH use SLEEP feature of the radio between slots.*/
 #ifndef TSCH_CONF_SLEEP
-#define TSCH_SLEEP 0
-#elif TSCH_CONF_SLEEP 1
-#define TSCH_SLEEP 1
+  #define TSCH_SLEEP 0
 #else
-#define TSCH_SLEEP 0
+  #define TSCH_SLEEP TSCH_CONF_SLEEP
 #endif /* TSCH_CONF_SLEEP */
 
 

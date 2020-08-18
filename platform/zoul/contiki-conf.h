@@ -468,16 +468,16 @@ typedef uint32_t rtimer_clock_t;
   /* TSCH channel hopping sequence, define for the UWB, in this case we have only 6 channels */
   /* We avoid to used the TSCH channel 2 and 5 that use physical channel 2 */
   #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
-  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 7, 6, 4, 0, 2, 3}
-  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3}
+  // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 7, 6, 4, 0, 2, 3}
+  #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3, 9, 10, 8, 11}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){7}
   // #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  (uint8_t[]){ 3, 7}
   #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
   // #define TSCH_CONF_JOIN_HOPPING_SEQUENCE     (uint8_t[]){ 3}
-  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  6
+  // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  6
   // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  2
-  // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  8
+  #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  8
 
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
@@ -495,7 +495,7 @@ typedef uint32_t rtimer_clock_t;
   // #define TSCH_CONF_KEEPALIVE_TIMEOUT (10*CLOCK_SECOND)
   // #define TSCH_CONF_MAX_EB_PERIOD (10*CLOCK_SECOND)
   // #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
-  #define TSCH_CONF_SLEEP 1
+  #define TSCH_CONF_SLEEP 0
 
   /* Used to start the slot in advance to avoid miss deadline because of the slow processing speed */
   

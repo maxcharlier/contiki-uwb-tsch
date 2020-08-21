@@ -25,3 +25,4 @@ extern const linkaddr_t node_b2_address;
 extern const linkaddr_t * mac_neighborg_addr[18];
 
 
+void tsch_schedule_create_testbed_localization_for_2_mobiles(void);

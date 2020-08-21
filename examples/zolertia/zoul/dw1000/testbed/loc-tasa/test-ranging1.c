@@ -74,147 +74,41 @@ static const uip_ipaddr_t ip_addr_node13 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x0
 static const uip_ipaddr_t ip_addr_node14 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0E } };
 static const uip_ipaddr_t ip_addr_node15 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0F } };
 static const uip_ipaddr_t ip_addr_node16 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x10 } };
-static const uip_ipaddr_t * local_neighborg_addr[] = { 
-  &ip_addr_node1, 
-  &ip_addr_node2, 
-  &ip_addr_node3, 
-  &ip_addr_node4, 
-  &ip_addr_node5, 
-  &ip_addr_node6, 
-  &ip_addr_node7, 
-  &ip_addr_node8, 
-  &ip_addr_node9, 
-  &ip_addr_node10, 
-  &ip_addr_node11, 
-  &ip_addr_node12, 
-  &ip_addr_node13, 
-  &ip_addr_node14, 
-  &ip_addr_node15, 
-  &ip_addr_node16, 
-};
 
 
+static const uip_ipaddr_t ip_addr_nodeb1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X11 } };
+static const uip_ipaddr_t ip_addr_nodeb2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X12 } };
 
-static const int len_local_neighborg=16;
-static const int number_of_transmission_per_timer=3;
+static unsigned char last_prop_buf[MAX_PAYLOAD_LEN]; /* this buffer will contain the last propagation time measured */
 
 
 /*---------------------------------------------------------------------------*/
-PROCESS(udp_ping_process, "Ping Pong");
-AUTOSTART_PROCESSES(&udp_ping_process);
+PROCESS(test_ranging, "Localization based on TASA");
+PROCESS(TSCH_PROP_PROCESS, "TSCH localization process");
+AUTOSTART_PROCESSES(&test_ranging);
 /*---------------------------------------------------------------------------*/
-static int seq_id=0;
-static int sending_index=0;
 
+
+/**
+ * This function will be used by the sink of the netwokr when after receiving a message containing propoagation time between a mobile node and an anchor. 
+ */
 static void
 tcpip_handler(void)
 {
-  char *appdata;
-
-  if(uip_newdata()) {
-    int64_t value = 0;
-    appdata = (char *)uip_appdata;
-    appdata[uip_datalen()] = 0;
-    #if PRINT_BYTE
-      /* print S: _NODEADDR_status_num_tx
-      */
-      write_byte((uint8_t) '-');
-      write_byte((uint8_t) 'R');
-      write_byte((uint8_t) ':');
-      write_byte(UIP_IP_BUF->srcipaddr.u8[15]);
-      write_byte(UIP_IP_BUF->srcipaddr.u8[14]);
-
-      for(int i = 0; i < MIN(BUF_LEN,uip_datalen()) ; i++){
-        write_byte((uint8_t) appdata[i]);    
-      }
-
-      memcpy(&value, &tsch_current_asn, 5);
-      for(int i = 0; i < 5 ; i++){
-        write_byte((uint8_t) ((uint8_t*)&value)[i]);    
-      }
-      write_byte((uint8_t) sicslowpan_get_last_channel());
-      write_byte((uint8_t) '\n');
-    #else /* PRINT_BYTE */  
-
-      printf("R:%02x%02x:%d:", UIP_IP_BUF->srcipaddr.u8[14], UIP_IP_BUF->srcipaddr.u8[15], appdata[0]);
-      /* asn */
-      memcpy(&value, &appdata[1], 5);
-      printf("%llu:",  value);
-
-      value = 0;
-      memcpy(&value, &tsch_current_asn, 5);
-      printf("%llu",  value);
-      printf("%d",  sicslowpan_get_last_channel());
-      printf("\n");
-
-      // printf("S: 0X%02X%02X stat %d tx %d \n", 
-      //   dest->u8[0], dest->u8[1], status, num_tx);
-    #endif /* PRINT_BYTE */
-  }
+  /* TODO see udp-ping/unicast-full-mesh.c for example */
 }
 
-static void
-print_local_addresses(void);
+
 /*---------------------------------------------------------------------------*/
+/**
+* This function will be used to transmit a message to the sink, the message will contain propagation time information (also the source and the destination of the propagation time).
+*/
 static void
 send_packet(void *ptr)
 {
-	char buf[MAX_PAYLOAD_LEN];
-  // print_local_addresses();
-  // printf("send_packet()\n");
-  
-  /* place the seq number and the current asn in the buffer */
-  memcpy(&buf[0], &seq_id, 1);
-  memcpy(&buf[1], &tsch_current_asn, 5);
-
-  /* first we check if we have neighbor (if it's the case we have join TSCH) */
-  if(nbr_table_head(ds6_neighbors) != NULL){
-    for(int i = 0; i < number_of_transmission_per_timer; i++) {
-      /* check to not send message to our addr */
-      if((sending_index + i + 1) != NODEID){
-
-      #if PRINT_BYTE
-        /* print R: _NODEADDR_PACKETBUF_LEN_
-          for each prop time:
-          _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
-        */
-        // printf("-S:");
-        write_byte((uint8_t) '-');
-        write_byte((uint8_t) 'S');
-        write_byte((uint8_t) ':');
-        write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[15]);
-        write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[14]);
-        for(int i = 0; i < BUF_LEN; i++){
-          write_byte((uint8_t) buf[i]);    
-        }
-
-        write_byte((uint8_t) '\n');
-
-      #else /* PRINT_BYTE */  
-        printf("%d\n", (sending_index + i)%len_local_neighborg);
-        printf("S:0X%02X%02X:%d:", 
-          (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[14],
-          (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[15], seq_id);
-        int64_t value = 0;
-        /* asn */
-        memcpy(&value, &buf[1], 5);
-        printf("%llu",  value);
-        printf("\n");
-      #endif /* PRINT_BYTE */
-
-        uip_udp_packet_sendto(client_conn, buf, BUF_LEN, local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
-      }
-      if((sending_index + i)%len_local_neighborg == 0){
-        seq_id ++;
-      }
-    }
-
-    sending_index += number_of_transmission_per_timer;
-  }
-  // ctimer_restart(&periodic_timer1);
-
-  ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  /* TODO see udp-ping/unicast-full-mesh.c for example */
 }
+
 /*---------------------------------------------------------------------------*/
 static void
 print_local_addresses(void)
@@ -235,8 +129,6 @@ print_local_addresses(void)
     }
   }
 }
-static void
-set_global_address(void);
 /*---------------------------------------------------------------------------*/
 static void
 print_info(void *ptr){
@@ -246,6 +138,9 @@ print_info(void *ptr){
   ctimer_restart(&periodic_timer2);
 }
 /*---------------------------------------------------------------------------*/
+/**
+* Used to define the IP addr, the IP will be made 
+*/
 static void
 set_global_address(void)
 {
@@ -275,7 +170,110 @@ set_global_address(void)
 
 }
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(udp_ping_process, ev, data)
+/* replace data in last_prop_buf with the last propagation time measured */
+static void
+create_prop_buffer(struct tsch_neighbor * data)
+{
+  current_index = 0;
+  /* The ranging is made between this node (check local addr) and the destination node. 
+  The destination node have a linkaddr_t on 8 bytes, we get the two last one that represent the node ID */
+  last_prop_buf[current_index] = data->addr.u8[6];
+  current_index++;
+  last_prop_buf[current_index] = data->addr.u8[7];
+  current_index++;
+  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.prop_time), 4);
+  current_index += 4;
+  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.asn), 5);
+  current_index += 5;
+  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.tsch_channel), 1);
+  current_index += 1;
+}
+
+/*---------------------------------------------------------------------------*/
+static void
+print_buffer()
+{
+
+  #if PRINT_BYTE
+    /* print R: _NODEADDR_PACKETBUF_LEN_
+      for each prop time:
+      _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
+    */
+    printf("-R:");
+    write_byte(buf[1]);
+    write_byte(buf[0]);
+    write_byte(current_index-1);
+    write_byte(linkaddr_node_addr.u8[1]);
+    for(int i = 2; i < current_index; i++){
+      write_byte((uint8_t) buf[i]);    
+    }
+
+    write_byte((uint8_t) '\n');
+
+  #else /* PRINT_BYTE */  
+    printf("R: 0X%02X%02X", buf[0], buf[1]);
+      int64_t value;
+      int i = 2;
+
+      /* prop time */
+      memcpy(&value, &buf[2], 4);
+      i += 4;
+      printf(" %ld",  value);
+      value = 0;
+
+      /* asn */
+      memcpy(&value, &buf[i], 5);
+      i += 5;
+      printf(" %llu",  value);
+
+      /* channel */
+      printf(" %u",  buf[i]);
+
+    printf("\n");
+  #endif /* PRINT_BYTE */
+}
+/*---------------------------------------------------------------------------*/
+/* Protothread for localisation slot operation, called by update_neighbor_prop_time() 
+ * function. "data" is a struct tsch_neighbor pointer.
+
+ After a localisation we will create a message and send it to the sink.*/
+PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
+{
+  PROCESS_BEGIN();
+
+  printf("tsch_loc_operation start\n");
+
+  while(1) {
+    PROCESS_YIELD();
+    /* receive a new propagation time measurement */
+    if(ev == PROCESS_EVENT_MSG){
+      
+      // printf("Node 0X%02X prop time %ld %lu %u\n", 
+      //   ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1],
+      //   ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
+      //   ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament,
+      //   ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
+
+      create_prop_buffer((struct tsch_neighbor *) data);
+      print_buffer();
+
+      // send_packet();
+    }
+    if(ev == serial_line_event_message && data != NULL) {
+      char *str;
+      str = data;
+      if(str[0] == 'r') {
+        PRINTF("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
+        tsch_schedule_print();
+        
+      }
+    }
+  }
+
+  PROCESS_END();
+}
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(test_ranging, ev, data)
 {
   PROCESS_BEGIN();
   PROCESS_PAUSE();
@@ -288,8 +286,8 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   // PRINTF("UDP client process started nbr:%d routes:%d\n",
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
 
-  tsch_schedule_fullmesh_data();
-  // tsch_schedule_fullmesh_data_2nodes();
+  tsch_schedule_create_testbed_localization_for_2_mobiles();
+
   tsch_schedule_print();
 
 
@@ -302,15 +300,6 @@ PROCESS_THREAD(udp_ping_process, ev, data)
     PROCESS_EXIT();
   }
   udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
-
-  /* interval is a slotframe duration. 
-  We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
-  */
-  ctimer_set(&periodic_timer1, 600 * CLOCK_SECOND, send_packet, &periodic_timer1);
-  // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
-
-
-  // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);
 
   while(1) {
     PROCESS_YIELD();

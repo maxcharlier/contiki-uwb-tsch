@@ -216,6 +216,16 @@ We increase the number to 16 because we have up to 16 nodes */
   goto discard; \ 
  } 
 
+#elif NODEID == 0x11
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x3){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x12
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x10){\ 
+  goto discard; \ 
+ } 
+
 #endif /* NODEID */
 
 

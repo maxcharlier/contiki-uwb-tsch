@@ -208,8 +208,6 @@ static void
 print_info(void *ptr){
   // print_local_addresses();
   tsch_schedule_print();
-
-  ctimer_restart(&periodic_timer2);
 }
 /*---------------------------------------------------------------------------*/
 /**

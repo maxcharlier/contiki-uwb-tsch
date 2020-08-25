@@ -125,24 +125,18 @@ tcpip_handler(void)
     int32_t propagation_time = 0;
     memcpy(&propagation_time, &appdata[2], sizeof(int32_t));
 
+    int64_t asn = 0;
+    memcpy(&asn, &appdata[6], 5);
+
+
     // TODO for now, always print
     
-    printf("R (from %02x):Time betweeen node%d and node%d: %d",
-            UIP_IP_BUF->srcipaddr.u8[14],
+    printf("R: 0X%02X%02X %ld %llu %u\n",
             appdata[0],         // destination
             appdata[1],         // source
-            propagation_time);  // progagation time
-    
-    int64_t value = 0;
-    
-    memcpy(&value, &appdata[1], 5);
-    printf("%llu:",  value);
-
-    value = 0;
-    memcpy(&value, &tsch_current_asn, 5);
-    printf("%llu",  value);
-    printf("%d",  sicslowpan_get_last_channel());
-    printf("\n");
+            propagation_time,
+            asn,
+            appdata[11]);       // channel
 
   }
 }

@@ -133,4 +133,90 @@ We increase the number to 16 because we have up to 16 nodes */
 // enable IPv6 Neigborg solicitation
 #define UIP_CONF_ND6_SEND_NS          1
 
+
+
+// Set fixed RPL Parent for all nodes
+#if NODEID == 0x01
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x1){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x02
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x1){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x03
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x1){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x04
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x1){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x05
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x6){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x06
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x1){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x07
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x3){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x08
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x6){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x09
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x2){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x0A
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x1){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x0B
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0xA){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x0C
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0xA){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x0D
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x10){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x0E
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x10){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x0F
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x10){\ 
+  goto discard; \ 
+ } 
+
+#elif NODEID == 0x10
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 and ((uint8_t*) &from)[15] != 0x7){\ 
+  goto discard; \ 
+ } 
+
+#endif /* NODEID */
+
+
 #endif /* __PROJECT_CONF_H__ */

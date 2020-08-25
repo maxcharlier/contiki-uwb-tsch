@@ -140,7 +140,7 @@ tcpip_handler(void)
             appdata[1],         // source
             propagation_time,
             asn,
-            appdata[12]);       // channel
+            appdata[11]);       // channel
 
   }
 }

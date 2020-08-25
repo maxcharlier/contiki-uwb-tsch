@@ -126,14 +126,16 @@ tcpip_handler(void)
     appdata = (char *) uip_appdata;
     appdata[uip_datalen()] = 0;
 
+    int32_t propagation_time = 0;
+    memcpy(&propagation_time, &appdata[2], sizeof(int32_t));
+
     // TODO for now, always print
     
-    printf("R:%02x%02x:Time betweeen node%d and node%d: %d", 
-            UIP_IP_BUF->srcipaddr.u8[14], 
-            UIP_IP_BUF->srcipaddr.u8[15], 
-            appdata[6], // destination
-            appdata[7], // source
-            appdata[8]);// progagation time
+    printf("R (from %02x):Time betweeen node%d and node%d: %d",
+            UIP_IP_BUF->srcipaddr.u8[14],
+            appdata[0],         // destination
+            appdata[1],         // source
+            propagation_time);  // progagation time
     
     int64_t value = 0;
     
@@ -163,21 +165,13 @@ static int current_index = 0; // used to store to total about of bytes in last_p
 static void
 send_packet(void *ptr)
 {
-  /* TODO see udp-ping/unicast-full-mesh.c for example */
-  char buf[MAX_PAYLOAD_LEN];
-
-  /* place the seq number and the current asn in the buffer */
-  memcpy(&buf[0], &seq_id, 1);
-  memcpy(&buf[1], &tsch_current_asn, 5);
-
-  memcpy(&buf[6], &last_prop_buf[0], current_index); // copy all data from buffer from create_prop_buffer
 
   /* first we check if we have neighbor (if it's the case we have joined TSCH) */
   if(nbr_table_head(ds6_neighbors) != NULL) {
     // Send data with the distination to the root
     
     // always send data to the root
-    uip_udp_packet_sendto(client_conn, buf, BUF_LEN, &ip_addr_node1, UIP_HTONS(UDP_PORT));
+    uip_udp_packet_sendto(client_conn, last_prop_buf, current_index, &ip_addr_node1, UIP_HTONS(UDP_PORT));
   }
   
   

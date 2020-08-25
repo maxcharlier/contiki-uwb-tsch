@@ -101,11 +101,7 @@ static const uip_ipaddr_t * local_neighborg_addr[] = {
 };
 
 static unsigned char last_prop_buf[MAX_PAYLOAD_LEN]; /* this buffer will contain the last propagation time measured */
-
-
-static const int len_local_neighborg=16;
-static const int number_of_transmission_per_timer=3;
-
+static int current_index = 0; // used to store to total about of bytes in last_prop_buf
 /*---------------------------------------------------------------------------*/
 PROCESS(test_ranging, "Localization based on TASA");
 PROCESS(TSCH_PROP_PROCESS, "TSCH localization process");
@@ -150,13 +146,6 @@ tcpip_handler(void)
 
   }
 }
-
-
-static int sending_index=0;
-static int seq_id=0;
-
-static int current_index = 0; // used to store to total about of bytes in last_prop_buf
-
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -266,34 +255,33 @@ print_buffer()
       _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
     */
     printf("-R:");
-    write_byte(buf[1]);
-    write_byte(buf[0]);
+    write_byte(last_prop_buf[1]);
+    write_byte(last_prop_buf[0]);
     write_byte(current_index-1);
-    write_byte(linkaddr_node_addr.u8[1]);
     for(int i = 2; i < current_index; i++){
-      write_byte((uint8_t) buf[i]);    
+      write_byte((uint8_t) last_prop_buf[i]);    
     }
 
     write_byte((uint8_t) '\n');
 
   #else /* PRINT_BYTE */  
-    printf("R: 0X%02X%02X", buf[0], buf[1]);
+    printf("R: 0X%02X%02X", last_prop_buf[0], last_prop_buf[1]);
       int64_t value;
       int i = 2;
 
       /* prop time */
-      memcpy(&value, &buf[2], 4);
+      memcpy(&value, &last_prop_buf[2], 4);
       i += 4;
       printf(" %ld",  value);
       value = 0;
 
       /* asn */
-      memcpy(&value, &buf[i], 5);
+      memcpy(&value, &last_prop_buf[i], 5);
       i += 5;
       printf(" %llu",  value);
 
       /* channel */
-      printf(" %u",  buf[i]);
+      printf(" %u",  last_prop_buf[i]);
 
     printf("\n");
   #endif /* PRINT_BYTE */

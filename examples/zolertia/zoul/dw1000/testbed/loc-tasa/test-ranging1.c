@@ -79,8 +79,32 @@ static const uip_ipaddr_t ip_addr_node16 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x0
 static const uip_ipaddr_t ip_addr_nodeb1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X11 } };
 static const uip_ipaddr_t ip_addr_nodeb2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X12 } };
 
+static const uip_ipaddr_t * local_neighborg_addr[] = { 
+  &ip_addr_node1, 
+  &ip_addr_node2, 
+  &ip_addr_node3, 
+  &ip_addr_node4, 
+  &ip_addr_node5, 
+  &ip_addr_node6, 
+  &ip_addr_node7, 
+  &ip_addr_node8, 
+  &ip_addr_node9, 
+  &ip_addr_node10, 
+  &ip_addr_node11, 
+  &ip_addr_node12, 
+  &ip_addr_node13, 
+  &ip_addr_node14, 
+  &ip_addr_node15, 
+  &ip_addr_node16,
+  &ip_addr_nodeb1,
+  &ip_addr_nodeb2 
+};
+
 static unsigned char last_prop_buf[MAX_PAYLOAD_LEN]; /* this buffer will contain the last propagation time measured */
 
+
+static const int len_local_neighborg=16;
+static const int number_of_transmission_per_timer=3;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(test_ranging, "Localization based on TASA");
@@ -90,13 +114,46 @@ AUTOSTART_PROCESSES(&test_ranging);
 
 
 /**
- * This function will be used by the sink of the netwokr when after receiving a message containing propoagation time between a mobile node and an anchor. 
+ * This function will be used by the sink of the network when after receiving a message containing propoagation time between a mobile node and an anchor. 
  */
 static void
 tcpip_handler(void)
 {
   /* TODO see udp-ping/unicast-full-mesh.c for example */
+  char *appdata;
+  if(uip_newdata()) {
+    // if new data is available
+    appdata = (char *) uip_appdata;
+    appdata[uip_datalen()] = 0;
+
+    // TODO for now, always print
+    
+    printf("R:%02x%02x:Time betweeen node%d and node%d: %d", 
+            UIP_IP_BUF->srcipaddr.u8[14], 
+            UIP_IP_BUF->srcipaddr.u8[15], 
+            appdata[6], // destination
+            appdata[7], // source
+            appdata[8]);// progagation time
+    
+    int64_t value = 0;
+    
+    memcpy(&value, &appdata[1], 5);
+    printf("%llu:",  value);
+
+    value = 0;
+    memcpy(&value, &tsch_current_asn, 5);
+    printf("%llu",  value);
+    printf("%d",  sicslowpan_get_last_channel());
+    printf("\n");
+
+  }
 }
+
+
+static int sending_index=0;
+static int seq_id=0;
+
+static int current_index = 0; // used to store to total about of bytes in last_prop_buf
 
 
 /*---------------------------------------------------------------------------*/
@@ -107,6 +164,23 @@ static void
 send_packet(void *ptr)
 {
   /* TODO see udp-ping/unicast-full-mesh.c for example */
+  char buf[MAX_PAYLOAD_LEN];
+
+  /* place the seq number and the current asn in the buffer */
+  memcpy(&buf[0], &seq_id, 1);
+  memcpy(&buf[1], &tsch_current_asn, 5);
+
+  memcpy(&buf[6], &last_prop_buf[0], current_index); // copy all data from buffer from create_prop_buffer
+
+  /* first we check if we have neighbor (if it's the case we have joined TSCH) */
+  if(nbr_table_head(ds6_neighbors) != NULL) {
+    // Send data with the distination to the root
+    
+    // always send data to the root
+    uip_udp_packet_sendto(client_conn, buf, BUF_LEN, &ip_addr_node1, UIP_HTONS(UDP_PORT));
+  }
+  
+  
 }
 
 /*---------------------------------------------------------------------------*/
@@ -177,15 +251,15 @@ create_prop_buffer(struct tsch_neighbor * data)
   current_index = 0;
   /* The ranging is made between this node (check local addr) and the destination node. 
   The destination node have a linkaddr_t on 8 bytes, we get the two last one that represent the node ID */
-  last_prop_buf[current_index] = data->addr.u8[6];
+  last_prop_buf[current_index] = data->addr.u8[6]; // address destination voisin
   current_index++;
   last_prop_buf[current_index] = data->addr.u8[7];
   current_index++;
-  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.prop_time), 4);
+  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.prop_time), 4); // temps de propagation
   current_index += 4;
-  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.asn), 5);
+  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.asn), 5); //asn
   current_index += 5;
-  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.tsch_channel), 1);
+  memcpy(&last_prop_buf[current_index], &(data->last_prop_time.tsch_channel), 1); //canal
   current_index += 1;
 }
 

@@ -23,8 +23,7 @@
 
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
-
-#include "examples/zolertia/zoul/dw1000/testbed/loc-tasa/shedule-thomas.h"
+#include "examples/zolertia/zoul/dw1000/testbed/schedule-thomas/schedule-thomas.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"

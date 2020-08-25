@@ -2,7 +2,7 @@
 #include "contiki.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h" 
-#include "examples/zolertia/zoul/dw1000/testbed/loc-tasa/shedule-thomas.h"
+#include "examples/zolertia/zoul/dw1000/testbed/schedule-thomas/schedule-thomas.h"
 
 const linkaddr_t node_1_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x01 } };
 const linkaddr_t node_2_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x02 } };
@@ -55,17 +55,17 @@ const linkaddr_t * mac_neighborg_addr[] = {
 
 void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
 {
-  struct tsch_slot_frame *sf_custom;
+  struct tsch_slotframe *sf_custom;
 
   /* First, empty current schedule */
-  tsch_schedule_remove_all_slot_frames();
+  tsch_schedule_remove_all_slotframes();
 
   /* Build schedule.
-   * We pick a slot_frame length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_custom = tsch_schedule_add_slot_frame(0, 31);
+   * We pick a slotframes length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slotframe(0, 31);
 
   const struct {
-    struct tsch_slot_frame *slot_frame;
+    struct tsch_slotframe *slotframe;
     uint8_t                link_options;
     enum link_type         link_type;
     const linkaddr_t      *address;
@@ -133,6 +133,6 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
     { 0 }
   }, *l;
 
-  for(l = timeslots ; l->slot_frame ; l++)
-    tsch_schedule_add_link(l->slot_frame, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
+  for(l = timeslots ; l->slotframe ; l++)
+    tsch_schedule_add_link(l->slotframe, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
 }

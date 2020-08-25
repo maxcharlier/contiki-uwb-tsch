@@ -56,7 +56,6 @@
 // <<<<<<< End timer config
 
 static struct uip_udp_conn *client_conn;
-static struct ctimer periodic_timer1, periodic_timer2;
 
 static const uip_ipaddr_t ip_addr_node1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x01 } };
 static const uip_ipaddr_t ip_addr_node2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x02 } };
@@ -78,27 +77,6 @@ static const uip_ipaddr_t ip_addr_node16 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x0
 
 static const uip_ipaddr_t ip_addr_nodeb1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X11 } };
 static const uip_ipaddr_t ip_addr_nodeb2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X12 } };
-
-static const uip_ipaddr_t * local_neighborg_addr[] = { 
-  &ip_addr_node1, 
-  &ip_addr_node2, 
-  &ip_addr_node3, 
-  &ip_addr_node4, 
-  &ip_addr_node5, 
-  &ip_addr_node6, 
-  &ip_addr_node7, 
-  &ip_addr_node8, 
-  &ip_addr_node9, 
-  &ip_addr_node10, 
-  &ip_addr_node11, 
-  &ip_addr_node12, 
-  &ip_addr_node13, 
-  &ip_addr_node14, 
-  &ip_addr_node15, 
-  &ip_addr_node16,
-  &ip_addr_nodeb1,
-  &ip_addr_nodeb2 
-};
 
 static unsigned char last_prop_buf[MAX_PAYLOAD_LEN]; /* this buffer will contain the last propagation time measured */
 static int current_index = 0; // used to store to total about of bytes in last_prop_buf

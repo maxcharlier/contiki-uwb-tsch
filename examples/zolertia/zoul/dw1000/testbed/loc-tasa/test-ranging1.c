@@ -123,7 +123,7 @@ tcpip_handler(void)
 * This function will be used to transmit a message to the sink, the message will contain propagation time information (also the source and the destination of the propagation time).
 */
 static void
-send_packet(void *ptr)
+send_packet()
 {
 
   /* first we check if we have neighbor (if it's the case we have joined TSCH) */

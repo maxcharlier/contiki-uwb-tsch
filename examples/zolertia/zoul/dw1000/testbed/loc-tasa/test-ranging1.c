@@ -283,7 +283,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       create_prop_buffer((struct tsch_neighbor *) data);
       print_buffer();
 
-      // send_packet();
+      send_packet();
     }
     if(ev == serial_line_event_message && data != NULL) {
       char *str;

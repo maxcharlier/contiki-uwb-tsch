@@ -80,9 +80,9 @@
 #undef TSCH_LOG_CONF_LEVEL
 #define TSCH_LOG_CONF_LEVEL 0
 
-/* We not use a specific thread for the localisation
+/* We use a specific thread for the localisation */
 #define TSCH_LOC_THREAD 1
-*/
+
 
 /* QUEUEBUF_CONF_NUM specifies the number of queue buffers. 
 We increase the number to 16 because we have up to 16 nodes */

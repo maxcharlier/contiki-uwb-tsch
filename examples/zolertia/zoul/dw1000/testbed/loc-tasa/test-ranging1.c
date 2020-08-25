@@ -132,7 +132,7 @@ tcpip_handler(void)
     // TODO for now, always print
     
     printf("R: 0X%02X%02X %ld %llu %u\n",
-            appdata[0],         // destination
+            appdata[0],         // source
             appdata[1],         // source
             propagation_time,
             asn,

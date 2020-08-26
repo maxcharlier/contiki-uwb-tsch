@@ -55,17 +55,17 @@ const linkaddr_t * mac_neighborg_addr[] = {
 
 void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
 {
-  struct tsch_slotframe *sf_custom;
+  struct tsch_slot_frame *sf_custom;
 
   /* First, empty current schedule */
-  tsch_schedule_remove_all_slotframes();
+  tsch_schedule_remove_all_slot_frames();
 
   /* Build schedule.
-   * We pick a slotframes length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_custom = tsch_schedule_add_slotframe(0, 31);
+   * We pick a slot_frame length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slot_frame(0, 34);
 
   const struct {
-    struct tsch_slotframe *slotframe;
+    struct tsch_slot_frame *slot_frame;
     uint8_t                link_options;
     enum link_type         link_type;
     const linkaddr_t      *address;
@@ -74,65 +74,75 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
   } timeslots[] = {
     { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
 #if NODEID == 0x01
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 10, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 15, 1 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 18, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 21, 1 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 24, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 30, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 12, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 15, 1 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 18, 2 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 21, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 27, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 33, 0 },
 #elif NODEID == 0x02
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b1_address, 9, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 15, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_18_address, 9, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 12, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_9_address, 18, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 21, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_9_address, 24, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 27, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_9_address, 30, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 33, 0 },
 #elif NODEID == 0x03
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b1_address, 6, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 10, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 15, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 18, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 21, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 24, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 27, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 30, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_18_address, 6, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 15, 1 },
 #elif NODEID == 0x04
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b1_address, 3, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 21, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_18_address, 3, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 18, 2 },
 #elif NODEID == 0x05
 #elif NODEID == 0x06
 #elif NODEID == 0x07
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b2_address, 9, 1 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 12, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 15, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 12, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_9_address, 15, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 18, 1 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 21, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 27, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_9_address, 21, 2 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 24, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_9_address, 27, 1 },
 #elif NODEID == 0x08
 #elif NODEID == 0x09
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 15, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 18, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 21, 2 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 24, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 27, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 30, 0 },
 #elif NODEID == 0x0A
 #elif NODEID == 0x0B
 #elif NODEID == 0x0C
 #elif NODEID == 0x0D
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b2_address, 6, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_17_address, 6, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 15, 2 },
 #elif NODEID == 0x0E
 #elif NODEID == 0x0F
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_17_address, 9, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 21, 1 },
 #elif NODEID == 0x10
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b2_address, 3, 1 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 12, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_17_address, 3, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 12, 1 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 15, 2 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 18, 1 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 21, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 24, 1 },
 #elif NODEID == 0x11
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_4_address, 3, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_3_address, 6, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, 9, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_16_address, 3, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_13_address, 6, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_15_address, 9, 0 },
 #elif NODEID == 0x12
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_16_address, 3, 1 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_13_address, 6, 1 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_7_address, 9, 1 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_4_address, 3, 1 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_3_address, 6, 1 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, 9, 1 },
 #else
 #  error "Unhandled NODEID for static schedule."
 #endif /* NODEID */
     { 0 }
   }, *l;
 
-  for(l = timeslots ; l->slotframe ; l++)
-    tsch_schedule_add_link(l->slotframe, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
+  for(l = timeslots ; l->slot_frame ; l++)
+    tsch_schedule_add_link(l->slot_frame, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
 }

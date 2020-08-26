@@ -143,6 +143,6 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
     { 0 }
   }, *l;
 
-  for(l = timeslots ; l->slot_frame ; l++)
-    tsch_schedule_add_link(l->slot_frame, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
+  for(l = timeslots ; l->slotframe ; l++)
+    tsch_schedule_add_link(l->slotframe, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
 }

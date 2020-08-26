@@ -55,17 +55,17 @@ const linkaddr_t * mac_neighborg_addr[] = {
 
 void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
 {
-  struct tsch_slot_frame *sf_custom;
+  struct tsch_slotframe *sf_custom;
 
   /* First, empty current schedule */
-  tsch_schedule_remove_all_slot_frames();
+  tsch_schedule_remove_all_slotframes();
 
   /* Build schedule.
-   * We pick a slot_frame length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_custom = tsch_schedule_add_slot_frame(0, 34);
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slotframe(0, 34);
 
   const struct {
-    struct tsch_slot_frame *slot_frame;
+    struct tsch_slotframe *slotframe;
     uint8_t                link_options;
     enum link_type         link_type;
     const linkaddr_t      *address;

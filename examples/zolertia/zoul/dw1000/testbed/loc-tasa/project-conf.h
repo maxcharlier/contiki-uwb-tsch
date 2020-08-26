@@ -137,9 +137,10 @@ We increase the number to 16 because we have up to 16 nodes */
 
 // Set fixed RPL Parent for all nodes
 #if NODEID == 0x01
-  #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x1){\
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x1){\
   goto discard; \
  } 
+
 #elif NODEID == 0x02
     #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x1){\
   goto discard; \
@@ -166,7 +167,7 @@ We increase the number to 16 because we have up to 16 nodes */
  } 
 
 #elif NODEID == 0x07
-    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x3){\
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x9){\
   goto discard; \
  } 
 
@@ -216,16 +217,16 @@ We increase the number to 16 because we have up to 16 nodes */
  } 
 
 #elif NODEID == 0x11
-    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x3){\
-  goto discard; \
- } 
-
-#elif NODEID == 0x12
     #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x10){\
   goto discard; \
  } 
 
-#endif /* NODEID */
+#elif NODEID == 0x12
+    #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x3){\
+  goto discard; \
+ } 
+
+#endif /* NODEID */s
 
 
 #endif /* __PROJECT_CONF_H__ */

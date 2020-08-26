@@ -294,6 +294,10 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
         tsch_schedule_print();
         
       }
+      if(str[0] == 'a') {
+        /* this value come from the file net/mac/tsch/tsch-asn.h */
+        PRINTF("tsch current ASN %llu\n", tsch_current_asn);
+      }
     }
   }
 

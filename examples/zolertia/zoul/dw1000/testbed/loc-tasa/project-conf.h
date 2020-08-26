@@ -226,7 +226,7 @@ We increase the number to 16 because we have up to 16 nodes */
   goto discard; \
  } 
 
-#endif /* NODEID */s
+#endif /* NODEID */
 
 
 #endif /* __PROJECT_CONF_H__ */

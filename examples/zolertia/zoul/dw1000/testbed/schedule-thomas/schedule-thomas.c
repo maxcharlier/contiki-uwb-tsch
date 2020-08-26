@@ -81,7 +81,7 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 27, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 33, 0 },
 #elif NODEID == 0x02
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_18_address, 9, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b2_address, 9, 1 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 12, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_9_address, 18, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 21, 0 },
@@ -90,10 +90,10 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_9_address, 30, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 33, 0 },
 #elif NODEID == 0x03
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_18_address, 6, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b2_address, 6, 1 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 15, 1 },
 #elif NODEID == 0x04
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_18_address, 3, 1 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b2_address, 3, 1 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 18, 2 },
 #elif NODEID == 0x05
 #elif NODEID == 0x06
@@ -116,14 +116,14 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
 #elif NODEID == 0x0B
 #elif NODEID == 0x0C
 #elif NODEID == 0x0D
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_17_address, 6, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b1_address, 6, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 15, 2 },
 #elif NODEID == 0x0E
 #elif NODEID == 0x0F
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_17_address, 9, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b1_address, 9, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 21, 1 },
 #elif NODEID == 0x10
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_17_address, 3, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_b1_address, 3, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 12, 1 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 15, 2 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 18, 1 },

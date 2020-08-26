@@ -109,8 +109,8 @@ tcpip_handler(void)
     // TODO for now, always print
     
     printf("R: 0X%02X%02X  -> 0X%02X%02X %ld %llu %u\n",
-            UIP_IP_BUF->srcipaddr.u8[15], // src addr 
-            UIP_IP_BUF->srcipaddr.u8[14], // src addr
+            UIP_IP_BUF->srcipaddr.u8[14], // src addr 
+            UIP_IP_BUF->srcipaddr.u8[15], // src addr
             appdata[0],         // dst addr
             appdata[1],         // dst addr
             propagation_time,

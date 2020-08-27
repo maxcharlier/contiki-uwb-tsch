@@ -622,7 +622,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
   /* === Configure rx/tx channel */
   dw_set_channel(dw_conf->channel);
 
-  dw_set_default_tx_power(dw_conf->channel, dw_conf->prf);
+  dw_set_manual_tx_power(dw_conf->channel, dw_conf->prf);
 
   /* === Configure Preamble length */
   dw_set_preamble_length(dw_conf->preamble_length);
@@ -1292,7 +1292,7 @@ set_in_deep_sleep(void){
  * \param[in] channel   The channel.
  * \param[in] prf       The PRF.
  */
-void dw_set_default_tx_power(dw1000_channel_t channel, dw1000_prf_t prf){
+void dw_set_manual_tx_power(dw1000_channel_t channel, dw1000_prf_t prf){
   uint32_t tx_power_val = 0UL;  
   uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
   /* Configure the TX power based on the channel and the PRF
@@ -1342,6 +1342,70 @@ void dw_set_default_tx_power(dw1000_channel_t channel, dw1000_prf_t prf){
       tx_power_val = 0x92929292ul;
     } else if(prf == DW_PRF_64_MHZ) {
       tx_power_val = 0xD1D1D1D1ul;
+    }
+    break;
+  }
+
+  dw_write_reg(DW_REG_SYS_CFG, DW_LEN_SYS_CFG, (uint8_t *) &sys_cfg_val);
+  dw_write_reg(DW_REG_TX_POWER, DW_LEN_TX_POWER, (uint8_t *) &tx_power_val);
+}
+/**
+ * \brief Set the TX power according the Table 19: "Reference values for 
+ *    Register file: 0x1E – Transmit Power Control, for Smart 
+ *    Transmit Power Control" of the user manual (v2.18).
+ *    We disable the Smart Transmit Power Control.
+ *
+ * \param[in] channel   The channel.
+ * \param[in] prf       The PRF.
+ */
+void dw_set_smart_tx_power(dw1000_channel_t channel, dw1000_prf_t prf){
+  uint32_t tx_power_val = 0UL;  
+  uint32_t sys_cfg_val = dw_read_reg_32(DW_REG_SYS_CFG, DW_LEN_SYS_CFG);
+  /* Configure the TX power based on the channel and the PRF
+    Based on the manual: Table 19: Reference values for Register file: 0x1E – Transmit Power Control, for Smart Transmit Power Control */
+  sys_cfg_val &= ~DW_DIS_STXP_MASK;  /* Enable Smart Transmit Power Control */
+
+  switch(channel) {
+  case DW_CHANNEL_1:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x15355575ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x07274767ul;
+    }
+    break;
+  case DW_CHANNEL_2:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x15355575ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x07274767ul;
+    }
+    break;
+  case DW_CHANNEL_3:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x0F2F4F6Ful;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x2B4B6B8Bul;
+    }
+    break;
+  case DW_CHANNEL_4:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x1F1F3F5Ful;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x3A5A7A9Aul;
+    }
+    break;
+  case DW_CHANNEL_5:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x0E082848ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x25466788ul;
+    }
+    break;
+  case DW_CHANNEL_7:
+    if(prf == DW_PRF_16_MHZ) {
+      tx_power_val = 0x32527292ul;
+    } else if(prf == DW_PRF_64_MHZ) {
+      tx_power_val = 0x5171B1D1ul;
     }
     break;
   }
@@ -2349,10 +2413,10 @@ void
 dw_set_default_antenna_delay(dw1000_prf_t prf){
   uint16_t antenna_delay = 0U;
   if(prf == DW_PRF_16_MHZ){
-    antenna_delay = 32837;
+    antenna_delay = 32837u;
   }
   else{ /* 64 MHz PRF */
-    antenna_delay = 32872;
+    antenna_delay = 32872u;
   }
   dw_set_antenna_delay(antenna_delay);
 }
@@ -3208,7 +3272,7 @@ void dw_cw_mode(dw1000_channel_t channel){
                     (uint8_t*) &psmc_ctrl1_val);
   dw_set_channel(channel);
   /* PRF 16 MHz is the default configuration */
-  dw_set_default_tx_power(channel, DW_PRF_16_MHZ);
+  dw_set_manual_tx_power(channel, DW_PRF_16_MHZ);
   uint32_t psmc_ctrl0_val = 0x22UL;
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
                     (uint8_t*) &psmc_ctrl0_val);

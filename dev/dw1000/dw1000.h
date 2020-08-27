@@ -628,7 +628,8 @@ void dw_set_pac_size(dw1000_pac_size_t pac_size, dw1000_prf_t prf);
 void dw_lde_repc_config(dw1000_preamble_code_t preamble_code, 
                     dw1000_data_rate_t data_rate);
 void dw_configure_lde(dw1000_prf_t prf);
-void dw_set_default_tx_power(dw1000_channel_t channel, dw1000_prf_t prf);
+void dw_set_manual_tx_power(dw1000_channel_t channel, dw1000_prf_t prf);
+void dw_set_smart_tx_power(dw1000_channel_t channel, dw1000_prf_t prf);
 void dw_change_tx_power(uint32_t tx_power_val, uint8_t manual);
 uint32_t dw_get_tx_power(void);
 void dw_conf_rx(dw1000_rx_conf_t *rx_conf);

@@ -1795,7 +1795,17 @@ dw1000_set_tsch_channel(uint8_t channel){
 
   dw_set_prf(dw1000_conf.prf);
   dw_set_channel(dw1000_conf.channel);
-  dw_set_default_tx_power(dw1000_conf.channel, dw1000_conf.prf);
+  #if UWB_SMART_TX_POWER
+  if(dw1000_conf.data_rate != DW_DATA_RATE_6800_KBPS){
+    dw_set_manual_tx_power(dw1000_conf.channel, dw1000_conf.prf);
+  }
+  else{ /* at 6.8 mbps we use smart tx power (increase the tx power) */
+    dw_set_smart_tx_power(dw1000_conf.channel, dw1000_conf.prf);
+  }  
+  #else
+    dw_set_manual_tx_power(dw1000_conf.channel, dw1000_conf.prf);
+  #endif /* UWB_SMART_TX_POWER */
+
   dw_set_preamble_code(dw1000_conf.preamble_code);
 
   dw_lde_repc_config(dw1000_conf.preamble_code, dw1000_conf.data_rate);

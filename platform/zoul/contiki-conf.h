@@ -404,6 +404,7 @@ typedef uint32_t rtimer_clock_t;
 
   #include "dev/dw1000/dw1000.h"
 
+  #define UWB_SMART_TX_POWER 1
   /* configuration of the DW1000 radio driver */
   #undef NETSTACK_CONF_RADIO
   #define NETSTACK_CONF_RADIO         dw1000_driver

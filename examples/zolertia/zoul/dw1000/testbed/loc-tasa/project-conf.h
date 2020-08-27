@@ -140,6 +140,7 @@ We increase the number to 16 because we have up to 16 nodes */
 /* Decrease TSCH beacon interval */
 #define TSCH_CONF_EB_PERIOD (2 * CLOCK_SECOND) // default 16
 #define TSCH_CONF_MAX_EB_PERIOD (8 * CLOCK_SECOND) //default 50
+#define TSCH_CONF_KEEPALIVE_TIMEOUT (6 * CLOCK_SECOND) //default 12
 
 // Set fixed RPL Parent for all nodes
 #if NODEID == 0x01

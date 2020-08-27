@@ -136,6 +136,9 @@
      * the value will by round in RTIMER tick*/
     #undef TSCH_PACKET_DURATION
     #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (117 * (len + 2))/100))
+
+    #undef TSCH_PACKET_DURATION_US
+    #define TSCH_PACKET_DURATION_US(len) (22 + (117 * (len + 2))/100)
     /* MAX ACK frame = 43 bytes 
     The following value are based on the real transmission duration 
     ( including the reedSolomon) */
@@ -147,6 +150,9 @@
     #undef TSCH_PACKET_DURATION
     #define REEDSOLOMON_OVERRED       130
     #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(REEDSOLOMON_OVERRED + 22 + (94 * (len + 2))/10))
+
+    #undef TSCH_PACKET_DURATION_US
+    #define TSCH_PACKET_DURATION_US(len) (REEDSOLOMON_OVERRED + 22 + (94 * (len + 2))/10)
     #define TSCH_DEFAULT_TS_MAX_ACK            473   /* do not include SHR */
     #define TSCH_DEFAULT_TS_MAX_TX             1261  /* do not include SHR */
 
@@ -156,6 +162,9 @@
     #undef TSCH_PACKET_DURATION
     #define REEDSOLOMON_OVERRED       130
     #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(REEDSOLOMON_OVERRED + 172 + (72 * (len + 2))))
+
+    #undef TSCH_PACKET_DURATION_US
+    #define TSCH_PACKET_DURATION_US(len) (REEDSOLOMON_OVERRED + 172 + (72 * (len + 2)))
 
     #define TSCH_DEFAULT_TS_MAX_ACK            3783   /* do not include SHR */
     #define TSCH_DEFAULT_TS_MAX_TX             10084  /* do not include SHR */
@@ -206,7 +215,7 @@
   #define TSCH_LOC_RX_GUARD           519
   #define TSCH_LOC_REPLY_DELAY        450
 
-  #define TSCH_LOC_RX_REPLY_TIME      (TSCH_LOC_REPLY_DELAY)
+  #define TSCH_LOC_RX_REPLY_TIME      (TSCH_LOC_REPLY_DELAY-TSCH_ACK_GUARD)
   #define TSCH_LOC_TX_REPLY_TIME      (TSCH_LOC_REPLY_DELAY+UWB_T_SHR)
   #define TSCH_LOC_UWB_T_SHR          UWB_T_SHR
   #define TSCH_LOC_RX_WAIT            (TSCH_LOC_RX_GUARD + TSCH_LOC_RX_GUARD + UWB_T_SHR)

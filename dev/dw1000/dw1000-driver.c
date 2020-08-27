@@ -565,7 +565,7 @@ dw1000_driver_transmit(unsigned short payload_len)
   /* only reads low-byte of DW1000's SYS_STATUS (bit 7 is TXFRS) */
   uint8_t sys_status_lo = 0x0;
   uint8_t count_send = 0; 
-  BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, &sys_status_lo); 
+  BUSYWAIT_UPDATE_UNTIL(dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 1, &sys_status_lo);
                   count_send++; watchdog_periodic();,
                   ((sys_status_lo & DW_TXFRS_MASK) != 0),
                   theorical_transmission_approx(dw1000_conf.preamble_length, 

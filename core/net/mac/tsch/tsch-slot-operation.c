@@ -1344,10 +1344,10 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
   /**
    * TX loc slot:
    * Double Sided Two Way Ranging 
-   * msg1  TX >> RX 
-   * msg2  TX << RX
-   * msg3  TX >> RX
-   * mqg4  RX << TX 
+   * msg1  TX >> RX       step1    TX ok = step 2
+   * msg2  TX << RX       step3
+   * msg3  TX >> RX       step4    TX ok = step5
+   * mqg4  RX << TX       step6
    *
    * 1. Copy packet (msg1) to the radio buffer
    * 2. Sleep until it is time to transmit msg1
@@ -1370,7 +1370,9 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
    **/
 
   /* tx status */
-  static uint8_t mac_tx_status;
+  static uint8_t mac_tx_status = MAC_TX_ERR;
+
+  static uint8_t mac_status;
 
   PT_BEGIN(pt);
 
@@ -1391,6 +1393,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
   /* timestamp of transmitted messages */
   static uint64_t timestamp_tx_m1, timestamp_rx_m2, timestamp_tx_m3;
+  static uint8_t step = 0;
 
   seqno = 20;
 
@@ -1401,6 +1404,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
   /* Copy packet (msg1) to the radio buffer*/
   if(NETSTACK_RADIO.prepare(packet_buf, packet_len) == 0) { /* 0 means success */
+    step = 1;
     static rtimer_clock_t tx_duration;
     /* Sleep until it is time to transmit msg1 */
     TSCH_WAIT(pt, t, current_slot_start, tsch_timing[tsch_ts_loc_tx_offset] - RADIO_DELAY_BEFORE_TX, "msg1TX");
@@ -1408,7 +1412,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
     TSCH_DEBUG_TX_EVENT();
     /* Transmit the msg1 */
-    mac_tx_status = NETSTACK_RADIO.transmit(packet_len);
+    mac_status = NETSTACK_RADIO.transmit(packet_len);
 
     /* turn tadio off -- will turn on again to wait for ACK if needed */
     tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
@@ -1420,8 +1424,9 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
     /* limit tx_time to its max value */
     tx_duration = MIN(tx_duration, tsch_timing[tsch_ts_max_ack]);
 
-    if(mac_tx_status == RADIO_TX_OK) {
+    if(mac_status == RADIO_TX_OK) {
       // printf("tsch_tx_loc_slot mac_tx_status == RADIO_TX_OK\n");
+      step = 2;
       rtimer_clock_t ack_start_time;
       int is_time_source;
       struct ieee802154_ies ack_ies;
@@ -1476,6 +1481,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
       if(NETSTACK_RADIO.pending_packet()){
           // printf("rx message 2\n");
+        step = 3;
         /*receive msg2 */
         #if TSCH_RESYNC_WITH_SFD_TIMESTAMPS
           /* At the end of the reception, get an more accurate estimate of SFD receive time */
@@ -1490,14 +1496,14 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
         is_time_source = 0;
         /* The radio driver should return 0 if no valid packets are in the rx buffer */
         if(packet_len > 0) {
+          step = 4;
+
           is_time_source = current_neighbor != NULL && current_neighbor->is_time_source;
           if(tsch_packet_parse_eack(packet_buf, packet_len, seqno,
               &frame, &ack_ies, &ack_hdrlen) == 0) {
             packet_len = 0;
           }
-        }
 
-        if(packet_len != 0) {
           if(is_time_source) {
             int32_t eack_time_correction = US_TO_RTIMERTICKS(ack_ies.ie_time_correction);
             int32_t since_last_timesync = TSCH_ASN_DIFF(tsch_current_asn, last_sync_asn);
@@ -1520,7 +1526,6 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
             last_sync_asn = tsch_current_asn;
             tsch_schedule_keepalive();
           }
-          mac_tx_status = MAC_TX_OK;
 
           /* Schedule a delayed transmission (msg3) */ 
           loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time]);
@@ -1539,9 +1544,10 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
           /* Wait the end of the msg3. */
           /* send the message, the function wait the end of the transmition */
-          mac_tx_status = NETSTACK_RADIO.transmit(packet_len);
+          mac_status = NETSTACK_RADIO.transmit(packet_len);
           // printf("mac_tx_status msg3 %d error %d\n", mac_tx_status, RADIO_TX_ERR);
-          if(mac_tx_status == RADIO_TX_OK){
+          if(mac_status == RADIO_TX_OK){
+            step = 5;
             // printf("tx msg3\n");
             /* Save the TX time (msg3)*/ 
             NETSTACK_RADIO.get_object(RADIO_LOC_LAST_TX_TIMESPTAMP, &timestamp_tx_m3, sizeof(uint64_t));
@@ -1575,6 +1581,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
             tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
 
             if(NETSTACK_RADIO.pending_packet()){
+              step = 6;
               // printf("TX loc read last message\n");
               /* Read the received packet (msg4): 
               *     The packet contain informations to compute the ranging. */
@@ -1599,6 +1606,8 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
               update_neighbor_prop_time(current_neighbor, prop_time, &tsch_current_asn, current_channel); 
               // printf("update_neighbor_prop_time \n");
               mac_tx_status = MAC_TX_OK;
+
+              // printf("TX localisation %ld ASN %u %lu channel %u\n", prop_time, tsch_current_asn.ms1b, tsch_current_asn.ls4b, current_channel);
             }
           }    
         }
@@ -1607,6 +1616,9 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
       }
     } else {
       mac_tx_status = MAC_TX_ERR;
+    }
+    if(mac_tx_status != MAC_TX_OK){
+      printf("TX localisation error at step %u ASN %u %lu channel %u\n", step, tsch_current_asn.ms1b, tsch_current_asn.ls4b, current_channel);
     }
     tsch_radio_off(TSCH_RADIO_CMD_OFF_END_OF_TIMESLOT);
 

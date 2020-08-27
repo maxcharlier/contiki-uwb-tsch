@@ -136,6 +136,11 @@ We increase the number to 16 because we have up to 16 nodes */
 /* Disable localization timeslot at the startup of TSCH */
 #define TSCH_CONF_LOCALIZATION_ENABLED_STARTUP 0
 
+
+/* Decrease TSCH beacon interval */
+#define TSCH_CONF_EB_PERIOD (4 * CLOCK_SECOND) // default 16
+#define TSCH_CONF_MAX_EB_PERIOD (16 * CLOCK_SECOND) //default 50
+
 // Set fixed RPL Parent for all nodes
 #if NODEID == 0x01
     #define RPL_DIO_DISCARD_RULE if( ((uint8_t*) &from)[14] != 0x0 && ((uint8_t*) &from)[15] != 0x1){\

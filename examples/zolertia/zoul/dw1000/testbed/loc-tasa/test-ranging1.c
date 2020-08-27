@@ -33,7 +33,7 @@
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
-#define PRINT_BYTE 1
+#define PRINT_BYTE 0
 
 #undef PRINTF
 #if !PRINT_BYTE
@@ -245,7 +245,7 @@ print_buffer()
       /* prop time */
       memcpy(&value, &last_prop_buf[2], 4);
       i += 4;
-      printf(" %ld",  value);
+      printf(" %lld",  value);
       value = 0;
 
       /* asn */
@@ -289,14 +289,42 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
     if(ev == serial_line_event_message && data != NULL) {
       char *str;
       str = data;
+      if(str[0] == 'h') {
+        printf("Available commands:\n");
+        printf("'r' display the schedule\n");
+        printf("'a' to display the ASN\n");
+        printf("'l' to display if localization timeslots are enable\n");
+        printf("'e' enable the localization timeslot\n");
+        printf("'d' disable the localization timeslot\n");
+        
+      }
       if(str[0] == 'r') {
-        PRINTF("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
+        printf("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
         tsch_schedule_print();
         
       }
       if(str[0] == 'a') {
         /* this value come from the file net/mac/tsch/tsch-asn.h */
-        printf("tsch current ASN %llu\n", tsch_current_asn);
+        int64_t value;
+        memcpy(&value, &tsch_current_asn, 5);
+        printf("tsch current ASN %llu\n", value);
+      }
+      if(str[0] == 'l') {
+        if(tsch_is_localization_enable()){
+          printf("Localization timeslots are enable\n");
+        }
+        else {
+          printf("Localization timeslots are disabled\n");
+        }
+      }
+
+      if(str[0] == 'e') {
+        printf("Enable localization timeslots\n");
+        tsch_set_localization(1);
+      }
+      if(str[0] == 'd') {
+        printf("Disable localization timeslots\n");
+        tsch_set_localization(0);
       }
     }
   }

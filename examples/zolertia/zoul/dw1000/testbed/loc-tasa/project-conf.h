@@ -133,7 +133,8 @@ We increase the number to 16 because we have up to 16 nodes */
 // enable IPv6 Neigborg solicitation
 #define UIP_CONF_ND6_SEND_NS          1
 
-
+/* Disable localization timeslot at the startup of TSCH */
+#define TSCH_CONF_LOCALIZATION_ENABLED_STARTUP 0
 
 // Set fixed RPL Parent for all nodes
 #if NODEID == 0x01

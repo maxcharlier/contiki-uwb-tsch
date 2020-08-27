@@ -239,7 +239,7 @@ print_buffer()
 
   #else /* PRINT_BYTE */  
     printf("R: 0X%02X%02X", last_prop_buf[0], last_prop_buf[1]);
-      int64_t value;
+      int64_t value = 0;
       int i = 2;
 
       /* prop time */

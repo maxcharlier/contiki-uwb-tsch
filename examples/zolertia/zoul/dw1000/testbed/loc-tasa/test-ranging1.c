@@ -305,7 +305,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       }
       if(str[0] == 'a') {
         /* this value come from the file net/mac/tsch/tsch-asn.h */
-        int64_t value;
+        int64_t value = 0;
         memcpy(&value, &tsch_current_asn, 5);
         printf("tsch current ASN %llu\n", value);
       }

@@ -136,6 +136,9 @@
      * the value will by round in RTIMER tick*/
     #undef TSCH_PACKET_DURATION
     #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(22 + (117 * (len + 2))/100))
+
+    #undef TSCH_PACKET_DURATION_US
+    #define TSCH_PACKET_DURATION_US(len) (22 + (117 * (len + 2))/100)
     /* MAX ACK frame = 43 bytes 
     The following value are based on the real transmission duration 
     ( including the reedSolomon) */
@@ -147,6 +150,9 @@
     #undef TSCH_PACKET_DURATION
     #define REEDSOLOMON_OVERRED       130
     #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(REEDSOLOMON_OVERRED + 22 + (94 * (len + 2))/10))
+
+    #undef TSCH_PACKET_DURATION_US
+    #define TSCH_PACKET_DURATION_US(len) (REEDSOLOMON_OVERRED + 22 + (94 * (len + 2))/10)
     #define TSCH_DEFAULT_TS_MAX_ACK            473   /* do not include SHR */
     #define TSCH_DEFAULT_TS_MAX_TX             1261  /* do not include SHR */
 
@@ -156,6 +162,9 @@
     #undef TSCH_PACKET_DURATION
     #define REEDSOLOMON_OVERRED       130
     #define TSCH_PACKET_DURATION(len) (US_TO_RTIMERTICKS(REEDSOLOMON_OVERRED + 172 + (72 * (len + 2))))
+
+    #undef TSCH_PACKET_DURATION_US
+    #define TSCH_PACKET_DURATION_US(len) (REEDSOLOMON_OVERRED + 172 + (72 * (len + 2)))
 
     #define TSCH_DEFAULT_TS_MAX_ACK            3783   /* do not include SHR */
     #define TSCH_DEFAULT_TS_MAX_TX             10084  /* do not include SHR */

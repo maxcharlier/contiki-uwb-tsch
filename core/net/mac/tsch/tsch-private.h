@@ -121,6 +121,10 @@ void tsch_disassociate(void);
 #define TSCH_PACKET_DURATION(len) US_TO_RTIMERTICKS(32 * ((len) + 3))
 #endif
 
+#ifndef TSCH_PACKET_DURATION_US
+#define TSCH_PACKET_DURATION_US(len) US_TO_RTIMERTICKS(32 * ((len) + 3))
+#endif
+
 /* Convert rtimer ticks to clock and vice versa */
 #define TSCH_CLOCK_TO_TICKS(c) (((c) * RTIMER_SECOND) / CLOCK_SECOND)
 #define TSCH_CLOCK_TO_SLOTS(c, timeslot_length) (TSCH_CLOCK_TO_TICKS(c) / timeslot_length)

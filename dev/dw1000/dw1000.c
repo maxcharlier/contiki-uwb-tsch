@@ -2469,7 +2469,13 @@ dw_get_clock_offset(void){
 void
 dw_set_dx_timestamp(uint64_t timestamp)
 {
-  dw_write_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *) &timestamp);
+  dw_write_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *) &timestamp);  
+
+  uint32_t sys_status = 0UL;
+  dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
+  if((sys_status & DW_HPDWARN_MASK) != 0){
+    printf("dw_set_dx_timestamp error\n");
+  }
 }
 /**
  * \brief Getter for the delayed transmit/receive register.

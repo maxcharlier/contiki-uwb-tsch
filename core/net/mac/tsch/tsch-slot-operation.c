@@ -1429,12 +1429,12 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
       uint16_t rx_timeout_us;
 
 
-      rx_timeout_us = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_max_ack]+tsch_timing[tsch_ts_loc_uwb_t_shr])+TSCH_PACKET_DURATION_US(packet_len);
-      NETSTACK_RADIO.set_object(RADIO_RX_TIMEOUT_US, &rx_timeout_us, sizeof(uint16_t));
+      // rx_timeout_us = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_max_ack]+tsch_timing[tsch_ts_loc_uwb_t_shr])+TSCH_PACKET_DURATION_US(packet_len);
+      // NETSTACK_RADIO.set_object(RADIO_RX_TIMEOUT_US, &rx_timeout_us, sizeof(uint16_t));
 
-      /* Schedule a delayed reception (msg2)  */ 
-      loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_rx_reply_time])+TSCH_PACKET_DURATION_US(packet_len);
-      NETSTACK_RADIO.set_object(RADIO_LOC_RX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
+      // /* Schedule a delayed reception (msg2)  */ 
+      // loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_rx_reply_time])+TSCH_PACKET_DURATION_US(packet_len);
+      // NETSTACK_RADIO.set_object(RADIO_LOC_RX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
 
 
       #if TSCH_HW_FRAME_FILTERING
@@ -1452,21 +1452,21 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
       NETSTACK_RADIO.get_object(RADIO_LOC_LAST_TX_TIMESPTAMP, &timestamp_tx_m1, sizeof(uint64_t));
 
       /* Wait until we received the response (msg2) */
-      // TSCH_WAIT(pt, t, tx_start_time, 
-      //   tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] - RADIO_DELAY_BEFORE_RX, "waitRxMsg2");
+      TSCH_WAIT(pt, t, tx_start_time, 
+        tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] - RADIO_DELAY_BEFORE_RX, "waitRxMsg2");
       
-      // tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
+      tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
 
 
       BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),tx_start_time, 
-        tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_ack_wait] + RADIO_DELAY_BEFORE_DETECT);
+        tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_loc_rx_wait] + RADIO_DELAY_BEFORE_DETECT);
 
       ack_start_time = RTIMER_NOW() - RADIO_DELAY_BEFORE_DETECT;
 
       if(NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()){
         /* Wait for ACK to finish */
         BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
-            tx_start_time, tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_ack_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
+            tx_start_time, tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_loc_rx_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
         TSCH_DEBUG_TX_EVENT();
       }
 
@@ -1519,11 +1519,11 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
             last_sync_asn = tsch_current_asn;
             tsch_schedule_keepalive();
           }
-          mac_tx_status = MAC_TX_OK;
+          // mac_tx_status = MAC_TX_OK;
 
           /* Schedule a delayed transmission (msg3) */ 
-          loc_reply_delay = (uint16_t) (RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time])+TSCH_PACKET_DURATION_US(packet_len));
-          NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
+          // loc_reply_delay = (uint16_t) (RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time])+TSCH_PACKET_DURATION_US(packet_len));
+          // NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
 
 
           tx_duration = TSCH_PACKET_DURATION(packet_len);
@@ -1533,8 +1533,8 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
           /* Wait to transmit ms3 */
 
-          // TSCH_WAIT(pt, t, ack_start_time,
-          //     tx_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "txMsg3");
+          TSCH_WAIT(pt, t, ack_start_time,
+              tx_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "txMsg3");
 
           /* Wait the end of the msg3. */
           /* send the message, the function wait the end of the transmition */
@@ -1549,26 +1549,26 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
             NETSTACK_RADIO.get_object(RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP, &tx_start_time, sizeof(rtimer_clock_t));
 
             /* Shedule a delayed reception (msg4) */ 
-            loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_rx_reply_time])+TSCH_PACKET_DURATION_US(packet_len);
-            NETSTACK_RADIO.set_object(RADIO_LOC_RX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
+            // loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_rx_reply_time])+TSCH_PACKET_DURATION_US(packet_len);
+            // NETSTACK_RADIO.set_object(RADIO_LOC_RX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
 
 
             /* Unicast: wait for ack after tx: sleep until ack time */
             TSCH_WAIT(pt, t, tx_start_time,
                 tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] - RADIO_DELAY_BEFORE_RX, "waitMsg4");
 
-            // tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
+            tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
             TSCH_DEBUG_TX_EVENT();
 
             /* Wait for msg4 to come */
             BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),
-                tx_start_time, tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_ack_wait] + RADIO_DELAY_BEFORE_DETECT);
+                tx_start_time, tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_loc_rx_wait] + RADIO_DELAY_BEFORE_DETECT);
             TSCH_DEBUG_TX_EVENT();
 
             if(NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()){
               /* Wait for ACK to finish */
               BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
-                  tx_start_time, tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_ack_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
+                  tx_start_time, tx_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_loc_rx_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
               TSCH_DEBUG_TX_EVENT();
             }
             tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
@@ -1638,10 +1638,10 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
   /**   
    * RX loc slot:
    * Double Sided Two Way Ranging 
-   * msg1  TX >> RX => Received
-   * msg2  TX << RX => ACK send
-   * msg3  TX >> RX => ACK receive
-   * mqg4  RX << TX => TX a ranging packet (contain some informations for the ranging computation)
+   * msg1  TX >> RX => Received      step1
+   * msg2  TX << RX => ACK send      step2
+   * msg3  TX >> RX => ACK receive   step3
+   * mqg4  RX << TX => TX a ranging packet (contain some informations for the ranging computation) step4
    *
    * 1. Check if it is used for TIME_KEEPING
    * 2. Sleep and wake up just before expected RX time (with a shorter guard time: tsch_ts_loc_rx_guard)
@@ -1690,7 +1690,8 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
     static rtimer_clock_t rx_start_time;
     static rtimer_clock_t expected_rx_time;
     static rtimer_clock_t packet_duration;
-    uint8_t packet_seen;
+    uint8_t packet_seen, previews_packet_len;
+    uint8_t step = 0;
 
     expected_rx_time = current_slot_start + tsch_timing[tsch_ts_loc_tx_offset];
     /* Default start time: expected Rx time */
@@ -1719,10 +1720,11 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
     if(!packet_seen) {
       /* no packets on air */
       tsch_radio_off(TSCH_RADIO_CMD_OFF_FORCE);
-              // printf("no packet seen rx loc slot\n");
+      // printf("no packet seen rx loc slot\n");
     } 
     else 
     {
+      step = 1;
       TSCH_DEBUG_RX_EVENT();
       /* Save packet timestamp */
       rx_start_time = RTIMER_NOW() - RADIO_DELAY_BEFORE_DETECT;
@@ -1766,11 +1768,11 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
         NETSTACK_RADIO.get_object(RADIO_LOC_LAST_RX_TIMESPTAMP, &timestamp_rx_m1, sizeof(uint64_t));
 
 
-            if(!frame_valid)
-
-              printf("error invalid frame rx loc slot\n");
+        if(!frame_valid)
+          printf("error invalid frame rx loc slot\n");
 
         if(frame_valid) {
+          step=2;
           // printf("rangin step 2\n");
           if(!(linkaddr_cmp(&destination_address, &linkaddr_node_addr)
              || linkaddr_cmp(&destination_address, &linkaddr_null)))
@@ -1795,8 +1797,8 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
             #endif
 
             /* compute the reply time based on the first packet lenght */
-            loc_reply_delay = (uint16_t) (RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time])+TSCH_PACKET_DURATION_US(packet_len));
-
+            // loc_reply_delay = (uint16_t) (RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time]+TSCH_PACKET_DURATION(packet_len)));
+            previews_packet_len = packet_len;
             /* Build ACK frame */
             packet_len = tsch_packet_create_eack(packet_buf, sizeof(packet_buf),
                 &source_address, frame.seq, (int16_t)RTIMERTICKS_TO_US(estimated_drift), do_nack);
@@ -1804,26 +1806,27 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
             if(packet_len <= 0)
               printf("error packet len frame rx loc slot\n");
            if(packet_len > 0) {
+              // printf("prepare to transmit %d\n", loc_reply_delay);
 
-              // printf("prepare to transmit %d\n", delay);
-
-              rx_timeout_us = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_max_tx]+tsch_timing[tsch_ts_loc_uwb_t_shr]);
-              NETSTACK_RADIO.set_object(RADIO_RX_TIMEOUT_US, &rx_timeout_us, sizeof(uint16_t));
+              // rx_timeout_us = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_max_tx]+tsch_timing[tsch_ts_loc_uwb_t_shr]);
+              // NETSTACK_RADIO.set_object(RADIO_RX_TIMEOUT_US, &rx_timeout_us, sizeof(uint16_t));
 
               /* Schedule a delayed transmission (msg2) */ 
               /* we give the delay between the reception of the frame and the transmission of the ACK */
-              NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
+              // NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
               
               /* Copy to radio buffer */
               NETSTACK_RADIO.prepare((const void *)packet_buf, packet_len);
 
 
-              // TSCH_WAIT(pt, t, rx_start_time, tsch_timing[tsch_ts_loc_tx_reply_time], "msg2TX");
+              TSCH_WAIT(pt, t, rx_start_time+TSCH_PACKET_DURATION(previews_packet_len), tsch_timing[tsch_ts_loc_tx_reply_time]-RADIO_DELAY_BEFORE_TX, "msg2TX");
               TSCH_DEBUG_TX_EVENT();
+
               /* Wait to transmit msg2. */
               mac_tx_status = NETSTACK_RADIO.transmit(packet_len);
-              // printf("rx loc slot send msg 2\n");
 
+              // printf("rx loc slot send msg 2\n");
+                // printf("ranging test2 TX mac statut %u, %u, %u, %u, %u\n", mac_tx_status, RADIO_TX_OK, RADIO_TX_ERR, RADIO_TX_COLLISION, RADIO_TX_NOACK);
               if(mac_tx_status == RADIO_TX_OK){
                 // printf("ranging test3\n");
                 /* Save the TX time (msg2)*/ 
@@ -1833,28 +1836,27 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
                 NETSTACK_RADIO.get_object(RADIO_PARAM_LAST_TX_PACKET_TIMESTAMP, &rx_start_time, sizeof(rtimer_clock_t));
 
                 /* Shedule a delayed reception (msg3) */ 
-                loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_rx_reply_time])+TSCH_PACKET_DURATION_US(packet_len);
-                NETSTACK_RADIO.set_object(RADIO_LOC_RX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
+                // loc_reply_delay = (uint16_t) RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_rx_reply_time])+TSCH_PACKET_DURATION_US(packet_len);
+                // NETSTACK_RADIO.set_object(RADIO_LOC_RX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
                 // tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
 
                 packet_duration = TSCH_PACKET_DURATION(packet_len);
 
                 /* Unicast: wait for ack after tx: sleep until ack time */
-                TSCH_WAIT(pt, t, rx_start_time,
-                    packet_duration + tsch_timing[tsch_ts_loc_rx_reply_time] - RADIO_DELAY_BEFORE_RX, "wait msg3");
+                TSCH_WAIT(pt, t, rx_start_time, packet_duration + tsch_timing[tsch_ts_loc_rx_reply_time] - RADIO_DELAY_BEFORE_RX , "wait msg3");
 
-                // tsch_radio_on(TSCH_RADIO_CMD_ON_FORCE);
+                tsch_radio_on(TSCH_RADIO_CMD_ON_FORCE);
                 /* WAIT msg3 */
 
                 /* Wait for ACK to come */
                 BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),
-                    rx_start_time, packet_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_ack_wait] + RADIO_DELAY_BEFORE_DETECT);
+                    rx_start_time, packet_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_loc_rx_wait] + RADIO_DELAY_BEFORE_DETECT);
                 TSCH_DEBUG_RX_EVENT();
 
                 if(NETSTACK_RADIO.receiving_packet() && !NETSTACK_RADIO.pending_packet()){
                   /* Wait for ACK to finish */
                   BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.pending_packet(),
-                      rx_start_time, packet_duration + tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_ack_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
+                      rx_start_time + packet_duration, tsch_timing[tsch_ts_loc_rx_reply_time] + tsch_timing[tsch_ts_loc_rx_wait]+ tsch_timing[tsch_ts_max_ack] + RADIO_DELAY_BEFORE_DETECT);
                   TSCH_DEBUG_TX_EVENT();
                 }
                 tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
@@ -1874,18 +1876,18 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
 
                   packet_duration = TSCH_PACKET_DURATION(packet_len);
 
-                  loc_reply_delay = (uint16_t) (RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time])+TSCH_PACKET_DURATION_US(packet_len));
+                  // loc_reply_delay = (uint16_t) (RTIMERTICKS_TO_US(tsch_timing[tsch_ts_loc_tx_reply_time])+TSCH_PACKET_DURATION_US(packet_len));
 
                   packet_len = tsch_packet_create_ranging_packet(packet_buf, TSCH_PACKET_MAX_LEN, &destination_address, seqno, t_reply, t_round);
 
                   /* Schedule a delayed transmission (msg4) */ 
-                  NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
+                  // NETSTACK_RADIO.set_object(RADIO_LOC_TX_DELAYED_US, &loc_reply_delay, sizeof(uint16_t));
 
                   /* Prepare the  ranging packet (msg4) */
                   NETSTACK_RADIO.prepare((const void *)packet_buf, packet_len);
 
-                  // TSCH_WAIT(pt, t, rx_start_time, 
-                  //   packet_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "waitForTxmsg4");
+                  TSCH_WAIT(pt, t, rx_start_time, 
+                    packet_duration + tsch_timing[tsch_ts_loc_tx_reply_time] - RADIO_DELAY_BEFORE_TX, "waitForTxmsg4");
 
                   /* Wait the end of the msg4. */
                   mac_tx_status = NETSTACK_RADIO.transmit(packet_len);

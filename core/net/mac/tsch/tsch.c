@@ -154,6 +154,10 @@ static clock_time_t tsch_current_ka_timeout;
 /* timer for sending keepalive messages */
 static struct ctimer keepalive_timer;
 
+/* default value TSCH localisation is disabled */
+uint8_t tsch_localization_is_enabled = TSCH_LOCALIZATION_ENABLED_STARTUP;
+
+
 /* TSCH processes and protothreads */
 PT_THREAD(tsch_scan(struct pt *pt));
 PROCESS(tsch_process, "TSCH: main process");
@@ -1059,4 +1063,12 @@ const struct mac_driver tschmac_driver = {
   turn_off,
   channel_check_interval,
 };
+/*---------------------------------------------------------------------------*/
+uint8_t tsch_is_localization_enable(){
+  return tsch_localization_is_enabled;
+}
+/*---------------------------------------------------------------------------*/
+void tsch_set_localization(uint8_t enable){
+  tsch_localization_is_enabled = enable;
+}
 /*---------------------------------------------------------------------------*/

@@ -97,6 +97,9 @@ extern struct tsch_asn_divisor_t tsch_hopping_sequence_length;
 /* TSCH timeslot timing (in rtimer ticks) */
 extern rtimer_clock_t tsch_timing[tsch_ts_elements_count];
 
+/* TSCH localisation enabled or not */
+extern uint8_t tsch_localization_is_enabled;
+
 /* TSCH processes */
 PROCESS_NAME(tsch_process);
 PROCESS_NAME(tsch_send_eb_process);

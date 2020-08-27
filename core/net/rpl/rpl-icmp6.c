@@ -336,6 +336,9 @@ dio_input(void)
   PRINT6ADDR(&dio.dag_id);
   PRINTF(", %u)\n", dio.preference);
 
+  #ifdef RPL_DIO_DISCARD_RULE
+    RPL_DIO_DISCARD_RULE
+  #endif /* RPL_DIO_DISCARD_RULE */
   // printf(" dio from15  0x%02X",((uint8_t*) &from)[15]);
   // printf(" dio nodeaddr0  0x%02X", linkaddr_node_addr.u8[1]);
 

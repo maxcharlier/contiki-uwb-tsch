@@ -114,7 +114,7 @@ We increase the number to 16 because we have up to 16 nodes */
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
 #define NBR_TABLE_CONF_MAX_NEIGHBORS      16
-#define UIP_CONF_MAX_ROUTES               3
+#define UIP_CONF_MAX_ROUTES               20
 
 /* Define as minutes */
 #define RPL_CONF_DEFAULT_LIFETIME_UNIT   60
@@ -122,7 +122,7 @@ We increase the number to 16 because we have up to 16 nodes */
 /* 10 minutes lifetime of routes */
 #define RPL_CONF_DEFAULT_LIFETIME        10
 
-#define RPL_CONF_WITH_STORING 0
+#define RPL_CONF_WITH_STORING 1
 
 //8 is the default value
 #define QUEUEBUF_CONF_NUM                    8

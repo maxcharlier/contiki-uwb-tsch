@@ -11,6 +11,7 @@
 
 #include "net/ipv6/sicslowpan.h" // get the last channel
 
+
 #include "net/ipv6/uip-ds6-route.h"
 #include "net/ipv6/uip-ds6-nbr.h"
 #include "net/mac/tsch/tsch.h"
@@ -23,7 +24,6 @@
 
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
-#include "examples/zolertia/zoul/dw1000/testbed/schedule-thomas/schedule-thomas.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -42,7 +42,10 @@
   #define PRINTF(...) do {} while(0)
 #endif /* PRINT_BYTE */
 
-#define ROOT_ID  0X01
+
+#define NODEID_0 0xA1
+#define NODEID_1 0xA2
+#define ROOT_ID  NODEID_0
 
 #define UDP_PORT 5678
 #define MAX_PAYLOAD_LEN   30
@@ -56,8 +59,11 @@
 
 static struct uip_udp_conn *client_conn;
 
+
 /* fd00::fdff:ffff:ffff:1 is the gloabal addr and fe80::fdff:ffff:ffff:1 is a local addr */
 static  uip_ipaddr_t ip_addr_root = { { 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, ROOT_ID } };
+// static  uip_ipaddr_t ip_addr_root = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, ROOT_ID } };
+// static  uip_ipaddr_t ip_addr_root = { { 0x0, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, ROOT_ID } };
 
 static unsigned char last_prop_buf[MAX_PAYLOAD_LEN]; /* this buffer will contain the last propagation time measured */
 static int current_index = 0; // used to store to total about of bytes in last_prop_buf
@@ -113,17 +119,13 @@ send_packet()
   /* first we check if we have neighbor (if it's the case we have joined TSCH) */
   if(nbr_table_head(ds6_neighbors) != NULL) {
     // Send data with the distination to the root
-    printf("Send to :");
     PRINT6ADDR(&ip_addr_root);
-    printf("\n");
-    
     // always send data to the root
     uip_udp_packet_sendto(client_conn, last_prop_buf, current_index, &ip_addr_root, UIP_HTONS(UDP_PORT));
   }
   else{
     printf("Error send_packet no neighbor\n");
   }
-  
   
 }
 
@@ -134,7 +136,7 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
-  PRINTF("IPv6 addresses: ");
+  PRINTF("Server IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
     if(state == ADDR_TENTATIVE || state == ADDR_PREFERRED) {
@@ -146,6 +148,13 @@ print_local_addresses(void)
       printf("\n");
     }
   }
+  PRINTF("Server IPv6 addresses: ");
+  PRINT6ADDR(&ip_addr_root);
+  printf("\n");
+  for (int j = 0; j< sizeof(uip_ipaddr_t); j++){
+    printf("0x%02x ", ip_addr_root.u8[j]);
+  }
+  printf("\n");
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -165,16 +174,24 @@ set_global_address(void)
   #if NODEID == ROOT_ID
   struct uip_ds6_addr *root_if;
 
-  uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, ROOT_ID);
+  uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL);
   root_if = uip_ds6_addr_lookup(&ipaddr);
   if(root_if != NULL) {
     rpl_dag_t *dag;
     dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)&ipaddr);
-    uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, ROOT_ID);
+    uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
     rpl_set_prefix(dag, &ipaddr, 64);
     PRINTF("created a new RPL dag\n");
+
+    PRINTF("Server IPv6 addresses: ");
+    PRINT6ADDR(&ipaddr);
+    printf("\n");
+    for (int j = 0; j< sizeof(uip_ipaddr_t); j++){
+      printf("0x%02x ", ipaddr.u8[j]);
+    }
+    printf("\n");
   } else {
     PRINTF("failed to create a new RPL DAG\n");
   }
@@ -183,6 +200,11 @@ set_global_address(void)
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
   #endif /* NODEID */
+
+
+
+  /* Mode 1 - 64 bits inline */
+  // uip_ip6addr(&ip_addr_root, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, ROOT_ID);
 }
 /*---------------------------------------------------------------------------*/
 /* replace data in last_prop_buf with the last propagation time measured */
@@ -236,6 +258,7 @@ print_buffer()
       value = 0;
 
       /* asn */
+      value = 0;
       memcpy(&value, &last_prop_buf[i], 5);
       i += 5;
       printf(" %llu",  value);
@@ -278,7 +301,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       str = data;
       if(str[0] == 'h') {
         printf("Available commands:\n");
-        printf("'r' display the schedule\n");
+        printf("'r' display the schedule and routing\n");
         printf("'a' to display the ASN\n");
         printf("'l' to display if localization timeslots are enable\n");
         printf("'e' enable the localization timeslot\n");
@@ -289,6 +312,8 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       if(str[0] == 'r') {
         printf("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
         tsch_schedule_print();
+
+        uip_ds6_route_lookup(&ip_addr_root);
         
       }
       if(str[0] == 'a') {
@@ -323,6 +348,97 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
 
   PROCESS_END();
 }
+void tsch_schedule_fullmesh_data_2nodes2(void)
+{
+  struct tsch_slotframe *sf_custom;
+
+  /* First, empty current schedule */
+  tsch_schedule_remove_all_slotframes();
+
+  /* Build schedule.
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slotframe(0, 11);
+
+  
+      static linkaddr_t node_1_address;
+      linkaddr_copy(&node_1_address, &linkaddr_node_addr);
+      node_1_address.u8[7] = NODEID_0;
+      static linkaddr_t node_2_address;
+      linkaddr_copy(&node_2_address, &linkaddr_node_addr);
+      node_2_address.u8[7] = NODEID_1;
+
+  const struct {
+    struct tsch_slotframe *slotframe;
+    uint8_t                link_options;
+    enum link_type         link_type;
+    const linkaddr_t      *address;
+    uint16_t               timeslot;
+    uint16_t               channel_offset;
+  } timeslots[] = {
+    { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
+#if NODEID == NODEID_0
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, 2, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 4, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 6, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 8, 0 },
+#elif NODEID == NODEID_1
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, 2, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 6, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 8, 0 },
+#endif /* NODEID */
+    { 0 }
+  }, *l;
+
+  for(l = timeslots ; l->slotframe ; l++)
+    tsch_schedule_add_link(l->slotframe, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
+}
+void tsch_schedule_fullmesh_data_2nodes3(void)
+{
+  struct tsch_slotframe *sf_custom;
+
+  /* First, empty current schedule */
+  tsch_schedule_remove_all_slotframes();
+
+  /* Build schedule.
+   * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
+  sf_custom = tsch_schedule_add_slotframe(0, 16);
+
+  
+      static linkaddr_t node_1_address;
+      linkaddr_copy(&node_1_address, &linkaddr_node_addr);
+      node_1_address.u8[7] = NODEID_0;
+      static linkaddr_t node_2_address;
+      linkaddr_copy(&node_2_address, &linkaddr_node_addr);
+      node_2_address.u8[7] = NODEID_1;
+
+  const struct {
+    struct tsch_slotframe *slotframe;
+    uint8_t                link_options;
+    enum link_type         link_type;
+    const linkaddr_t      *address;
+    uint16_t               timeslot;
+    uint16_t               channel_offset;
+  } timeslots[] = {
+    { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
+#if NODEID == NODEID_0
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_2_address, 3, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 6, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 9, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 12, 0 },
+#elif NODEID == NODEID_1
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_1_address, 3, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 6, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 9, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 12, 0 },
+#endif /* NODEID */
+    { 0 }
+  }, *l;
+
+  for(l = timeslots ; l->slotframe ; l++)
+    tsch_schedule_add_link(l->slotframe, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
+}
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(test_ranging, ev, data)
 {
@@ -337,7 +453,7 @@ PROCESS_THREAD(test_ranging, ev, data)
   // PRINTF("UDP client process started nbr:%d routes:%d\n",
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
 
-  tsch_schedule_create_testbed_localization_for_2_mobiles();
+  tsch_schedule_fullmesh_data_2nodes2();
 
   tsch_schedule_print();
 

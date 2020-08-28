@@ -296,6 +296,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
         printf("'l' to display if localization timeslots are enable\n");
         printf("'e' enable the localization timeslot\n");
         printf("'d' disable the localization timeslot\n");
+        printf("'i' print local addr\n");
         
       }
       if(str[0] == 'r') {
@@ -325,6 +326,10 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       if(str[0] == 'd') {
         printf("Disable localization timeslots\n");
         tsch_set_localization(0);
+      }
+      if(str[0] == 'i') {
+        printf("Print local addr\n");
+        print_local_addresses();
       }
     }
   }

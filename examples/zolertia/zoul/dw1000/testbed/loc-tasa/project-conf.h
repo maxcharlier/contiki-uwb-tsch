@@ -122,7 +122,7 @@ We increase the number to 16 because we have up to 16 nodes */
 /* 10 minutes lifetime of routes */
 #define RPL_CONF_DEFAULT_LIFETIME        10
 
-#define RPL_CONF_WITH_STORING 1
+#define RPL_CONF_WITH_STORING 0
 
 //8 is the default value
 #define QUEUEBUF_CONF_NUM                    8

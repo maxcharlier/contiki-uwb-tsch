@@ -62,7 +62,7 @@ void tsch_schedule_create_testbed_localization_for_2_mobiles(void)
 
   /* Build schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_custom = tsch_schedule_add_slotframe(0, 52);
+  sf_custom = tsch_schedule_add_slotframe(0, 53);
 
   const struct {
     struct tsch_slotframe *slotframe;

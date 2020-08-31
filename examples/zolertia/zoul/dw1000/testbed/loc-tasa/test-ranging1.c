@@ -109,7 +109,6 @@ tcpip_handler(void)
 static void
 send_packet()
 {
-
   /* first we check if we have neighbor (if it's the case we have joined TSCH) */
   if(nbr_table_head(ds6_neighbors) != NULL) {
     // Send data with the distination to the root
@@ -125,18 +124,9 @@ send_packet()
     PRINT6ADDR(&ip_addr_root);
     printf("\n");
     printf("Error send_packet no neighbor\n");
-    
-    printf("Route entries:\n");
-    for(i = 0; i < UIP_DS6_ROUTE_NB; i++) {
-      if(uip_ds6_routing_table[i].isused) {
-        PRINT6ADDR(&uip_ds6_routing_table[i].ipaddr);
-        printf("\n");
-      }
-    }
 
+    uip_ds6_route_lookup(&ip_addr_root);
   }
-  
-  
 }
 
 /*---------------------------------------------------------------------------*/

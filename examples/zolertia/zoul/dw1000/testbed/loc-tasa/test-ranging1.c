@@ -121,7 +121,19 @@ send_packet()
     uip_udp_packet_sendto(client_conn, last_prop_buf, current_index, &ip_addr_root, UIP_HTONS(UDP_PORT));
   }
   else{
+    printf("Try to send to :");
+    PRINT6ADDR(&ip_addr_root);
+    printf("\n");
     printf("Error send_packet no neighbor\n");
+    
+    printf("Route entries:\n");
+    for(i = 0; i < UIP_DS6_ROUTE_NB; i++) {
+      if(uip_ds6_routing_table[i].isused) {
+        PRINT6ADDR(&uip_ds6_routing_table[i].ipaddr);
+        printf("\n");
+      }
+    }
+
   }
   
   

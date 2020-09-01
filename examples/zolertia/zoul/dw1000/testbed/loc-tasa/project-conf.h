@@ -63,6 +63,10 @@
 #undef FRAME802154_CONF_VERSION
 #define FRAME802154_CONF_VERSION FRAME802154_IEEE802154E_2012
 
+/* IEEE802.15.4 PANID */
+#undef IEEE802154_CONF_PANID
+#define IEEE802154_CONF_PANID 0xabcd
+
 /* TSCH and RPL callbacks */
 #define RPL_CALLBACK_PARENT_SWITCH tsch_rpl_callback_parent_switch
 #define RPL_CALLBACK_NEW_DIO_INTERVAL tsch_rpl_callback_new_dio_interval
@@ -86,10 +90,10 @@
 
 /* QUEUEBUF_CONF_NUM specifies the number of queue buffers. 
 We increase the number to 16 because we have up to 16 nodes */
-// #define QUEUEBUF_CONF_NUM  16
+#define QUEUEBUF_CONF_NUM  16
 
 /* Only send on time a unicast message */
-#define TSCH_CONF_MAC_MAX_FRAME_RETRIES  0
+#define TSCH_CONF_MAC_MAX_FRAME_RETRIES  6
 
 /* Do not start TSCH at init, wait for NETSTACK_MAC.on() */
 #undef TSCH_CONF_AUTOSTART
@@ -131,7 +135,7 @@ We increase the number to 16 because we have up to 16 nodes */
 #define TSCH_CONF_MAX_INCOMING_PACKETS      4
 
 // enable IPv6 Neigborg solicitation
-#define UIP_CONF_ND6_SEND_NS          1
+#define UIP_CONF_ND6_SEND_NS          0
 
 /* Disable localization timeslot at the startup of TSCH */
 #define TSCH_CONF_LOCALIZATION_ENABLED_STARTUP 0

@@ -300,6 +300,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
             r != NULL;
             r = uip_ds6_route_next(r)) {
           PRINT6ADDR(uip_ds6_route_nexthop(r));
+          printf("\n");
         }
 
       }

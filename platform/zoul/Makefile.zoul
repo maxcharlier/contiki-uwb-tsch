@@ -117,8 +117,20 @@ endef
 $(foreach MOTE,$(MOTES),$(eval $(UPLOAD_RULE)))
 
 ### Reset sequence
-reset:
-	$(BSL) -p $(PORT) --reset
+define RESET_RULE
+	
+	@echo "\n"
+	@echo " Reseting $(MOTE) \n" 
+	$(PYTHON) $(BSL) -p $(MOTE) 
+endef
+
+
+reset: 
+	$(BSL) -p $(PORT)
+
+
+reset-all:
+	$(foreach MOTE,$(MOTES),$(RESET_RULE))
 
 burn-addr:
 	$(BSL) -p $(PORT) --ieee-address $(ADDR)

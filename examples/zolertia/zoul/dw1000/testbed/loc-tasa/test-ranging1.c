@@ -109,8 +109,7 @@ tcpip_handler(void)
 static void
 send_packet()
 {
-  /* first we check if we have neighbor (if it's the case we have joined TSCH) */
-  if(nbr_table_head(ds6_neighbors) != NULL) {
+
     // Send data with the distination to the root
     printf("Send to :");
     PRINT6ADDR(&ip_addr_root);
@@ -118,13 +117,9 @@ send_packet()
     
     // always send data to the root
     uip_udp_packet_sendto(client_conn, last_prop_buf, current_index, &ip_addr_root, UIP_HTONS(UDP_PORT));
-  }
-  else{
-    printf("Try to send to :");
-    PRINT6ADDR(&ip_addr_root);
-    printf("\n");
+    current_index+=1;
+  if(nbr_table_head(ds6_neighbors) == NULL){
     printf("Error send_packet no neighbor\n");
-
     uip_ds6_route_lookup(&ip_addr_root);
   }
 }

@@ -144,6 +144,7 @@ We increase the number to 16 because we have up to 16 nodes */
 #define TSCH_CONF_KEEPALIVE_TIMEOUT (6 * CLOCK_SECOND) //default 12
 
 // Set fixed RPL Parent for all nodes
+  /*
 #if NODEID == 0x01
     #define RPL_DIO_DISCARD_RULE if( !(((uint8_t*) &from)[14] == 0x0 && ((uint8_t*) &from)[15] == 0x1) ){\
   goto discard; \
@@ -234,7 +235,7 @@ We increase the number to 16 because we have up to 16 nodes */
   goto discard; \
  } 
 
-#endif /* NODEID */
+#endif *//* NODEID */
 
 
 

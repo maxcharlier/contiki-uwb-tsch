@@ -287,6 +287,11 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
         printf("tsch_schedule_print node id 0X%02X\n", linkaddr_node_addr.u8[1]);
         tsch_schedule_print();
         
+        if(nbr_table_head(ds6_neighbors) == NULL){
+          printf("Error send_packet no neighbor\n");
+        }
+        printf("Display route to the sink\n");
+        uip_ds6_route_lookup(&ip_addr_root);
       }
       if(str[0] == 'a') {
         /* this value come from the file net/mac/tsch/tsch-asn.h */

@@ -143,6 +143,10 @@ We increase the number to 16 because we have up to 16 nodes */
 #define TSCH_CONF_MAX_EB_PERIOD (8 * CLOCK_SECOND) //default 50
 #define TSCH_CONF_KEEPALIVE_TIMEOUT (6 * CLOCK_SECOND) //default 12
 
+#define RPL_PARENT_SELECT_ID_H_FILE "examples/zolertia/zoul/dw1000/testbed/loc-tasa/rpl-parent-conf.h"
+
+
+
 // Set fixed RPL Parent for all nodes
   /*
 #if NODEID == 0x01
@@ -238,43 +242,6 @@ We increase the number to 16 because we have up to 16 nodes */
 #endif *//* NODEID */
 
 
-#if NODEID == 0x01
-    #define RPL_PARENT_SELECT_ID 0x1
-#elif NODEID == 0x02
-    #define RPL_PARENT_SELECT_ID 0x1
-#elif NODEID == 0x03
-    #define RPL_PARENT_SELECT_ID 0x1
-#elif NODEID == 0x04
-    #define RPL_PARENT_SELECT_ID 0x1
-#elif NODEID == 0x05
-    #define RPL_PARENT_SELECT_ID 0x6
-#elif NODEID == 0x06
-    #define RPL_PARENT_SELECT_ID 0x1
-#elif NODEID == 0x07
-    #define RPL_PARENT_SELECT_ID 0x3
-#elif NODEID == 0x08
-    #define RPL_PARENT_SELECT_ID 0x6
-#elif NODEID == 0x09
-    #define RPL_PARENT_SELECT_ID 0x2
-#elif NODEID == 0x0A
-    #define RPL_PARENT_SELECT_ID 0x1
-#elif NODEID == 0x0B
-    #define RPL_PARENT_SELECT_ID 0xa
-#elif NODEID == 0x0C
-    #define RPL_PARENT_SELECT_ID 0xa
-#elif NODEID == 0x0D
-    #define RPL_PARENT_SELECT_ID 0x10
-#elif NODEID == 0x0E
-    #define RPL_PARENT_SELECT_ID 0x10
-#elif NODEID == 0x0F
-    #define RPL_PARENT_SELECT_ID 0x10
-#elif NODEID == 0x10
-    #define RPL_PARENT_SELECT_ID 0x7
-#elif NODEID == 0x11
-    #define RPL_PARENT_SELECT_ID 0x10
-#elif NODEID == 0x12
-    #define RPL_PARENT_SELECT_ID 0x3
-#endif /* NODEID */
 
 
 #endif /* __PROJECT_CONF_H__ */

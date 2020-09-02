@@ -243,6 +243,21 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
 static rpl_dag_t *
 best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
 {
+
+  #ifdef RPL_PARENT_SELECT_ID
+    uip_ipaddr_t * parent_ip;
+    parent_ip = rpl_get_parent_ipaddr(d1->preferred_parent);
+    if( ((uint8_t*) &parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) &parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
+      printf("RPL mrhof best_dag p1\n");
+      return d1;
+    }
+    parent_ip = rpl_get_parent_ipaddr(d2->preferred_parent);
+    if( ((uint8_t*) &parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) &parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
+      printf("RPL mrhof best_dag p2\n");
+      return d2;
+    }
+  #endif /* RPL_PARENT_SELECT_ID */
+
   if(d1->grounded != d2->grounded) {
     return d1->grounded ? d1 : d2;
   }

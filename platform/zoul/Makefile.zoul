@@ -117,20 +117,19 @@ endef
 $(foreach MOTE,$(MOTES),$(eval $(UPLOAD_RULE)))
 
 ### Reset sequence
+# You need to specify the BOARD.
 define RESET_RULE
 	
-	@echo "\n"
-	@echo " Reseting $(MOTE) \n" 
-	$(PYTHON) $(BSL) -p $(MOTE) 
+	@echo " Reseting $(PORT) \n" 
+	$(PYTHON) $(BSL) -p $(PORT) 
+  @echo "\n"
 endef
 
-
 reset: 
-	$(BSL) -p $(PORT)
-
+	$(RESET_RULE)
 
 reset-all:
-	$(foreach MOTE,$(MOTES),$(RESET_RULE))
+	$(foreach PORT,$(MOTES),$(RESET_RULE))
 
 burn-addr:
 	$(BSL) -p $(PORT) --ieee-address $(ADDR)

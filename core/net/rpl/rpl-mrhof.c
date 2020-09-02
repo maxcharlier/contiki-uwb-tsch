@@ -201,6 +201,17 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
   uint16_t p2_cost;
   int p1_is_acceptable;
   int p2_is_acceptable;
+  #ifdef RPL_PARENT_SELECT_ID
+    uip_ipaddr_t * parent_ip;
+    parent_ip = rpl_get_parent_ipaddr(p1);
+    if( ((uint8_t*) &parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) &parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
+      return p1;
+    }
+    parent_ip = rpl_get_parent_ipaddr(p2);
+    if( ((uint8_t*) &parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) &parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
+      return p2;
+    }
+  #endif /* RPL_PARENT_SELECT_ID */
 
   p1_is_acceptable = p1 != NULL && parent_is_acceptable(p1);
   p2_is_acceptable = p2 != NULL && parent_is_acceptable(p2);

@@ -45,7 +45,7 @@
  * \addtogroup uip6
  * @{
  */
-
+#include "contiki.h"
 #include "net/rpl/rpl.h"
 #include "net/rpl/rpl-private.h"
 #include "net/nbr-table.h"
@@ -213,6 +213,7 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
       printf("RPL mrhof best_parent p2\n");
       return p2;
     }
+    printf("RPL mrhof best_parent not filtered\n");
   #endif /* RPL_PARENT_SELECT_ID */
 
   p1_is_acceptable = p1 != NULL && parent_is_acceptable(p1);
@@ -256,6 +257,7 @@ best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
       printf("RPL mrhof best_dag p2\n");
       return d2;
     }
+    printf("RPL mrhof best_dag not filtered\n");
   #endif /* RPL_PARENT_SELECT_ID */
 
   if(d1->grounded != d2->grounded) {

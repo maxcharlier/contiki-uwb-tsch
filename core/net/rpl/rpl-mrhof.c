@@ -214,21 +214,21 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
     uip_ipaddr_t * parent_ip;
     parent_ip = rpl_get_parent_ipaddr(p1);
 
-    PRINT6ADDR(parent_ip);
-    printf("\n RPL_PARENT_SELECT_ID %02X \n ", RPL_PARENT_SELECT_ID);
-    printf("%02X %02X %02X %02X \n", ((uint8_t*) parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
+    // PRINT6ADDR(parent_ip);
+    // printf("\n RPL_PARENT_SELECT_ID %02X \n ", RPL_PARENT_SELECT_ID);
+    // printf("%02X %02X %02X %02X \n", ((uint8_t*) parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
     if( ((uint8_t*) parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
       printf("RPL mrhof best_parent p1\n");
       return p1;
     }
     parent_ip = rpl_get_parent_ipaddr(p2);
-    PRINT6ADDR(parent_ip);
-    printf("%02X %02X %02X %02X \n", ((uint8_t*) parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
+    // PRINT6ADDR(parent_ip);
+    // printf("%02X %02X %02X %02X \n", ((uint8_t*) parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
     if( ((uint8_t*) parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
       printf("RPL mrhof best_parent p2\n");
       return p2;
     }
-    printf("RPL mrhof best_parent not filtered\n");
+    // printf("RPL mrhof best_parent not filtered\n");
   #endif /* RPL_PARENT_SELECT_ID_H_FILE */
 
   p1_is_acceptable = p1 != NULL && parent_is_acceptable(p1);
@@ -263,20 +263,20 @@ best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
   #ifdef RPL_PARENT_SELECT_ID_H_FILE
     uip_ipaddr_t * parent_ip;
     parent_ip = rpl_get_parent_ipaddr(d1->preferred_parent);
-    PRINT6ADDR(parent_ip);
-    printf("\n");
+    // PRINT6ADDR(parent_ip);
+    // printf("\n");
     if( ((uint8_t*) parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
       printf("RPL mrhof best_dag p1\n");
       return d1;
     }
     parent_ip = rpl_get_parent_ipaddr(d2->preferred_parent);
-    PRINT6ADDR(parent_ip);
-    printf("\n");
+    // PRINT6ADDR(parent_ip);
+    // printf("\n");
     if( ((uint8_t*) parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
       printf("RPL mrhof best_dag p2\n");
       return d2;
     }
-    printf("RPL mrhof best_dag not filtered\n");
+    // printf("RPL mrhof best_dag not filtered\n");
   #endif /* RPL_PARENT_SELECT_ID_H_FILE */
 
   if(d1->grounded != d2->grounded) {

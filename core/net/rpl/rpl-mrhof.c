@@ -206,14 +206,15 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
     parent_ip = rpl_get_parent_ipaddr(p1);
 
     PRINT6ADDR(parent_ip);
-    printf("\n %u %u %u %u \n", ((uint8_t*) &parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) &parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
+    printf("\n RPL_PARENT_SELECT_ID %02X \n ", RPL_PARENT_SELECT_ID);
+    printf("%02X %02X %02X %02X \n", ((uint8_t*) parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
     if( ((uint8_t*) &parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) &parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
       printf("RPL mrhof best_parent p1\n");
       return p1;
     }
     parent_ip = rpl_get_parent_ipaddr(p2);
     PRINT6ADDR(parent_ip);
-    printf("\n %u %u %u %u \n", ((uint8_t*) &parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) &parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
+    printf("\n %02X %02X %02X %02X \n", ((uint8_t*) &parent_ip)[14],  ((RPL_PARENT_SELECT_ID >> 8) & 0XFF), ((uint8_t*) &parent_ip)[15], (RPL_PARENT_SELECT_ID & 0XFF));
     if( ((uint8_t*) &parent_ip)[14] == ((RPL_PARENT_SELECT_ID >> 8) & 0XFF) && ((uint8_t*) &parent_ip)[15] == (RPL_PARENT_SELECT_ID & 0XFF)){
       printf("RPL mrhof best_parent p2\n");
       return p2;

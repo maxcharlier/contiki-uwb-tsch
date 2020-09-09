@@ -94,7 +94,7 @@
   #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
   /* Duration of the startup delay */
-  #define START_DELAY_SECONDS   ((uint16_t) 600)
+  #define START_DELAY_SECONDS   ((uint16_t) 300)
 #endif  /* DEBUG_STARTUP */
 
 PROCESS(startup_process, "Startup delay process");

@@ -56,11 +56,8 @@
   #include RPL_PARENT_SELECT_ID_H_FILE
 #endif /* RPL_PARENT_SELECT_ID_H_FILE */
 
-#define DEBUG 1
-#include "net/ip/uip-debug.h"
-
-
-
+#define DEBUG DEBUG_NONE
+// #include "net/ip/uip-debug.h"
 
 
 /* RFC6551 and RFC6719 do not mandate the use of a specific formula to

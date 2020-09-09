@@ -61,8 +61,10 @@ static  uip_ipaddr_t ip_addr_root = { { 0xfd, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 
 static unsigned char last_prop_buf[MAX_PAYLOAD_LEN]; /* this buffer will contain the last propagation time measured */
 static int current_index = 0; // used to store to total about of bytes in last_prop_buf
+static uint32_t uptime = 0; //express time in minute sinces the start up of the node
 /*---------------------------------------------------------------------------*/
 PROCESS(test_ranging, "Localization based on TASA");
+PROCESS(uptime_process, "Time since startup");
 PROCESS(TSCH_PROP_PROCESS, "TSCH localization process");
 AUTOSTART_PROCESSES(&test_ranging);
 /*---------------------------------------------------------------------------*/
@@ -281,6 +283,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
         printf("'e' enable the localization timeslot\n");
         printf("'d' disable the localization timeslot\n");
         printf("'i' print local addr\n");
+        printf("'u' print uptime (in minutes)\n");
         
       }
       if(str[0] == 'r') {
@@ -331,6 +334,9 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
         printf("Print local addr\n");
         print_local_addresses();
       }
+      if(str[0] == 'u') {
+        printf("Uptime %lu(minute)\n", uptime);
+      }
     }
   }
 
@@ -368,6 +374,9 @@ PROCESS_THREAD(test_ranging, ev, data)
   PRINTF("Created a server connection with remote address ");
   PRINT6ADDR(&client_conn->ripaddr);
 
+
+  process_start(&uptime_process, NULL);
+
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
@@ -378,3 +387,27 @@ PROCESS_THREAD(test_ranging, ev, data)
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
+PROCESS_THREAD(uptime_process, ev, data)
+{  
+  static struct etimer uptime_et;
+  
+  PROCESS_BEGIN();
+
+  /* Delay 60 seconds */
+  etimer_set(&uptime_et, CLOCK_SECOND * 60);
+
+
+
+  while(1) {
+
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&uptime_et));
+
+    uptime += 1;
+
+    /* Delay 60 seconds */
+    etimer_set(&uptime_et, CLOCK_SECOND * 60);
+
+  }
+
+  PROCESS_END();
+}

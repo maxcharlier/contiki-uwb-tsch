@@ -774,6 +774,7 @@ void dw1000_test_tx_del_on(void);
 void dw1000_test_RW_longbits(void);
 void dw1000_test(void);
 void dw_cw_mode(dw1000_channel_t channel);
+int dw1000_is_spi_working();
 
 /*===========================================================================*/
 /*========================== Device communication ===========================*/

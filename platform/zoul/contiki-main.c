@@ -88,14 +88,11 @@
 #include "sys/clock.h"
 #include "sys/etimer.h"
 
-#ifdef DEBUG_STARTUP
+#ifdef DEBUG_STARTUP_SECONDS
   #include "dev/uart.h"
   #define DBG_CONF_UART               0
   #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
-
-  /* Duration of the startup delay */
-  #define START_DELAY_SECONDS   ((uint16_t) 300)
-#endif  /* DEBUG_STARTUP */
+#endif  /* DEBUG_STARTUP_SECONDS */
 
 PROCESS(startup_process, "Startup delay process");
 // AUTOSTART_PROCESSES(&startup_process);
@@ -348,20 +345,20 @@ main(void)
 
 PROCESS_THREAD(startup_process, ev, data)
 {
-#ifdef DEBUG_STARTUP
+#ifdef DEBUG_STARTUP_SECONDS
   static struct etimer start_delay_timer;
   static uint16_t start_delay_iteration;
-#endif /* DEBUG_STARTUP */
+#endif /* DEBUG_STARTUP_SECONDS */
 
   PROCESS_BEGIN();
 
-#ifdef DEBUG_STARTUP
+#ifdef DEBUG_STARTUP_SECONDS
   start_delay_iteration = 0;
 
   etimer_set(&start_delay_timer, CLOCK_SECOND);
 
     // printf("test before while\n");
-  while(start_delay_iteration < START_DELAY_SECONDS){
+  while(start_delay_iteration < DEBUG_STARTUP_SECONDS){
     // printf("test after while\n");
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&start_delay_timer));
     // printf("test\n");
@@ -389,7 +386,7 @@ PROCESS_THREAD(startup_process, ev, data)
     etimer_reset(&start_delay_timer);
   }
 
-#endif /* DEBUG_STARTUP */
+#endif /* DEBUG_STARTUP_SECONDS */
 
   netstack_init();
 

@@ -2866,17 +2866,22 @@ dw_is_receive_timeout(uint64_t status)
 void
 dw1000_test()
 {
-  uint32_t canTalk = 0UL;
-
-  canTalk = (uint32_t)(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, 
-                                                    DW_LEN_DEV_ID));
-
-  if(canTalk) {
+  if(dw1000_is_spi_working()) {
     PRINTF("You can now talk with the device!\r\n");
   } else {
     PRINTF("ERROR for talk with the device! %08X\r\n", (unsigned int)
             dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
   }
+}
+
+/**
+ * \brief Return if SPI-communication is working properly.
+ */
+int
+dw1000_is_spi_working()
+{
+  return ( 0xDECA0130UL == dw_read_reg_32(DW_REG_DEV_ID, 
+                                                    DW_LEN_DEV_ID));
 }
 /**
  * \brief Testing function:

@@ -26,6 +26,8 @@
 
 #include "examples/zolertia/zoul/dw1000/testbed/shedule-testbed.h"
 
+#include "dw1000.h"
+
 #include "dev/uart.h"
 #include "dev/serial-line.h"
 
@@ -336,6 +338,30 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   
   tsch_schedule_print();
 
+  rtimer_clock_t rtimer_now;
+  // 0 if SPI work 1 if error
+  write_byte((uint8_t) '-');
+  write_byte((uint8_t) 'P');
+  write_byte((uint8_t) ':');
+  write_byte((uint8_t) 'S'); //Start
+  write_byte((uint8_t) 10+5); //lenght
+  for(int i = 0; i < 4 ; i++){
+    write_byte((uint8_t) ((uint8_t*)&rtimer_now)[i]);    
+  }
+
+  write_byte((uint8_t) 5);
+  write_byte((uint8_t) 'S');
+  write_byte((uint8_t) 'P');
+  write_byte((uint8_t) 'I');
+  if(dw1000_is_spi_working()){
+    write_byte((uint8_t) 'O');
+    write_byte((uint8_t) 'K');
+  }
+  else{
+    write_byte((uint8_t) 'K');
+    write_byte((uint8_t) 'O');
+  }
+  write_byte((uint8_t) '\n');
 
   NETSTACK_MAC.on();
 

@@ -338,7 +338,7 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   
   tsch_schedule_print();
 
-  rtimer_clock_t rtimer_now;
+  rtimer_clock_t rtimer_now = RTIMER_NOW();
   // 0 if SPI work 1 if error
   write_byte((uint8_t) '-');
   write_byte((uint8_t) 'P');

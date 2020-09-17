@@ -125,7 +125,7 @@ We increase the number to 16 because we have up to 16 nodes */
 #define RPL_CONF_WITH_STORING 1
 
 //8 is the default value
-#define QUEUEBUF_CONF_NUM                    8
+#define QUEUEBUF_CONF_NUM                    32
 
 // 4 is the default value
 #define TSCH_CONF_MAX_INCOMING_PACKETS      4

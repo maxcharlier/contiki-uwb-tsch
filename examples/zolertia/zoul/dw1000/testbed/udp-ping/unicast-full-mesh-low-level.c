@@ -177,7 +177,9 @@ send_packet(void *ptr)
   memcpy(&buf[1], &tsch_current_asn, 5);
 
   /* first we check if we have neighbor (if it's the case we have join TSCH) */
-  if(nbr_table_head(ds6_neighbors) != NULL){
+  // if(nbr_table_head(ds6_neighbors) != NULL){
+  /* check if we have join the TSCH network and get a ASN value */
+  if(tsch_current_asn.ls4b  > 0){
     for(uint i = 0; i < number_of_transmission_per_timer; i++) {
       /* check to not send message to our addr */
       if( (((sending_index + i)%len_local_neighborg) +1) != NODEID){
@@ -257,7 +259,7 @@ send_packet(void *ptr)
 
   // ctimer_restart(&periodic_timer1);
 
-  ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 2*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -376,7 +378,7 @@ PROCESS_THREAD(udp_ping_process, ev, data)
   /* interval is a slotframe duration. 
   We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
   */
-  ctimer_set(&periodic_timer1, 120 * CLOCK_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 30 * CLOCK_SECOND, send_packet, &periodic_timer1);
   // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
 
 

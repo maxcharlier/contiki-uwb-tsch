@@ -128,7 +128,7 @@ We increase the number to 16 because we have up to 16 nodes */
 #define QUEUEBUF_CONF_NUM                    32
 
 // 4 is the default value
-#define TSCH_CONF_MAX_INCOMING_PACKETS      4
+#define TSCH_CONF_MAX_INCOMING_PACKETS      32
 
 // enable IPv6 Neigborg solicitation
 #define UIP_CONF_ND6_SEND_NS          1

@@ -102,7 +102,7 @@ static const uip_ipaddr_t * local_neighborg_addr[] = {
 
 
 static const int len_local_neighborg=16;
-static const int number_of_transmission_per_timer=3;
+static const int number_of_transmission_per_timer=8;
 
 
 /*---------------------------------------------------------------------------*/

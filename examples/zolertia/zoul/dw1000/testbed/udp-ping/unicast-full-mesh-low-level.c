@@ -102,7 +102,7 @@ static const uip_ipaddr_t * local_neighborg_addr[] = {
 
 
 static const int len_local_neighborg=16;
-static const int number_of_transmission_per_timer=8;
+static const int number_of_transmission_per_timer=2;
 
 
 /*---------------------------------------------------------------------------*/
@@ -259,7 +259,7 @@ send_packet(void *ptr)
 
   // ctimer_restart(&periodic_timer1);
 
-  ctimer_set(&periodic_timer1, 2*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, (CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/(RTIMER_SECOND*2), send_packet, &periodic_timer1);
 }
 /*---------------------------------------------------------------------------*/
 static void

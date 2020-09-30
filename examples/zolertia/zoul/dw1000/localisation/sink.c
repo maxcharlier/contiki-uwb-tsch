@@ -164,7 +164,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
     if(ev == PROCESS_EVENT_MSG){
       printf("New prop time %ld %lu\n", 
         ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-        ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament);
+        ((struct tsch_neighbor *) data)->last_prop_time.last_measurement);
     }
     if(ev == serial_line_event_message && data != NULL) {
       char *str;

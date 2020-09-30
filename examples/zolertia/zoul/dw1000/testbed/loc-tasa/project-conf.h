@@ -135,7 +135,7 @@ We increase the number to 16 because we have up to 16 nodes */
 #define UIP_CONF_ND6_SEND_NS          0
 
 /* Disable localization timeslot at the startup of TSCH */
-#define TSCH_CONF_LOCALIZATION_ENABLED_STARTUP 0
+#define TSCH_CONF_PROP_MEASUREMENT_ENABLED_AR_STARTUP 0
 
 
 /* Decrease TSCH beacon interval */

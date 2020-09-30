@@ -118,7 +118,7 @@ send_prop_packet(void)
   char buf[MAX_PAYLOAD_LEN];
   uint8_t current_index= 0;
   for (int i=0; i <4; i++){
-    if(anchors[i] != NULL && anchors[i]->last_prop_time.last_mesureament > last_transmition){
+    if(anchors[i] != NULL && anchors[i]->last_prop_time.last_measurement > last_transmition){
       buf[current_index] = anchors[i]->addr.u8[7];
       current_index++;
       memcpy(&buf[current_index], &(anchors[i]->last_prop_time.prop_time), 4);
@@ -224,7 +224,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       // printf("Node 0X%02X prop time %ld %lu\n", 
       //   ((struct tsch_neighbor *) data)->addr.u8[7],
       //   ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-      //   ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament);
+      //   ((struct tsch_neighbor *) data)->last_prop_time.last_measurement);
 
       printf("Node 0X%02X anchors index %d\n", 
         ((struct tsch_neighbor *) data)->addr.u8[7],
@@ -233,8 +233,8 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       anchors[((struct tsch_neighbor *) data)->addr.u8[7]-(0XA1)] = data;
 
       /* check if we need to send an updated */
-      // if(((struct tsch_neighbor *) data)->last_prop_time.last_mesureament > 
-      //   last_mesureament + tsch_schedule_get_slotframe_duration()){
+      // if(((struct tsch_neighbor *) data)->last_prop_time.last_measurement > 
+      //   last_measurement + tsch_schedule_get_slotframe_duration()){
       //   send_packet();
       // }
       /* check if we need to send an updated */

@@ -113,7 +113,7 @@ send_packet(void)
   char buf[MAX_PAYLOAD_LEN];
   uint8_t current_index= 0;
   for (int i=0; i <4; i++){
-    if(anchors_prop[i].last_mesureament > last_transmition){
+    if(anchors_prop[i].last_measurement > last_transmition){
       buf[current_index] = 0XA1+i;
       current_index++;
       memcpy(&buf[current_index], &(anchors_prop[i].prop_time), 4);
@@ -215,7 +215,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       // printf("Node 0X%02X prop time %ld %lu\n", 
       //   ((struct tsch_neighbor *) data)->addr.u8[7],
       //   ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-      //   ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament);
+      //   ((struct tsch_neighbor *) data)->last_prop_time.last_measurement);
 
       printf("Node 0X%02X anchors_prop index %d\n", 
         ((struct tsch_neighbor *) data)->addr.u8[7],
@@ -224,13 +224,13 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
 
       struct tsch_prop_time n_prop_time;
       n_prop_time.prop_time = ((struct tsch_neighbor *) data)->last_prop_time.prop_time;
-      n_prop_time.last_mesureament = ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament;
+      n_prop_time.last_measurement = ((struct tsch_neighbor *) data)->last_prop_time.last_measurement;
       /* replace older measurement */
       anchors_prop[((struct tsch_neighbor *) data)->addr.u8[7]-(0XA1)] = n_prop_time;
 
       /* check if we need to send an updated */
-      // if(((struct tsch_neighbor *) data)->last_prop_time.last_mesureament > 
-      //   last_mesureament + tsch_schedule_get_slotframe_duration()){
+      // if(((struct tsch_neighbor *) data)->last_prop_time.last_measurement > 
+      //   last_measurement + tsch_schedule_get_slotframe_duration()){
       //   send_packet();
       // }
       /* check if we need to send an updated */
@@ -269,7 +269,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   struct tsch_prop_time n_prop_time;
   n_prop_time.prop_time = 0;
-  n_prop_time.last_mesureament = 0;
+  n_prop_time.last_measurement = 0;
       
   for (int i =0; i < 4; i++){
     anchors_prop[i]=n_prop_time;

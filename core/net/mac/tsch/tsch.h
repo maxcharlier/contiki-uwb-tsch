@@ -146,10 +146,10 @@
 #endif /* TSCH_CONF_EB_AUTOSELECT */
 
 /* By default the localisation is enabled at the startup of TSCH */
-#ifdef TSCH_CONF_LOCALIZATION_ENABLED_STARTUP
-#define TSCH_LOCALIZATION_ENABLED_STARTUP TSCH_CONF_LOCALIZATION_ENABLED_STARTUP
+#ifdef TSCH_CONF_PROP_MEASUREMENT_ENABLED_AR_STARTUP
+#define TSCH_PROP_MEASUREMENT_ENABLED_AT_STARTUP TSCH_CONF_PROP_MEASUREMENT_ENABLED_AR_STARTUP
 #else
-#define TSCH_LOCALIZATION_ENABLED_STARTUP 1
+#define TSCH_PROP_MEASUREMENT_ENABLED_AT_STARTUP 1
 #endif 
 
 /*********** Callbacks *********/
@@ -189,8 +189,8 @@ void tsch_set_coordinator(int enable);
 void tsch_set_pan_secured(int enable);
 
 /* Return if the localization timeslots are enabled or not */
-uint8_t tsch_is_localization_enable();
+uint8_t tsch_is_prop_measurement_enable();
 /* Enable or disable the schedule of localization timeslot */
-void tsch_set_localization(uint8_t enable);
+void tsch_set_prop_measurement(uint8_t enable);
 
 #endif /* __TSCH_H__ */

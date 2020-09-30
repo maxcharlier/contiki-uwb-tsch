@@ -294,7 +294,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       // printf("Node 0X%02X prop time %ld %lu %u\n", 
       //   ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1],
       //   ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-      //   ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament,
+      //   ((struct tsch_neighbor *) data)->last_prop_time.last_measurement,
       //   ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
 
       create_prop_buffer((struct tsch_neighbor *) data);
@@ -329,7 +329,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
         printf("tsch current ASN %llu\n", value);
       }
       if(str[0] == 'l') {
-        if(tsch_is_localization_enable()){
+        if(tsch_is_prop_measurement_enable()){
           printf("Localization timeslots are enable\n");
         }
         else {
@@ -339,11 +339,11 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
 
       if(str[0] == 'e') {
         printf("Enable localization timeslots\n");
-        tsch_set_localization(1);
+        tsch_set_prop_measurement(1);
       }
       if(str[0] == 'd') {
         printf("Disable localization timeslots\n");
-        tsch_set_localization(0);
+        tsch_set_prop_measurement(0);
       }
       if(str[0] == 'i') {
         printf("Print local addr\n");

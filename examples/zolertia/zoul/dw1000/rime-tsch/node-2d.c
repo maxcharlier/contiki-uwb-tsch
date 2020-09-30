@@ -154,7 +154,7 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
       // printf("Node 0X%02X prop time %ld %lu %u\n", 
       //   ((struct tsch_neighbor *) data)->addr.u8[sizeof(linkaddr_t)-1],
       //   ((struct tsch_neighbor *) data)->last_prop_time.prop_time, 
-      //   ((struct tsch_neighbor *) data)->last_prop_time.last_mesureament,
+      //   ((struct tsch_neighbor *) data)->last_prop_time.last_measurement,
       //   ((struct tsch_neighbor *) data)->last_prop_time.tsch_channel);
 
       create_buffer((struct tsch_neighbor *) data);

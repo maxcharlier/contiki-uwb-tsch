@@ -1236,7 +1236,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         /* Actual slot operation */
 #if TSCH_LOCALISATION
         /* Is a localization slot and this localisation timeslot are enable ? */
-        if(current_link->link_type == LINK_TYPE_PROP && tsch_is_localization_enable()){
+        if(current_link->link_type == LINK_TYPE_PROP && tsch_is_prop_measurement_enable()){
           if(current_link->link_options & LINK_OPTION_TX){
             /*
               if(current_packet != NULL){

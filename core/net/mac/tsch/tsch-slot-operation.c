@@ -59,9 +59,7 @@
 #include "random.h"
 
 
-#include "dw1000-util.h" // we need to do something with the computation of the propagation time
-
-/* we donot want to kate these file included. */
+/* we do not want to keep these file included. */
 #include "dw1000.h" 
 #include "dw1000-driver.h" 
 #include "dw1000-const.h" 

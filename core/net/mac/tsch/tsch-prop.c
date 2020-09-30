@@ -103,3 +103,21 @@ update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time,
                 PROCESS_EVENT_MSG, (void *) n);
 }
 
+/*---------------------------------------------------------------------------*/
+/** 
+ * Compute the propagation time using the Asymmetrical approach of Decawave
+ * We use signed number to give the possibilities to have negative 
+ * propagation time in the case that the antenna delay was to hight 
+ * when we calibrate the nodes.
+ *
+ **/
+int32_t
+compute_prop_time(int32_t initiator_roundtrip, int32_t initiator_reply,
+  int32_t replier_roundtrip, int32_t replier_reply) {
+  return (int32_t)(( ((int64_t) initiator_roundtrip * replier_roundtrip) 
+                  - ((int64_t) initiator_reply * replier_reply) )
+                /  ((int64_t) initiator_roundtrip 
+                  +  replier_roundtrip 
+                  +  initiator_reply 
+                  +  replier_reply));
+}

@@ -52,4 +52,9 @@ PROCESS_NAME(TSCH_PROP_PROCESS);
 
 void update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time, struct tsch_asn_t * asn, uint8_t tsch_channel);
 
+int32_t compute_prop_time(int32_t initiator_roundtrip, 
+      int32_t initiator_reply, int32_t replier_roundtrip, 
+      int32_t replier_reply);
+
+
 #endif /* __TSCH_LOC_H__ */

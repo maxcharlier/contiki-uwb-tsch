@@ -80,24 +80,6 @@
     PROCESS_END();
   }
 #endif /* TSCH_LOC_THREAD */
-
-/*---------------------------------------------------------------------------*/
-/**
- * Tell if a slot is active or not 
- * The slot is ative if we have a packet to send or 
- * If the slot is a receive slot or
- * If the slot is a localisation slot in RX or
- * A localisation slot in TX with a unicast link. */
-int
-is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n, 
-              struct tsch_link *link)
-{
-  return p != NULL || 
-       (link->link_options & LINK_OPTION_RX) ||
-       (link->link_options & LINK_OPTION_TX && link->link_type == LINK_TYPE_LOC);
-}
-
-
 /*---------------------------------------------------------------------------*/
 /* Update the propagation time between the node and his neighbor */
 void

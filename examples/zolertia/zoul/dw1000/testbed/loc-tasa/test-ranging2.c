@@ -383,12 +383,12 @@ void tsch_schedule_fullmesh_data_2nodes2(void)
   } timeslots[] = {
     { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
 #if NODEID == NODEID_0
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_2_address, 2, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_PROP, &node_2_address, 2, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 4, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 6, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 8, 0 },
 #elif NODEID == NODEID_1
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, 2, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_PROP, &node_1_address, 2, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 6, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 8, 0 },
@@ -428,12 +428,12 @@ void tsch_schedule_fullmesh_data_2nodes3(void)
   } timeslots[] = {
     { sf_custom, LINK_OPTION_TX | LINK_OPTION_RX | LINK_OPTION_SHARED | LINK_OPTION_TIME_KEEPING, LINK_TYPE_ADVERTISING, &tsch_broadcast_address, 0, 0 },
 #if NODEID == NODEID_0
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_LOC, &node_2_address, 3, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_PROP, &node_2_address, 3, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 6, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 9, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 12, 0 },
 #elif NODEID == NODEID_1
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, &node_1_address, 3, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_PROP, &node_1_address, 3, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 6, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 9, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 12, 0 },

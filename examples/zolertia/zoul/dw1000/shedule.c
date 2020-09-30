@@ -72,12 +72,12 @@ tsch_schedule_create_minimal_test_loc(void)
   for (int i = 1; i < 1 + nb_loc_slot; i++){
     if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_1_address.u8[INDEX_NODE_ID]){
       tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_TX, LINK_TYPE_LOC, &node_2_address, offset * i, 0);
+          LINK_OPTION_TX, LINK_TYPE_PROP, &node_2_address, offset * i, 0);
     printf("localisation schedule1\n");
     }
     if(linkaddr_node_addr.u8[INDEX_NODE_ID] == node_2_address.u8[INDEX_NODE_ID]){
       tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_RX, LINK_TYPE_LOC, &node_1_address, offset * i, 0);
+          LINK_OPTION_RX, LINK_TYPE_PROP, &node_1_address, offset * i, 0);
     printf("localisation schedule2\n");
     }
   }
@@ -608,7 +608,7 @@ static linkaddr_t * nodes_addr[5] = {&node_1_address, &node_2_address, &node_3_a
   if(linkaddr_node_addr.u8[INDEX_NODE_ID] <= 0x05){
     printf("Schedule localisation for mobiles nodes\n");
     for(i = 0; i<6; i++){
-      uint8_t linktype = LINK_TYPE_LOC;
+      uint8_t linktype = LINK_TYPE_PROP;
       /* if sink addr */
       if(anchors_addr[(linkaddr_node_addr.u8[INDEX_NODE_ID]-1+i)%6]->u8[INDEX_NODE_ID] == sink_1_address.u8[INDEX_NODE_ID]){
         linktype = LINK_TYPE_NORMAL;
@@ -636,7 +636,7 @@ static linkaddr_t * nodes_addr[5] = {&node_1_address, &node_2_address, &node_3_a
       if(offset <=0)
         offset = 6+offset;
       tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_RX, LINK_TYPE_LOC, nodes_addr[i], 
+          LINK_OPTION_RX, LINK_TYPE_PROP, nodes_addr[i], 
           channel_offset*offset, 
           i+1);
     }
@@ -704,7 +704,7 @@ static linkaddr_t * nodes_addr[5] = {&node_1_address, &node_2_address, &node_3_a
   /* check if we are a mobile node */
   if(linkaddr_node_addr.u8[INDEX_NODE_ID] <= 0x05){
     i = linkaddr_node_addr.u8[INDEX_NODE_ID];
-    tsch_schedule_add_link(sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, 
+    tsch_schedule_add_link(sf_custom, LINK_OPTION_RX, LINK_TYPE_PROP, 
         &sink_1_address, channel_offset*i, 0);
   }
   /* check if we are the sink node */
@@ -712,7 +712,7 @@ static linkaddr_t * nodes_addr[5] = {&node_1_address, &node_2_address, &node_3_a
     printf("Schedule localisation for the sink node\n");
     for(i = 0; i<5; i++){
       tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_TX, LINK_TYPE_LOC, nodes_addr[i], channel_offset*(i+1), 0);
+          LINK_OPTION_TX, LINK_TYPE_PROP, nodes_addr[i], channel_offset*(i+1), 0);
     }
   }
   printf("Schedule localisation initialised\n");
@@ -749,14 +749,14 @@ tsch_schedule_create_demo_prop(void)
 
   /* check if we are a mobile node */
   if(linkaddr_node_addr.u8[INDEX_NODE_ID] == 0X01){
-    tsch_schedule_add_link(sf_custom, LINK_OPTION_RX, LINK_TYPE_LOC, 
+    tsch_schedule_add_link(sf_custom, LINK_OPTION_RX, LINK_TYPE_PROP, 
         &sink_1_address, channel_offset, 0);
   }
   /* check if we are the sink node */
   if(linkaddr_node_addr.u8[INDEX_NODE_ID] == sink_1_address.u8[INDEX_NODE_ID]){
     printf("Schedule localisation for the sink node\n");
     tsch_schedule_add_link(sf_custom,
-          LINK_OPTION_TX, LINK_TYPE_LOC, &node_1_address, channel_offset, 0);
+          LINK_OPTION_TX, LINK_TYPE_PROP, &node_1_address, channel_offset, 0);
   }
   printf("Schedule localisation initialised\n");
   tsch_schedule_print();

@@ -83,9 +83,9 @@
 /************ Types ***********/
 
 /* 802.15.4e link types.
- * LINK_TYPE_LOC is used for Two way ranging slot.
+ * LINK_TYPE_PROP for propagation time measurement (Two way ranging protocol).
  * LINK_TYPE_ADVERTISING_ONLY is an extra one: for EB-only links. */
-enum link_type { LINK_TYPE_NORMAL, LINK_TYPE_ADVERTISING, LINK_TYPE_LOC, LINK_TYPE_ADVERTISING_ONLY };
+enum link_type { LINK_TYPE_NORMAL, LINK_TYPE_ADVERTISING, LINK_TYPE_PROP, LINK_TYPE_ADVERTISING_ONLY };
 
 struct tsch_link {
   /* Links are stored as a list: "next" must be the first field */

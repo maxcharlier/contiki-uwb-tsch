@@ -410,7 +410,7 @@ tsch_queue_get_packet_for_nbr(const struct tsch_neighbor *n, struct tsch_link *l
 {
   if(!tsch_is_locked()) {
     /* if localisation slot, then no packet to send (packet created by the timeslot) */
-    if(link->link_type == LINK_TYPE_LOC){
+    if(link->link_type == LINK_TYPE_PROP){
       return NULL;
     }
     int is_shared_link = link != NULL && link->link_options & LINK_OPTION_SHARED;
@@ -453,7 +453,7 @@ tsch_queue_get_unicast_packet_for_any(struct tsch_neighbor **n, struct tsch_link
 {
   if(!tsch_is_locked()) {
     /* if localisation slot, then no packet to send (packet created by the timeslot) */
-    if(link->link_type == LINK_TYPE_LOC){
+    if(link->link_type == LINK_TYPE_PROP){
       return NULL;
     }
     struct tsch_neighbor *curr_nbr = list_head(neighbor_list);

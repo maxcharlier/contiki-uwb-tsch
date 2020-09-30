@@ -606,7 +606,7 @@ is_active_timeslot(struct tsch_packet *p, struct tsch_neighbor *n,
 {
   return p != NULL || 
        (link->link_options & LINK_OPTION_RX) ||
-       (link->link_options & LINK_OPTION_TX && link->link_type == LINK_TYPE_LOC);
+       (link->link_options & LINK_OPTION_TX && link->link_type == LINK_TYPE_PROP);
 }
 /*---------------------------------------------------------------------------*/
 static
@@ -1178,7 +1178,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
       /* There is no packet to send, and this link does not have Rx flag. Instead of doing
        * nothing, switch to the backup link (has Rx flag) if any. */
       if(current_packet == NULL && !((current_link->link_options & LINK_OPTION_RX) ||
-       (current_link->link_type == LINK_TYPE_LOC)) && backup_link != NULL) {
+       (current_link->link_type == LINK_TYPE_PROP)) && backup_link != NULL) {
         current_link = backup_link;
         current_packet = get_packet_and_neighbor_for_link(current_link, &current_neighbor);
       }
@@ -1236,7 +1236,7 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
         /* Actual slot operation */
 #if TSCH_LOCALISATION
         /* Is a localization slot and this localisation timeslot are enable ? */
-        if(current_link->link_type == LINK_TYPE_LOC && tsch_is_localization_enable()){
+        if(current_link->link_type == LINK_TYPE_PROP && tsch_is_localization_enable()){
           if(current_link->link_options & LINK_OPTION_TX){
             /*
               if(current_packet != NULL){

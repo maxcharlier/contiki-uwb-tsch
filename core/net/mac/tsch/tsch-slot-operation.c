@@ -282,8 +282,8 @@ static struct pt slot_operation_pt;
 static PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t));
 #if TSCH_LOCALISATION
-  static PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t));
-  static PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t));
+  static PT_THREAD(tsch_tx_prop_slot(struct pt *pt, struct rtimer *t));
+  static PT_THREAD(tsch_rx_prop_slot(struct pt *pt, struct rtimer *t));
 #endif /* TSCH_LOCALISATION*/
 
 /*---------------------------------------------------------------------------*/
@@ -1240,14 +1240,14 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
           if(current_link->link_options & LINK_OPTION_TX){
             /*
               if(current_packet != NULL){
-                printf("tsch_tx_loc_slot we have a packet to send :( \n");
+                printf("tsch_tx_prop_slot we have a packet to send :( \n");
               } */
               static struct pt slot_tx_loc_pt;
-              PT_SPAWN(&slot_operation_pt, &slot_tx_loc_pt, tsch_tx_loc_slot(&slot_tx_loc_pt, t));
+              PT_SPAWN(&slot_operation_pt, &slot_tx_loc_pt, tsch_tx_prop_slot(&slot_tx_loc_pt, t));
           }
           else if(current_link->link_options & LINK_OPTION_RX){
               static struct pt slot_rx_loc_pt;
-              PT_SPAWN(&slot_operation_pt, &slot_rx_loc_pt, tsch_rx_loc_slot(&slot_rx_loc_pt, t));          
+              PT_SPAWN(&slot_operation_pt, &slot_rx_loc_pt, tsch_rx_prop_slot(&slot_rx_loc_pt, t));          
           }
         }
         else 
@@ -1352,9 +1352,9 @@ PT_THREAD(tsch_slot_operation(struct rtimer *t, void *ptr))
 /*---------------------------------------------------------------------------*/
 #if TSCH_LOCALISATION
 static
-PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
+PT_THREAD(tsch_tx_prop_slot(struct pt *pt, struct rtimer *t))
 {
-  // printf("tsch_tx_loc_slot\n");
+  // printf("tsch_tx_prop_slot\n");
   /**
    * TX loc slot:
    * Double Sided Two Way Ranging 
@@ -1438,7 +1438,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
     tx_duration = MIN(tx_duration, tsch_timing[tsch_ts_max_ack]);
 
     if(mac_status == RADIO_TX_OK) {
-      // printf("tsch_tx_loc_slot mac_tx_status == RADIO_TX_OK\n");
+      // printf("tsch_tx_prop_slot mac_tx_status == RADIO_TX_OK\n");
       step = 2;
       rtimer_clock_t ack_start_time;
       int is_time_source;
@@ -1643,7 +1643,7 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 
 
   TSCH_DEBUG_TX_EVENT();
-  // printf("tsch_tx_loc_slot\n");
+  // printf("tsch_tx_prop_slot\n");
   
   #if TSCH_SLEEP
     /* request to place the transceiver in SLEEP mode to reduce energy consumption */
@@ -1658,9 +1658,9 @@ PT_THREAD(tsch_tx_loc_slot(struct pt *pt, struct rtimer *t))
 }
 /*---------------------------------------------------------------------------*/
 static
-PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
+PT_THREAD(tsch_rx_prop_slot(struct pt *pt, struct rtimer *t))
 {
-  // printf("tsch_rx_loc_slot\n");
+  // printf("tsch_rx_prop_slot\n");
   /**   
    * RX loc slot:
    * Double Sided Two Way Ranging 
@@ -1963,7 +1963,7 @@ PT_THREAD(tsch_rx_loc_slot(struct pt *pt, struct rtimer *t))
     
   #endif /* DEBUG_GPIO_TSCH */
 
-  // printf("tsch_rx_loc_slot\n");
+  // printf("tsch_rx_prop_slot\n");
 
   PT_END(pt);
 }

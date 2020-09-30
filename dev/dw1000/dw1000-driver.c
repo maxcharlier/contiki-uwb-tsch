@@ -353,7 +353,7 @@ dw1000_driver_init(void)
 
   /* Check if SPI communication works by reading device ID */
   assert(0xDECA0130 == dw_read_reg_32(DW_REG_DEV_ID, DW_LEN_DEV_ID));
-
+  
   /* Simple reset of device. */
   dw_soft_reset(); /* Need to be call with a SPI speed < 3MHz */
   
@@ -427,6 +427,8 @@ dw1000_driver_init(void)
   dw1000_arch_gpio8_setup_irq();
   INIT_GPIO_DEBUG();
   INIT_GPIO_SLEEP_DEBUG();
+
+  sleep_mode = RADIO_IDLE;
 
   return 1;
 }

@@ -60,9 +60,9 @@
 
 
 /* we do not want to keep these file included. */
-#include "dw1000.h" 
-#include "dw1000-driver.h" 
-#include "dw1000-const.h" 
+// #include "dw1000.h" 
+// #include "dw1000-driver.h" 
+// #include "dw1000-const.h" 
 
 #if CONTIKI_TARGET_COOJA || CONTIKI_TARGET_COOJA_IP64
 #include "lib/simEnvChange.h"

@@ -56,5 +56,4 @@ int32_t compute_prop_time(int32_t initiator_roundtrip,
       int32_t initiator_reply, int32_t replier_roundtrip, 
       int32_t replier_reply);
 
-
 #endif /* __TSCH_LOC_H__ */

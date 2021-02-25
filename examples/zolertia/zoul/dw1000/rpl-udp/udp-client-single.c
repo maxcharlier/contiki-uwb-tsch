@@ -74,15 +74,10 @@ AUTOSTART_PROCESSES(&udp_client_process);
 static int seq_id;
 static int reply;
 
-static uint8_t IP_SUFFIXES[] = {0X01, 0X02, 0X03};
-static int IP_SUFFIXES_LENGTH = 3;
-static int current_suffix_index = 0;
-
 static void
 tcpip_handler(void)
 {
   char *str;
-  
 
   if(uip_newdata()) {
     str = uip_appdata;
@@ -92,9 +87,6 @@ tcpip_handler(void)
   }
 }
 /*---------------------------------------------------------------------------*/
-
-static void set_global_address(uint8_t address_suffix);
-
 static void
 send_packet(void *ptr)
 {
@@ -116,13 +108,6 @@ send_packet(void *ptr)
   }
 #endif /* SERVER_REPLY */
 
-  /* Round-Robin on the server address */
-  current_suffix_index = (current_suffix_index + 1) % IP_SUFFIXES_LENGTH;
-  uint8_t suffix = IP_SUFFIXES[current_suffix_index];
-  set_global_address(suffix);
-
-
-  /* Send packet to that address */
   seq_id++;
   PRINTF("DATA send to %d 'Hello %d'\n",
          server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
@@ -153,7 +138,7 @@ print_local_addresses(void)
 }
 /*---------------------------------------------------------------------------*/
 static void
-set_global_address(uint8_t address_suffix)
+set_global_address(void)
 {
   uip_ipaddr_t ipaddr;
 
@@ -193,12 +178,12 @@ set_global_address(uint8_t address_suffix)
 
   uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
   memcpy(&server_lladdr, &uip_lladdr, sizeof(uip_lladdr_t));
-  ((uint8_t *) &server_lladdr)[sizeof(uip_lladdr_t)-1] = address_suffix;
+  ((uint8_t *) &server_lladdr)[sizeof(uip_lladdr_t)-1] = UDP_SERVER_IP_SUFFIX;
   uip_ds6_set_addr_iid(&server_ipaddr, &server_lladdr);
   // server_ipaddr.u16[7] = UDP_SERVER_ADDR;
-  //printf("server addr: ");
-  //uip_debug_ipaddr_print(&server_ipaddr);
-  //printf("\n");
+  printf("server addr: ");
+  uip_debug_ipaddr_print(&server_ipaddr);
+  printf("\n");
 // #endif
 }
 /*---------------------------------------------------------------------------*/
@@ -214,7 +199,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   PROCESS_PAUSE();
 
-  set_global_address(UDP_SERVER_IP_SUFFIX);
+  set_global_address();
 
   // Define the schedule
   tsch_schedule_create_udp_client();
@@ -284,7 +269,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
         }
       } else if (str[0] == 'w') {
-        PRINTF("MARKER");
+        PRINTF("MARKER PLACED");
       }
     }
 

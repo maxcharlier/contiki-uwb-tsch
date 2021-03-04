@@ -142,6 +142,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
 #endif
 
+#if NODEID == 0x01
+  /* Set this node as the RPL root */
   uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL);
   root_if = uip_ds6_addr_lookup(&ipaddr);
   if(root_if != NULL) {
@@ -153,6 +155,10 @@ PROCESS_THREAD(udp_server_process, ev, data)
   } else {
     PRINTF("failed to create a new RPL DAG\n");
   }
+
+#endif /* NODEID */
+
+
 #endif /* UIP_CONF_ROUTER */
   
   print_local_addresses();
@@ -177,8 +183,10 @@ PROCESS_THREAD(udp_server_process, ev, data)
     if(ev == tcpip_event) {
       tcpip_handler();
     } else if (ev == sensors_event && data == &button_sensor) {
+#if NODEID == 0x01
       PRINTF("Initiaing global repair\n");
       rpl_repair_root(RPL_DEFAULT_INSTANCE);
+#endif
     }
   }
 

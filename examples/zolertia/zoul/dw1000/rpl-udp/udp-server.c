@@ -186,7 +186,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
 #if NODEID == 0x01
       PRINTF("Initiaing global repair\n");
       rpl_repair_root(RPL_DEFAULT_INSTANCE);
-#endif
+#endif /* NODEID */
     }
   }
 

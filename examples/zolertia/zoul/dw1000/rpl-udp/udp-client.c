@@ -389,6 +389,8 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 16, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 20, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 24, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 28, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 32, 0 },
 #elif NODEID == 0x02
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 8, 0 },
@@ -396,6 +398,8 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 25, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 13, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 29, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 17, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 36, 0 },
 #elif NODEID == 0x03
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 12, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 16, 0 },
@@ -403,6 +407,8 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 25, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 5, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 33, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 40, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 44, 0 },
 #elif NODEID == 0x04
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 20, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 24, 0 },
@@ -410,6 +416,17 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 29, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 5, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 33, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 9, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 48, 0 },
+#elif NODEID == 0x11
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 28, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 32, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 17, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_2_address, 36, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_3_address, 40, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 44, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 9, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 48, 0 },
 #else
 #  error "Unhandled NODEID for static schedule."
 #endif /* NODEID */

@@ -237,7 +237,7 @@ const linkaddr_t * mac_neighborg_addr[] = {
 #  error "Node ID not defined. Perhaps you need to tweak target Makefile."
 #endif /* NODEID */
 
-void tsch_schedule_create_udp_client(void)
+void tsch_schedule_create_udp_server(void)
 {
   struct tsch_slotframe *sf_custom;
 

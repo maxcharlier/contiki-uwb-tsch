@@ -1390,7 +1390,9 @@ rpl_recalculate_ranks(void)
     if(p->dag != NULL && p->dag->instance && (p->flags & RPL_PARENT_FLAG_UPDATED)) {
       p->flags &= ~RPL_PARENT_FLAG_UPDATED;
       //PRINTF("RPL: rpl_process_parent_event recalculate_ranks\n");
-      PRINTF("RPL: ETX with its parent (recal. rank): %u\n", rpl_get_parent_link_stats(p)->etx);
+      PRINTF("RPL: ETX with its parent %3u (recal. rank): %u\n",
+             rpl_get_parent_ipaddr(p)->u8[15],
+             rpl_get_parent_link_stats(p)->etx);
       if(!rpl_process_parent_event(p->dag->instance, p)) {
         PRINTF("RPL: A parent was dropped\n");
       }
@@ -1506,7 +1508,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
         PRINTF("RPL: Global repair\n");
         if(dio->prefix_info.length != 0) {
           if(dio->prefix_info.flags & UIP_ND6_RA_FLAG_AUTONOMOUS) {
-            PRINTF("RPL: Prefix announced in DIO\n");
+            printf("RPL: Prefix announced in DIO\n");
             rpl_set_prefix(dag, &dio->prefix_info.prefix, dio->prefix_info.length);
           }
         }

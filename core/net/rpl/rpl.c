@@ -44,13 +44,14 @@
 
 #include "net/ip/uip.h"
 #include "net/ip/tcpip.h"
+#include "net/link-stats.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ipv6/uip-icmp6.h"
 #include "net/rpl/rpl-private.h"
 #include "net/rpl/rpl-ns.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_FULL   // Print DAO's and DIO's
 #include "net/ip/uip-debug.h"
 
 #include <limits.h>
@@ -265,7 +266,10 @@ rpl_link_neighbor_callback(const linkaddr_t *addr, int status, int numtx)
       parent = rpl_find_parent_any_dag(instance, &ipaddr);
       if(parent != NULL) {
         /* Trigger DAG rank recalculation. */
-        PRINTF("RPL: rpl_link_neighbor_callback triggering update\n");
+        //PRINTF("RPL: rpl_link_neighbor_callback triggering update\n");
+        PRINTF("RPL: ETX with its parent %3u (up.): %u\n", 
+                  rpl_get_parent_ipaddr(parent)->u8[15],
+                  rpl_get_parent_link_stats(parent)->etx);
         parent->flags |= RPL_PARENT_FLAG_UPDATED;
       }
     }

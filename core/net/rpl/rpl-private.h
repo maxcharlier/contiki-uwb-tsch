@@ -405,4 +405,8 @@ void rpl_poison_routes(rpl_dag_t *, rpl_parent_t *);
 
 rpl_instance_t *rpl_get_default_instance(void);
 
+
+
+const struct link_stats *rpl_get_parent_link_stats(rpl_parent_t *p);
+
 #endif /* RPL_PRIVATE_H */

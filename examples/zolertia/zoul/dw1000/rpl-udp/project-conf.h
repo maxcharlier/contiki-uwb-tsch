@@ -44,7 +44,7 @@
 #else
 /* configure number of neighbors and routes */
 #define NBR_TABLE_CONF_MAX_NEIGHBORS     10
-#define UIP_CONF_MAX_ROUTES   10
+#define UIP_CONF_MAX_ROUTES   20
 #endif /* TEST_MORE_ROUTES */
 
 /* Define as minutes */

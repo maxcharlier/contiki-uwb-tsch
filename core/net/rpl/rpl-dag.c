@@ -123,34 +123,15 @@ rpl_print_neighbor_etx_list(void)
 {
   if(default_instance != NULL && default_instance->current_dag != NULL &&
       default_instance->of != NULL) {
-    int curr_dio_interval = default_instance->dio_intcurrent;
-    int curr_rank = default_instance->current_dag->rank;
     rpl_parent_t *p = nbr_table_head(rpl_parents);
-    clock_time_t clock_now = clock_time();
-
-    //printf("RPL: MOP %u OCP %u rank %u dioint %u, nbr count %u\n",
-    //    default_instance->mop, default_instance->of->ocp, curr_rank, curr_dio_interval, uip_ds6_nbr_num());
     
     while(p != NULL) {
-      /*const struct link_stats *stats = rpl_get_parent_link_stats(p);
-      printf("RPL: nbr %3u %5u, %5u => %5u -- %2u %c%c (last tx %u min ago)\n",
-          rpl_get_parent_ipaddr(p)->u8[15],
-          p->rank,
-          rpl_get_parent_link_metric(p),
-          rpl_rank_via_parent(p),
-          stats != NULL ? stats->freshness : 0,
-          link_stats_is_fresh(stats) ? 'f' : ' ',
-          p == default_instance->current_dag->preferred_parent ? 'p' : ' ',
-          (unsigned)((clock_now - stats->last_tx_time) / (60 * CLOCK_SECOND))
-      );*/
-      printf("RPL:   %2u ETX %3u rank %3u",
+      printf("RPL:   %2u ETX %3u rank %3u\n",
           rpl_get_parent_ipaddr(p)->u8[15],
           rpl_get_parent_link_stats(p)->etx,
           p->rank);
       p = nbr_table_next(rpl_parents, p);
     }
-    // printf("RPL: end of list\n");
-    printf("\n");
   }
 }
 

@@ -433,7 +433,7 @@ dw1000_arch_gpio8_read_pin(void)
   return GPIO_READ_PIN(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
-/** Initialise the RESET PIN in INPOUT and open drain */
+/** Initialise the RESET PIN in INPUT and open drain */
 void
 dw1000_arch_init_reset_pin(void)
 {
@@ -600,4 +600,5 @@ void dw1000_arch_restore_idle_state(void){
   // spix_enable(DWM1000_SPI_INSTANCE);
   // dw1000_arch_init();
 }
+
 

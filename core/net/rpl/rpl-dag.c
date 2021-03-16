@@ -126,10 +126,12 @@ rpl_print_neighbor_etx_list(void)
     rpl_parent_t *p = nbr_table_head(rpl_parents);
     
     while(p != NULL) {
-      printf("RPL:   %2u ETX %3u rank %3u\n",
+      const struct link_stats *stats = rpl_get_parent_link_stats(p);
+      printf("RPL:   %2u ETX %3u rank %3u fresh %3u\n",
           rpl_get_parent_ipaddr(p)->u8[15],
-          rpl_get_parent_link_stats(p)->etx,
-          p->rank);
+          stats->etx,
+          p->rank,
+          stats->freshness);
       p = nbr_table_next(rpl_parents, p);
     }
   }

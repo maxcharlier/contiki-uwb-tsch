@@ -70,3 +70,8 @@
 #endif /* WITH_NON_STORING */
 
 #endif
+
+#define RPL_CONF_DIO_INTERVAL_MIN 13
+#define RPL_CONF_DIO_INTERVAL_DOUBLINGS 1
+
+/* #define RPL_CONF_LEAF_ONLY 1 */

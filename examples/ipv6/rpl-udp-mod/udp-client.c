@@ -33,6 +33,7 @@
 #include "net/ip/uip.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-udp-packet.h"
+#include "net/rpl/rpl.h"
 #include "sys/ctimer.h"
 #ifdef WITH_COMPOWER
 #include "powertrace.h"

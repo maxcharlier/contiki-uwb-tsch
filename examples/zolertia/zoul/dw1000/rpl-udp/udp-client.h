@@ -19,6 +19,8 @@ extern const linkaddr_t node_14_address;
 extern const linkaddr_t node_15_address;
 extern const linkaddr_t node_16_address;
 extern const linkaddr_t node_17_address;
-extern const linkaddr_t * mac_neighborg_addr[17];
+extern const linkaddr_t node_m1_address;
+extern const linkaddr_t node_m2_address;
+extern const linkaddr_t * mac_neighborg_addr[19];
 
 void tsch_schedule_create_udp_client(void);

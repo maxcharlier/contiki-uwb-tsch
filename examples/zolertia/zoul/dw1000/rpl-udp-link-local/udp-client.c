@@ -136,16 +136,13 @@ send_packet(void *ptr)
   // print_local_addresses();
   // printf("send_packet()\n");
   
-  /* place the seq number and the current asn in the buffer */
-  memcpy(&buf[0], &seq_id, 1);
-  memcpy(&buf[1], &tsch_current_asn, 5);
 
   /* first we check if we have neighbor (if it's the case we have join TSCH) */
   if(nbr_table_head(ds6_neighbors) != NULL){
     for(int i = 0; i < number_of_transmission_per_timer; i++) {
       /* check to not send message to our addr */
       if((sending_index + i + 1) != NODEID){
-      
+        /* send the message */
         sprintf(buf, "Hello %d from the client", seq_id);
 
         uip_udp_packet_sendto(client_conn, buf, strlen(buf), local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
@@ -157,7 +154,6 @@ send_packet(void *ptr)
 
     sending_index += number_of_transmission_per_timer;
   }
-  // ctimer_restart(&periodic_timer1);
 
   rpl_print_neighbor_etx_list();
 

@@ -145,37 +145,10 @@ send_packet(void *ptr)
     for(int i = 0; i < number_of_transmission_per_timer; i++) {
       /* check to not send message to our addr */
       if((sending_index + i + 1) != NODEID){
+      
+        sprintf(buf, "Hello %d from the client", seq_id);
 
-      #if PRINT_BYTE
-        /* print R: _NODEADDR_PACKETBUF_LEN_
-          for each prop time:
-          _ANCHOR_ID T_PROP_ T_MESUREAMENT CHANNEL
-        */
-        // printf("-S:");
-        write_byte((uint8_t) '-');
-        write_byte((uint8_t) 'S');
-        write_byte((uint8_t) ':');
-        write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[15]);
-        write_byte(local_neighborg_addr[(sending_index + i)%len_local_neighborg]->u8[14]);
-        for(int i = 0; i < BUF_LEN; i++){
-          write_byte((uint8_t) buf[i]);    
-        }
-
-        write_byte((uint8_t) '\n');
-
-      #else /* PRINT_BYTE */  
-        printf("%d\n", (sending_index + i)%len_local_neighborg);
-        printf("S:0X%02X%02X:%d:", 
-          (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[14],
-          (*local_neighborg_addr[(sending_index + i)%len_local_neighborg]).u8[15], seq_id);
-        int64_t value = 0;
-        /* asn */
-        memcpy(&value, &buf[1], 5);
-        printf("%llu",  value);
-        printf("\n");
-      #endif /* PRINT_BYTE */
-
-        uip_udp_packet_sendto(client_conn, buf, BUF_LEN, local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
+        uip_udp_packet_sendto(client_conn, buf, strlen(buf), local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
       }
       if((sending_index + i)%len_local_neighborg == 0){
         seq_id ++;
@@ -185,7 +158,7 @@ send_packet(void *ptr)
     sending_index += number_of_transmission_per_timer;
   }
   // ctimer_restart(&periodic_timer1);
-  
+
   rpl_print_neighbor_etx_list();
 
   ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);

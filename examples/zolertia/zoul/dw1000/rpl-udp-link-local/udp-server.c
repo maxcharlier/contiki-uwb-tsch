@@ -43,7 +43,7 @@
 #else
   #define PRINTF(...) do {} while(0)
 #endif
-/*
+*/
 
 #define ROOT_ID  0X01
 
@@ -74,8 +74,7 @@ tcpip_handler(void)
     appdata = (char *)uip_appdata;
     appdata[uip_datalen()] = 0;
     PRINTF("DATA recv '%s' from ", appdata);
-    PRINTF("%d",
-           UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
+    PRINTF("%d", UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
     PRINTF("\n");
   }
 }

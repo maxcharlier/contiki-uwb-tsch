@@ -36,12 +36,14 @@
 
 #define PRINT_BYTE 1
 
+/*
 #undef PRINTF
 #if !PRINT_BYTE
   #define PRINTF(...) printf(__VA_ARGS__)
-#else /* !PRINT_BYTE */
+#else
   #define PRINTF(...) do {} while(0)
-#endif /* PRINT_BYTE */
+#endif
+*/
 
 #define ROOT_ID  0X01
 
@@ -142,10 +144,14 @@ send_packet(void *ptr)
     for(int i = 0; i < number_of_transmission_per_timer; i++) {
       /* check to not send message to our addr */
       if((sending_index + i + 1) != NODEID){
+        
+        uip_ipaddr_t *destination_address = local_neighborg_addr[(sending_index + i)%len_local_neighborg];
+
         /* send the message */
+        PRINTF("DATA send to %d 'Hello %d'\n", destination_address->u8[sizeof(destination_address->u8) - 1], seq_id);
         sprintf(buf, "Hello %d from the client", seq_id);
 
-        uip_udp_packet_sendto(client_conn, buf, strlen(buf), local_neighborg_addr[(sending_index + i)%len_local_neighborg], UIP_HTONS(UDP_PORT));
+        uip_udp_packet_sendto(client_conn, buf, strlen(buf), destination_address , UIP_HTONS(UDP_PORT));
       }
       if((sending_index + i)%len_local_neighborg == 0){
         seq_id ++;

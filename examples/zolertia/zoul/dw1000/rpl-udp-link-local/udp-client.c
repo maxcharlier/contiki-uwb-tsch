@@ -163,7 +163,7 @@ send_packet(void *ptr)
 
   rpl_print_neighbor_etx_list();
 
-  ctimer_set(&periodic_timer1, 4*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -255,7 +255,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   /* interval is a slotframe duration. 
   We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
   */
-  ctimer_set(&periodic_timer1, 600 * CLOCK_SECOND, send_packet, &periodic_timer1);
+  ctimer_set(&periodic_timer1, 15 * CLOCK_SECOND, send_packet, &periodic_timer1);
   // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
 
 

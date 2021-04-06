@@ -36,12 +36,14 @@
 
 #define PRINT_BYTE 1
 
+/*
 #undef PRINTF
 #if !PRINT_BYTE
   #define PRINTF(...) printf(__VA_ARGS__)
-#else /* !PRINT_BYTE */
+#else
   #define PRINTF(...) do {} while(0)
-#endif /* PRINT_BYTE */
+#endif
+/*
 
 #define ROOT_ID  0X01
 

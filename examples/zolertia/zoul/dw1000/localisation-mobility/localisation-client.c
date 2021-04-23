@@ -197,7 +197,7 @@ send_allocation_probe_request(void *ptr)
     (uint32_t) 42 // Its own node address
   };
 
-  printf("Sending data through serial.\n")
+  printf("Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));
 
 retry:

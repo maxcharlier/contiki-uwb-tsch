@@ -189,6 +189,7 @@ send_allocation_probe_request(void *ptr)
   if (!rpl_parent) {
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
+    printf("No parent, retrying in 1s\n");
     goto retry;
   }
 
@@ -196,10 +197,11 @@ send_allocation_probe_request(void *ptr)
     (uint32_t) 42 // Its own node address
   };
 
+  printf("Sending data through serial.\n")
   send_to_central_authority(&rqst, sizeof(rqst));
 
 retry:
-  ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);    
+  ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND)/RTIMER_SECOND, send_allocation_probe_request, &periodic_timer1);    
 }
 /*---------------------------------------------------------------------------*/
 static void

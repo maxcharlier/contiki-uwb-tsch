@@ -51,7 +51,7 @@
 #include "net/rpl/rpl-ns.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
 
-#define DEBUG DEBUG_FULL   // Print DAO's and DIO's
+#define DEBUG DEBUG_NONE   // Print DAO's and DIO's
 #include "net/ip/uip-debug.h"
 
 #include <limits.h>

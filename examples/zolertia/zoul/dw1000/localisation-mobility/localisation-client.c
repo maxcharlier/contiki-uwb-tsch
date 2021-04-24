@@ -183,6 +183,7 @@ send_to_central_authority(void *data_to_transmit, int length)
 static void
 send_allocation_probe_request(void *ptr)
 {
+  printf("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
   if (!rpl_parent) {
@@ -196,7 +197,6 @@ send_allocation_probe_request(void *ptr)
     (uint32_t) 42 // Its own node address
   };
 
-  printf("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
 
   printf("APP: Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));

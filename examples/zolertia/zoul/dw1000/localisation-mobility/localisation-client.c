@@ -46,6 +46,7 @@
 */
 
 #define ROOT_ID  0X01
+#define RPL_LEAF_ONLY 1
 
 #define UDP_PORT 5678
 #define MAX_PAYLOAD_LEN   30

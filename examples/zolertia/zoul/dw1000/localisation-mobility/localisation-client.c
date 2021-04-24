@@ -196,9 +196,7 @@ send_allocation_probe_request(void *ptr)
     (uint32_t) 42 // Its own node address
   };
 
-#ifdef RPL_CONF_LEAF_ONLY
   printf("APP: Leaf-only: %i\n", RPL_CONF_LEAF_ONLY);
-#endif
 
   printf("APP: Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));

@@ -174,6 +174,7 @@ send_to_central_authority(void *data_to_transmit, int length)
   uint8_t *end = current_ptr + length;
   while (current_ptr < end) {
     write_byte(*current_ptr);
+    current_ptr += 1;
   }
 }
 
@@ -182,14 +183,12 @@ send_to_central_authority(void *data_to_transmit, int length)
 static void
 send_allocation_probe_request(void *ptr)
 {
-  char buffer[MAX_PAYLOAD_LEN];
-
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
   if (!rpl_parent) {
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
-    printf("No parent, retrying in 1s\n");
+    printf("APP: No parent, retrying in 1s\n");
     goto retry;
   }
 
@@ -197,7 +196,11 @@ send_allocation_probe_request(void *ptr)
     (uint32_t) 42 // Its own node address
   };
 
-  printf("Sending data through serial.\n");
+#ifdef RPL_CONF_LEAF_ONLY
+  printf("APP: Leaf-only: %i\n", RPL_CONF_LEAF_ONLY);
+#endif
+
+  printf("APP: Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));
 
 retry:

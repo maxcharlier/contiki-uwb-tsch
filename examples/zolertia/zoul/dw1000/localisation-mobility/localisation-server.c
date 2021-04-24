@@ -144,7 +144,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
   // PRINTF("UDP client process started nbr:%d routes:%d\n",
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
 
-  tsch_schedule_create_udp_server();
+  // tsch_schedule_create_udp_server();
   // tsch_schedule_print();
 
 
@@ -157,13 +157,6 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_EXIT();
   }
   udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
-
-  /* interval is a slotframe duration. 
-  We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
-  */
-  // ctimer_set(&periodic_timer1, 600 * CLOCK_SECOND, send_packet, &periodic_timer1);
-  // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
-
 
   // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);
 

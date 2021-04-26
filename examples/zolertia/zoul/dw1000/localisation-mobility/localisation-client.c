@@ -196,16 +196,15 @@ send_allocation_probe_request(void *ptr)
     goto retry;
   }
 
-  uip_ipaddr_t *mobile_ip = uip_ds6_get_global(ADDR_PREFERRED); // Could also be : uip_ds6_get_link_local()
+  uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
   uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
 
   allocation_request rqst = { 
     ALLOCATION_REQUEST,
     255,  // signal power
-    *mobile_ip,
-    *rpl_parent
+    mobile_ip,
+    *rpl_parent_ip
   };
-
 
   printf("APP: Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));

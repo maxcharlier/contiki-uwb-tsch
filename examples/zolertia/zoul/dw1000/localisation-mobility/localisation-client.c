@@ -195,12 +195,12 @@ send_allocation_probe_request(void *ptr)
 
 
           // Temporary :
-          uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
+          uip_ipaddr_t mobile_ip_1 = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
           allocation_request req = { 
             ALLOCATION_REQUEST,
             255,  // signal power
-            mobile_ip,
-            mobile_ip
+            mobile_ip_1,
+            mobile_ip_1
           };
           send_to_central_authority(&req, sizeof(req));
           goto retry;

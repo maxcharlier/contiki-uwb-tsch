@@ -192,6 +192,18 @@ static void
 send_allocation_probe_request(void *ptr)
 {
   PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
+
+
+          // Temporary :
+          uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
+          allocation_request rqst = { 
+            ALLOCATION_REQUEST,
+            255,  // signal power
+            mobile_ip,
+            mobile_ip
+          };
+          send_to_central_authority(&rqst, sizeof(rqst));
+          goto retry;
   
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
@@ -200,6 +212,7 @@ send_allocation_probe_request(void *ptr)
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
     PRINTF("APP: No parent, retrying in 1s\n");
+
     goto retry;
   }
 

@@ -42,12 +42,14 @@ class SerialAdapter:
                     state = STATE_READ_DATA
             elif state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
-                    return self._packet_from_bytearray(frame)
+                    return IncomingPacket.packet_from_bytearray(IncomingPacket, frame)
                 else:
                     return frame.append(recv_byte)
             elif state == STATE_READ_ESC_DATA:
                 frame.append(recv_byte)
                 state = STATE_READ_DATA
+            
+            sleep(0.01)
 
     def send(self, pkt: OutgoingPacket):
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())
@@ -61,7 +63,4 @@ class SerialAdapter:
             output.append(b)
         output.append(BS_EFD)
         return output
-    
-    def _packet_from_bytearray(self, frame: bytearray) -> IncomingPacket:
-        size = frame[0]
-        
+

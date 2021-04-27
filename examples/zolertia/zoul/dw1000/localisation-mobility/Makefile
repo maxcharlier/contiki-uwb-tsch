@@ -4,7 +4,7 @@ CONTIKI = ../../../../..
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 MODULES += core/net/mac/tsch
-MODULES += examples/zolertia/zoul/dw1000/localisation-mobility/schedule
+MODULES += examples/zolertia/zoul/dw1000/localisation-mobility/libs
 
 ifdef WITH_COMPOWER
 APPS+=powertrace

@@ -25,6 +25,7 @@
 #include "net/mac/tsch/tsch-schedule.h" 
 
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/message_formats.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/byte-stuffing.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -171,8 +172,10 @@ send_packet(void *ptr)
 static void
 send_to_central_authority(void *data_to_transmit, int length)
 {
-  uint8_t *current_ptr = data_to_transmit;
-  uint8_t *end = current_ptr + length;
+  struct stuffed_bytes stuffed_frame = byte_stuffing_encode(data_to_transmit, length);
+
+  uint8_t *current_ptr = stuffed_frame.bytes;
+  uint8_t *end = current_ptr + stuffed_frame.length;
   while (current_ptr < end) {
     write_byte(*current_ptr);
     current_ptr += 1;

@@ -184,7 +184,7 @@ send_to_central_authority(void *data_to_transmit, int length)
 static void
 send_allocation_probe_request(void *ptr)
 {
-  // PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
+  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
   
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
@@ -192,7 +192,7 @@ send_allocation_probe_request(void *ptr)
   if (!rpl_parent) {
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
-    printf("APP: No parent, retrying in 1s\n");
+    PRINTF("APP: No parent, retrying in 1s\n");
     goto retry;
   }
 
@@ -206,7 +206,7 @@ send_allocation_probe_request(void *ptr)
     *rpl_parent_ip
   };
 
-  // PRINTF("APP: Sending data through serial.\n");
+  PRINTF("APP: Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));
 
 retry:

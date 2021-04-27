@@ -13,7 +13,14 @@ struct stuffed_bytes {
     int length;
 };
 
-struct stuffed_bytes byte_stuffing_encode(uint8_t *frame, int length);
+/**
+ *  Note: destination should have at least a size of 2 * length + 2
+ * 
+ *  Returns the amount of bytes written to destination 
+ */
+int
+byte_stuffing_encode(uint8_t *frame, int length, void *destination);
 
-uint8_t *byte_stuffing_decode(uint8_t *frame, int length);
+void
+byte_stuffing_decode(uint8_t *frame, int length, void *destination);
 

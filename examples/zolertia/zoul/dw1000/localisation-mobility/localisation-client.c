@@ -8,7 +8,6 @@
 #include "net/rpl/rpl.h"
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "net/ipv6/sicslowpan.h" // get the last channel
 
@@ -54,6 +53,7 @@
 
 #define UDP_PORT 5678
 #define MAX_PAYLOAD_LEN   30
+#define MAX_SERIAL_LEN    100
 
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
@@ -175,15 +175,15 @@ send_packet(void *ptr)
 static void
 send_to_central_authority(void *data_to_transmit, int length)
 {
-  struct stuffed_bytes stuffed_frame = byte_stuffing_encode(data_to_transmit, length);
+  uint8_t stuffed_bytes[2 * MAX_SERIAL_LEN + 2];
+  int length_to_write = byte_stuffing_encode(data_to_transmit, length, stuffed_bytes);
 
-  uint8_t *current_ptr = stuffed_frame.bytes;
-  uint8_t *end = current_ptr + stuffed_frame.length;
+  uint8_t *current_ptr = stuffed_bytes;
+  uint8_t *end = current_ptr + length_to_write;
   while (current_ptr < end) {
     write_byte(*current_ptr);
     current_ptr += 1;
   }
-  free(stuffed_frame.bytes);
 }
 
 

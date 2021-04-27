@@ -34,16 +34,16 @@
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
-#define PRINT_BYTE 1
+#define PRINT_BYTE 0
 
-/*
+
 #undef PRINTF
 #if !PRINT_BYTE
   #define PRINTF(...) printf(__VA_ARGS__)
 #else
   #define PRINTF(...) do {} while(0)
 #endif
-*/
+
 
 #define ROOT_ID  0X01
 

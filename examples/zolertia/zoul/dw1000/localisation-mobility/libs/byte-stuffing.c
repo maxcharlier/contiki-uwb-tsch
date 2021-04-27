@@ -15,9 +15,8 @@ byte_stuffing_encode(uint8_t *frame, int length, void *destination) {
     *buffer_ptr++ = BS_SFD;
     
     uint8_t *input_bytes = frame;
-    uint8_t *end = frame + length;
 
-    while (input_bytes < end) {
+    while (input_bytes < frame + length) {
         uint8_t b = *input_bytes;
         if (b == BS_SFD || b == BS_ESC || b == BS_EFD) {
             *buffer_ptr++ = BS_ESC;
@@ -26,6 +25,6 @@ byte_stuffing_encode(uint8_t *frame, int length, void *destination) {
     }
 
     // Add the flag at the end of the frame
-    *buffer_ptr = BS_EFD;
+    *buffer_ptr++ = BS_EFD;
     return buffer_ptr - start;
-};
+}

@@ -29,7 +29,7 @@
 #include "dev/uart.h"
 #include "dev/serial-line.h"
 
-#define DEBUG DEBUG_PRINT
+#define DEBUG DEBUG_NONE
 #include "net/ip/uip-debug.h"
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
@@ -184,7 +184,7 @@ send_to_central_authority(void *data_to_transmit, int length)
 static void
 send_allocation_probe_request(void *ptr)
 {
-  printf("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
+  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
   
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
@@ -206,7 +206,7 @@ send_allocation_probe_request(void *ptr)
     *rpl_parent_ip
   };
 
-  printf("APP: Sending data through serial.\n");
+  PRINTF("APP: Sending data through serial.\n");
   send_to_central_authority(&rqst, sizeof(rqst));
 
 retry:

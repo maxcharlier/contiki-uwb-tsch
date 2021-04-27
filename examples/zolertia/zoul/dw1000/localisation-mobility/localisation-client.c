@@ -8,6 +8,7 @@
 #include "net/rpl/rpl.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "net/ipv6/sicslowpan.h" // get the last channel
 
@@ -182,6 +183,7 @@ send_to_central_authority(void *data_to_transmit, int length)
     write_byte(*current_ptr);
     current_ptr += 1;
   }
+  free(stuffed_frame.bytes);
 }
 
 

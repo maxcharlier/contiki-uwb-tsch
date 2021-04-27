@@ -1,5 +1,6 @@
 #include "contiki.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
+#include <stdlib.h>
 
 
 struct stuffed_bytes byte_stuffing_encode(uint8_t *frame, int length) {
@@ -7,7 +8,8 @@ struct stuffed_bytes byte_stuffing_encode(uint8_t *frame, int length) {
      * Max size : All  bytes are escaped (2 * MAX_PAYLOAD_LEN) + start and end flag 
      * Should probably use a malloc.
      */
-    uint8_t buffer[2 * MAX_PAYLOAD_LEN + 2];
+    uint8_t *buffer;
+    buffer = malloc(2 * length + 2);
     uint8_t *buffer_ptr = buffer;
 
     // Add the flag at the begining of the frame

@@ -31,26 +31,29 @@ class SerialAdapter:
         frame = bytearray()
         
         while True:
-            while self.serial.inWaiting() > 0:
-                recv_data = self.serial.read(1)
-                recv_byte = recv_data[0]
-                
-                if len(recv_data) == 0:
-                    continue
-                
-                if state == STATE_WAIT_SFD:
-                    if recv_data == BS_SFD:
-                        state = STATE_READ_DATA
-                elif state == STATE_READ_DATA:
-                    if recv_byte == BS_EFD:
-                        return IncomingPacket.packet_from_bytearray(IncomingPacket, frame)
-                    else:
-                        return frame.append(recv_byte)
-                elif state == STATE_READ_ESC_DATA:
-                    frame.append(recv_byte)
-                    state = STATE_READ_DATA
+            recv_data = self.serial.read(1)
+            recv_byte = recv_data[0]
             
-            sleep(0.01)
+            if len(recv_data) == 0:
+                continue
+            
+            if state == STATE_WAIT_SFD:
+                if recv_byte == BS_SFD:
+                    state = STATE_READ_DATA
+            elif state == STATE_READ_DATA:
+                if recv_byte == BS_EFD:
+                    print(f'END state: {state}, recv_byte: {recv_byte}')
+                    breakpoint()
+                    return IncomingPacket.packet_from_bytearray(IncomingPacket, frame)
+                elif recv_byte == BS_ESC:
+                    state = STATE_READ_ESC_DATA
+                else:
+                    frame.append(recv_byte)
+            elif state == STATE_READ_ESC_DATA:
+                frame.append(recv_byte)
+                state = STATE_READ_DATA
+            
+            # sleep(0.01)
 
     def send(self, pkt: OutgoingPacket):
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())

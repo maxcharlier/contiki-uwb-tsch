@@ -54,6 +54,7 @@ class OutgoingPacket(Packet):
 class AllocationRequestPacket(IncomingPacket):
     
     def __init__(self, frame: bytearray):
+        breakpoint()
         self.size = frame[0]
         self.signal_power = frame[1]
         self.mobile_addr = None

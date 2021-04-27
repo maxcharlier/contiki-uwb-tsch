@@ -11,8 +11,7 @@ struct stuffed_bytes byte_stuffing_encode(uint8_t *frame, int length) {
     uint8_t *buffer_ptr = buffer;
 
     // Add the flag at the begining of the frame
-    buffer_ptr = BS_SFD;
-    buffer_ptr += 1;
+    *buffer_ptr++ = BS_SFD;
     
     uint8_t *input_bytes = frame;
     uint8_t *end = frame + length;
@@ -20,15 +19,13 @@ struct stuffed_bytes byte_stuffing_encode(uint8_t *frame, int length) {
     while (input_bytes < end) {
         uint8_t b = *input_bytes;
         if (b == BS_SFD || b == BS_ESC || b == BS_EFD) {
-            buffer_ptr = BS_ESC;
-            buffer_ptr += 1;
+            *buffer_ptr++ = BS_ESC;
         }
-        buffer_ptr += 1;
-        input_bytes += 1;
+        *buffer_ptr++ = *input_bytes++;
     }
 
     // Add the flag at the end of the frame
-    buffer_ptr = BS_EFD;
+    *buffer_ptr = BS_EFD;
 
     struct stuffed_bytes result = {buffer, buffer_ptr - buffer};
     return result;

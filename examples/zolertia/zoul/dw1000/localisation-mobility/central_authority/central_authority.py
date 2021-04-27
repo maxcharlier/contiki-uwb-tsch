@@ -7,7 +7,6 @@ import argh
 import datetime
 from typing import Union, Tuple
 
-from packets import *
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
 

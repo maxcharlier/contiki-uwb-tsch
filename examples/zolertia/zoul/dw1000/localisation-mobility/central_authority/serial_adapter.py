@@ -57,6 +57,7 @@ class SerialAdapter:
 
     def _byte_stuffing_encode(self, bytes: bytearray):
         output = bytearray()
+        output.append(BS_SFD)
         for b in bytes:
             if b in (BS_SFD, BS_EFD, BS_ESC):
                 output.append(BS_ESC)

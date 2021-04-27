@@ -24,8 +24,8 @@
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
 
-#include "examples/zolertia/zoul/dw1000/localisation-mobility/message_formats.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility/byte-stuffing.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -47,6 +47,8 @@
 
 
 #define ROOT_ID  0X01
+
+#undef RPL_LEAF_ONLY
 #define RPL_LEAF_ONLY 1
 
 #define UDP_PORT 5678

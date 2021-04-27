@@ -58,7 +58,7 @@
 #include <limits.h>
 #include <string.h>
 
-#define DEBUG DEBUG_FULL // Print DAO's and DIO's
+#define DEBUG DEBUG_NONE // Print DAO's and DIO's
 #include "net/ip/uip-debug.h"
 
 /* A configurable function called after every RPL parent switch */

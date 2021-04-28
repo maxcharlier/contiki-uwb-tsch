@@ -42,8 +42,6 @@ class SerialAdapter:
                     state = STATE_READ_DATA
             elif state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
-                    print(f'END state: {state}, recv_byte: {recv_byte}')
-                    breakpoint()
                     return IncomingPacket.packet_from_bytearray(IncomingPacket, frame)
                 elif recv_byte == BS_ESC:
                     state = STATE_READ_ESC_DATA

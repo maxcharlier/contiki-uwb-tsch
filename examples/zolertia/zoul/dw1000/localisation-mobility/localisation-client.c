@@ -86,7 +86,8 @@ AUTOSTART_PROCESSES(&udp_client_process);
 static int seq_id=0;
 static int sending_index=0;
 
-static uip_ipaddr_t current_attached_anchor = NULL;
+static const uip_ipaddr_t null_attached_anchor;
+static uip_ipaddr_t current_attached_anchor;
 
 static void
 tcpip_handler(void)
@@ -211,7 +212,7 @@ send_allocation_probe_request(void *ptr)
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
   
-  if (!rpl_get_parent) {
+  if (!rpl_parent) {
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
     PRINTF("APP: No parent, retrying in 1s\n");
@@ -222,7 +223,8 @@ send_allocation_probe_request(void *ptr)
   uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
   uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
 
-  if ((!current_attached_anchor) || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))) {
+  if (!memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t)) 
+      || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))) {
     /*
      *  Either there is a new parent, or the RPL parent changed.
      *  Send a request to receive a new cell, then unsubscribe from the current cell

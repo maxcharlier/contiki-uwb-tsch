@@ -1,6 +1,6 @@
 import logging
 from typing import Tuple, List
-from packets import IPv6Address, AllocationRequestPacket, AllocationSlotPacket
+from packets import *
 
 class GreedyScheduler:
     
@@ -37,7 +37,7 @@ class GreedyScheduler:
         else:
             # Add the communivation slot at the end of the schedule
             assert len(self.slotframe) < self.max_length - 1
-            self.slotframe.append(source, destination)
+            self.slotframe.append((source, destination))
             return len(self.slotframe)-1, 1
         
 

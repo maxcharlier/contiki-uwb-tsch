@@ -2,7 +2,7 @@ import serial
 import logging
 from time import sleep
 from enum import Enum
-from packets import IncomingPacket, OutgoingPacket
+from packets import IncomingPacket, OutgoingPacket, IPv6Address
 
 
 SERIAL_BAUDRATE = 115200
@@ -30,8 +30,8 @@ class SerialAdapter:
         Sends a packet to the correct serial port
         '''
         PORTS = {
-            bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01'): '/dev/anchor1',
-            bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02'): '/dev/anchor2'
+            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
+            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2'
         }
 
         for dst in pkt.destinations():
@@ -72,7 +72,7 @@ class SerialAdapter:
                 state = STATE_READ_DATA
 
     def send(self, pkt: OutgoingPacket):
-        logging.info(f'Outgoing Packet: {pkt}')
+        logging.info(f'Outgoing Packet to {self.device}: {pkt}')
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())
         self.serial.write(send_bytes)
 

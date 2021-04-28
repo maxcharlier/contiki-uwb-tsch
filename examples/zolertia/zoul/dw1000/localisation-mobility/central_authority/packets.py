@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
+from typing import List
 import sys
 
 PacketParameter = namedtuple('PacketParameter', 'id size associated_class')
@@ -18,15 +19,18 @@ class IPv6Address:
     def __str__(self):
         return ":".join(map(lambda b: hex(b)[2:], self.address))
 
+    def __hash__(self):
+        return hash(self.__str__())
+
 class Packet(ABC):
 
-    self.type: int
+    type: int
 
     PACKET_ID_SIZE = {
         ALLOCATION_REQUEST:     PacketParameter(0, 34, 'AllocationRequestPacket'),
-        ALLOCATION_SLOT:        PacketParameter(1, 16, 'AllocationSlotPacket'),
+        ALLOCATION_SLOT:        PacketParameter(1, 37, 'AllocationSlotPacket'),
         ALLOCATION_ACK:         PacketParameter(2, 16, None),
-        DEALLOCATION_REQUEST:   PacketParameter(3, 16, None),
+        DEALLOCATION_REQUEST:   PacketParameter(3, 16, 'DeallocationResquestPacket'),
         DEALLOCATION_SLOT:      PacketParameter(4, 16, None)
     }
 
@@ -41,6 +45,9 @@ class Packet(ABC):
 
 
 class IncomingPacket(Packet):
+
+    mobile_addr: IPv6Address
+    anchor_addr: IPv6Address
     
     @abstractmethod
     def __init__(self, frame: bytearray):
@@ -61,6 +68,9 @@ class IncomingPacket(Packet):
 
 
 class OutgoingPacket(Packet):
+
+    mobile_addr: IPv6Address
+    anchor_addr: IPv6Address
     
     @abstractmethod
     def to_bytearray(self) -> bytearray:
@@ -112,8 +122,11 @@ class AllocationSlotPacket(OutgoingPacket):
         # TODO: Add anchors in the same geolocalisation cell as self.anchor_addr 
         return [self.mobile_addr, self.anchor_addr]
 
+    def length(self):
+        return self.PACKET_ID_SIZE[ALLOCATION_SLOT].size
+
     def __str__(self):
-        return f'AllocationSlotPacket({self.size}, {self.mobile_addr}, {self.anchor_addr})'
+        return f'AllocationSlotPacket({self.type}, {self.mobile_addr}, {self.anchor_addr}, {self.timeslot}, {self.channel})'
 
 
 class DeallocationResquestPacket(IncomingPacket):

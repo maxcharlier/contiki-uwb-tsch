@@ -16,7 +16,7 @@ class IPv6Address:
     address: bytearray
 
     def __str__(self):
-        return ":".join(map(lambda x: hex(x)[2:], b))
+        return ":".join(map(lambda b: hex(b)[2:], self.address))
 
 class Packet(ABC):
 
@@ -67,7 +67,6 @@ class OutgoingPacket(Packet):
 class AllocationRequestPacket(IncomingPacket):
     
     def __init__(self, frame: bytearray):
-        breakpoint()
         self.size = frame[0]
         self.signal_power = frame[1]
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[2:18])

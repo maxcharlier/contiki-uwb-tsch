@@ -1,19 +1,12 @@
 #!/usr/bin/python3
 
 
-import os
-import sys
 import argh
-import datetime
+import logging
 from typing import Union, Tuple
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
-
-
-def get_time() -> str:
-    time = datetime.datetime.now()
-    return str(time)
 
 
 def main(device: str):
@@ -23,8 +16,13 @@ def main(device: str):
     while True:
         
         pkt = sa.receive()
-        print(pkt)
+        logging.info(f'Incoming packet: {pkt}')
 
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
+    logging.basicConfig(
+        format='%(asctime)s: %(message)s',
+        datefmt='%Y.%m.%d-%H:%M:%S',
+        level=logging.DEBUG
+    )
     argh.dispatch_command(main)

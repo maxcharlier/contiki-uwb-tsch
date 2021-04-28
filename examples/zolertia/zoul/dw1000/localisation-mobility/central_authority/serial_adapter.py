@@ -1,4 +1,5 @@
 import serial
+import logging
 from time import sleep
 from enum import Enum
 from packets import IncomingPacket, OutgoingPacket
@@ -50,8 +51,6 @@ class SerialAdapter:
             elif state == STATE_READ_ESC_DATA:
                 frame.append(recv_byte)
                 state = STATE_READ_DATA
-            
-            # sleep(0.01)
 
     def send(self, pkt: OutgoingPacket):
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())

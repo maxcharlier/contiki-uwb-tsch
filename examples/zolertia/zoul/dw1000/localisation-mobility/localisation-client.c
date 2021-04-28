@@ -222,7 +222,7 @@ send_allocation_probe_request(void *ptr)
   uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
   uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
 
-  if ((!current_attached_anchor) || !memcmp(rpl_parent_ip, current_attached_anchor, sizeof(uip_ipaddr_t))) {
+  if ((!current_attached_anchor) || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))) {
     /*
      *  Either there is a new parent, or the RPL parent changed.
      *  Send a request to receive a new cell, then unsubscribe from the current cell

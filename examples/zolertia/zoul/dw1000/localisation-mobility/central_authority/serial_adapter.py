@@ -30,7 +30,7 @@ class SerialAdapter:
         Sends a packet to the correct serial port
         '''
         PORTS = {
-            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
+            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
             IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2'
         }
 

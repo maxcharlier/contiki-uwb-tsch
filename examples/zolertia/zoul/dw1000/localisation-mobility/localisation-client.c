@@ -86,6 +86,8 @@ AUTOSTART_PROCESSES(&udp_client_process);
 static int seq_id=0;
 static int sending_index=0;
 
+static uip_ipaddr_t current_attached_anchor = NULL;
+
 static void
 tcpip_handler(void)
 {
@@ -193,7 +195,7 @@ send_allocation_probe_request(void *ptr)
 {
   PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
 
-
+          /*
           // Temporary :
           uip_ipaddr_t mobile_ip_1 = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
           allocation_request req = { 
@@ -203,12 +205,13 @@ send_allocation_probe_request(void *ptr)
             mobile_ip_1
           };
           send_to_central_authority(&req, sizeof(req));
-          goto retry;
+          goto retry; 
+          */
   
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
   
-  if (!rpl_parent) {
+  if (!rpl_get_parent) {
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
     PRINTF("APP: No parent, retrying in 1s\n");
@@ -219,15 +222,22 @@ send_allocation_probe_request(void *ptr)
   uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
   uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
 
-  allocation_request rqst = { 
-    ALLOCATION_REQUEST,
-    255,  // signal power
-    mobile_ip,
-    *rpl_parent_ip
-  };
+  if ((!current_attached_anchor) || !memcmp(rpl_parent_ip, current_attached_anchor, sizeof(uip_ipaddr_t))) {
+    /*
+     *  Either there is a new parent, or the RPL parent changed.
+     *  Send a request to receive a new cell, then unsubscribe from the current cell
+     */
+    PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
+    
+    allocation_request rqst = { 
+      ALLOCATION_REQUEST,
+      255,  // signal power
+      mobile_ip,
+      *rpl_parent_ip
+    };
 
-  PRINTF("APP: Sending data through serial.\n");
-  send_to_central_authority(&rqst, sizeof(rqst));
+    send_to_central_authority(&rqst, sizeof(rqst));
+  }
 
 retry:
   ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND), send_allocation_probe_request, &periodic_timer1);    

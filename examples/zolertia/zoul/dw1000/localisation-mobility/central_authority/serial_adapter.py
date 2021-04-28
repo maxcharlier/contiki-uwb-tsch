@@ -19,10 +19,29 @@ BS_ESC = 0x33
 class SerialAdapter:
 
     def __init__(self, device: str):
+        self.device = device
         self.serial = serial.Serial(
             port=device,
             baudrate=SERIAL_BAUDRATE
         )
+
+    def send_to(self, pkt: OutgoingPacket):
+        '''
+        Sends a packet to the correct serial port
+        '''
+        PORTS = {
+            bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01'): '/dev/anchor1',
+            bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02'): '/dev/anchor2'
+        }
+
+        for dst in pkt.destinations():
+            if PORTS[dst] == self.device:
+                self.send(pkt)
+            else:
+                sa = SerialAdapter(PORTS[dst])
+                sa.send(pkt)
+        
+
     
     def receive(self) -> IncomingPacket:
         '''
@@ -53,6 +72,7 @@ class SerialAdapter:
                 state = STATE_READ_DATA
 
     def send(self, pkt: OutgoingPacket):
+        logging.info(f'Outgoing Packet: {pkt}')
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())
         self.serial.write(send_bytes)
 

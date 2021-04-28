@@ -1,4 +1,6 @@
-from typing import Tuple
+import logging
+from typing import Tuple, List
+from packets import IPv6Address, AllocationRequestPacket, AllocationSlotPacket
 
 class GreedyScheduler:
     
@@ -10,7 +12,23 @@ class GreedyScheduler:
         self.holes_in_slotframe = [] 
         self.cells_per_node = {}
 
-    def ask_for_new_cell(self, source, destination) -> Tuple[int, int]:
+    def schedule(self, in_pkt: IncomingPacket) -> List[OutgoingPacket]:
+        decisions: List[OutgoingPacket] = []
+
+        if type(in_pkt) == AllocationRequestPacket:
+            timeslot, channel = self._ask_for_new_cell(in_pkt.mobile_addr, in_pkt.anchor_addr)
+            decisions.append(
+                AllocationSlotPacket(in_pkt.mobile_addr, in_pkt.anchor_addr, timeslot, channel)
+            )
+        elif type(in_pkt) == DeallocationResquestPacket:
+            # TODO implement it!
+            logging.warn(f'Not implemented, skipping request: {in_pkt}')
+        else:
+            logging.warn(f'Unsupported Incoming Packet, skipping request: {in_pkt}')
+
+        return decisions
+
+    def _ask_for_new_cell(self, source: IPv6Address, destination: IPv6Address) -> Tuple[int, int]:
         if len(self.holes_in_slotframe) != 0:
             # Add the communication in a hole of the schedule
             free_timeslot = self.holes_in_slotframe.pop()
@@ -23,7 +41,7 @@ class GreedyScheduler:
             return len(self.slotframe)-1, 1
         
 
-    def delete_cell(self, source, destination, timeslot, channel):
+    def _delete_cell(self, source: IPv6Address, destination: IPv6Address, timeslot, channel):
         assert self.slotframe[timeslot] == (source, destination)
         self.slotframe[timeslot] == None
         self.holes_in_slotframe.append(timeslot)

@@ -20,6 +20,8 @@ class IPv6Address:
 
 class Packet(ABC):
 
+    self.type: int
+
     PACKET_ID_SIZE = {
         ALLOCATION_REQUEST:     PacketParameter(0, 34, 'AllocationRequestPacket'),
         ALLOCATION_SLOT:        PacketParameter(1, 16, 'AllocationSlotPacket'),
@@ -64,10 +66,15 @@ class OutgoingPacket(Packet):
     def to_bytearray(self) -> bytearray:
         pass
 
+    @abstractmethod
+    def destinations(self) -> List[IPv6Address]:
+        pass
+
+
 class AllocationRequestPacket(IncomingPacket):
     
     def __init__(self, frame: bytearray):
-        self.size = frame[0]
+        self.type = frame[0]
         self.signal_power = frame[1]
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[2:18])
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[18:34])
@@ -76,9 +83,48 @@ class AllocationRequestPacket(IncomingPacket):
         return self.PACKET_ID_SIZE[ALLOCATION_REQUEST].size
 
     def __str__(self):
-        return f'AllocationRequestPacket({self.size}, {self.signal_power}, {self.mobile_addr}, {self.anchor_addr})'
+        return f'AllocationRequestPacket({self.type}, {self.signal_power}, {self.mobile_addr}, {self.anchor_addr})'
+
 
 class AllocationSlotPacket(OutgoingPacket):
 
-    def __init__(self):
-        self.size = self.PACKET_ID_SIZE[ALLOCATION_SLOT].size
+    def __init__(self, mobile_addr: IPv6Address, anchor_addr: IPv6Address, timeslot: int, channel: int = 1):
+        assert 0 <= timeslot < 256  # limit timeslot size on one byte
+        assert 0 <= channel < 256   # limit channel size on one byte
+        
+        self.type = self.PACKET_ID_SIZE[ALLOCATION_SLOT].size
+        self.mobile_addr: IPv6Address = mobile_addr
+        self.anchor_addr: IPv6Address = anchor_addr
+        self.timeslot: int = timeslot
+        self.channel: int = channel
+    
+    def to_bytearray(self) -> bytearray:
+        frame = bytearray()
+        frame.append(self.type)
+        frame.extend(self.mobile_addr.address)
+        frame.extend(self.anchor_addr.address)
+        frame.append(self.timeslot)
+        frame.append(self.channel)
+        return frame
+
+    
+    def destinations(self) -> List[IPv6Address]:
+        # TODO: Add anchors in the same geolocalisation cell as self.anchor_addr 
+        return [self.mobile_addr, self.anchor_addr]
+
+    def __str__(self):
+        return f'AllocationSlotPacket({self.size}, {self.mobile_addr}, {self.anchor_addr})'
+
+
+class DeallocationResquestPacket(IncomingPacket):
+    
+    def __init__(self, frame: bytearray):
+        self.type = frame[0]
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[1:17])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[17:33])
+    
+    def length(self):
+        return self.PACKET_ID_SIZE[DEALLOCATION_REQUEST].size
+
+    def __str__(self):
+        return f'DellocationRequestPacket({self.type}, {self.mobile_addr}, {self.anchor_addr})'

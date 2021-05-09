@@ -24,7 +24,8 @@
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
 
-#include "examples/zolertia/zoul/dw1000/rpl-udp-link-local/schedule/schedule.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -35,6 +36,9 @@
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
 #define PRINT_BYTE 0
+
+#undef IS_LOCATION_SERVER
+#define IS_LOCATION_SERVER 1
 
 
 #undef PRINTF
@@ -140,6 +144,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   print_local_addresses();
 
+  tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
+
   // printf("Node ID::%02x%02x\n", uip_lladdr.addr[6],uip_lladdr.addr[7]);
   // PRINTF("UDP client process started nbr:%d routes:%d\n",
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
@@ -151,19 +157,22 @@ PROCESS_THREAD(udp_server_process, ev, data)
   NETSTACK_MAC.on();
 
   /* new connection with remote host */
-  client_conn = udp_new(NULL, UIP_HTONS(UDP_PORT), NULL); 
-  if(client_conn == NULL) {
-    PRINTF("No UDP connection available, exiting the process!\n");
-    PROCESS_EXIT();
-  }
-  udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
+  //client_conn = udp_new(NULL, UIP_HTONS(UDP_PORT), NULL); 
+  //if(client_conn == NULL) {
+  //  PRINTF("No UDP connection available, exiting the process!\n");
+  //PROCESS_EXIT();
+  //}
+  //udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
 
-  // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);
+
+  ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       tcpip_handler();
+    } else if (ev == serial_line_event_message && data != NULL) {
+      receive_uart(data, strlen(data));
     }
   }
 

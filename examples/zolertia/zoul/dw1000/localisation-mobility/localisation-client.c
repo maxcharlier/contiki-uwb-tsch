@@ -5,7 +5,6 @@
 #include "net/ip/uipopt.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-udp-packet.h"
-#include "net/rpl/rpl.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,8 +23,11 @@
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
 
+#include "net/rpl/rpl.h"
+
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -36,6 +38,9 @@
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
 #define PRINT_BYTE 1
+
+#undef IS_LOCATION_SERVER
+#define IS_LOCATION_SERVER 0
 
 
 #undef PRINTF
@@ -53,7 +58,7 @@
 
 #define UDP_PORT 5678
 #define MAX_PAYLOAD_LEN   30
-#define MAX_SERIAL_LEN    100
+
 
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
@@ -62,8 +67,7 @@
 
 // <<<<<<< End timer config
 
-static struct uip_udp_conn *client_conn;
-static struct ctimer periodic_timer1, periodic_timer2;
+
 
 static const uip_ipaddr_t ip_addr_node1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x01 } };
 static const uip_ipaddr_t ip_addr_node2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x02 } };
@@ -85,9 +89,6 @@ AUTOSTART_PROCESSES(&udp_client_process);
 /*---------------------------------------------------------------------------*/
 static int seq_id=0;
 static int sending_index=0;
-
-static const uip_ipaddr_t null_attached_anchor;
-static uip_ipaddr_t current_attached_anchor;
 
 static void
 tcpip_handler(void)
@@ -140,7 +141,7 @@ static void
 print_local_addresses(void);
 /*---------------------------------------------------------------------------*/
 static void
-send_packet(void *ptr)
+send_packet(void *ptr, struct uip_udp_conn *client_conn)
 {
 	char buf[MAX_PAYLOAD_LEN];
   // print_local_addresses();
@@ -169,81 +170,11 @@ send_packet(void *ptr)
     sending_index += number_of_transmission_per_timer;
   }
 
-  rpl_print_neighbor_etx_list();
+  //rpl_print_neighbor_etx_list();
 
-  ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
+  // ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND * tsch_schedule_get_slotframe_duration())/RTIMER_SECOND, send_packet, &periodic_timer1);
 }
 
-/*---------------------------------------------------------------------------*/
-static void
-send_to_central_authority(void *data_to_transmit, int length)
-{
-  uint8_t stuffed_bytes[2 * MAX_SERIAL_LEN + 2];
-  int length_to_write = byte_stuffing_encode(data_to_transmit, length, stuffed_bytes);
-
-  uint8_t *current_ptr = stuffed_bytes;
-  uint8_t *end = current_ptr + length_to_write;
-  while (current_ptr < end) {
-    write_byte(*current_ptr);
-    current_ptr += 1;
-  }
-}
-
-
-/*---------------------------------------------------------------------------*/
-static void
-send_allocation_probe_request(void *ptr)
-{
-  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
-
-          /*
-          // Temporary :
-          uip_ipaddr_t mobile_ip_1 = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
-          allocation_request req = { 
-            ALLOCATION_REQUEST,
-            255,  // signal power
-            mobile_ip_1,
-            mobile_ip_1
-          };
-          send_to_central_authority(&req, sizeof(req));
-          goto retry; 
-          */
-  
-  // Check if a RPL parent is present
-  rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
-  
-  if (!rpl_parent) {
-    // No parent to send a probe request to.
-    // Wait for RPL to find a parent.
-    PRINTF("APP: No parent, retrying in 1s\n");
-
-    goto retry;
-  }
-
-  uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
-  uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
-
-  if (!memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t)) 
-      || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))) {
-    /*
-     *  Either there is a new parent, or the RPL parent changed.
-     *  Send a request to receive a new cell, then unsubscribe from the current cell
-     */
-    PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
-    
-    allocation_request rqst = { 
-      ALLOCATION_REQUEST,
-      255,  // signal power
-      mobile_ip,
-      *rpl_parent_ip
-    };
-
-    send_to_central_authority(&rqst, sizeof(rqst));
-  }
-
-retry:
-  ctimer_set(&periodic_timer1, 1*(CLOCK_SECOND), send_allocation_probe_request, &periodic_timer1);    
-}
 /*---------------------------------------------------------------------------*/
 static void
 print_local_addresses(void)
@@ -272,7 +203,7 @@ print_info(void *ptr){
   // print_local_addresses();
   tsch_schedule_print();
 
-  ctimer_restart(&periodic_timer2);
+  //ctimer_restart(&periodic_timer2);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -313,34 +244,28 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   print_local_addresses();
 
-  // printf("Node ID::%02x%02x\n", uip_lladdr.addr[6],uip_lladdr.addr[7]);
-  // PRINTF("UDP client process started nbr:%d routes:%d\n",
-  //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
+  tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
 
   NETSTACK_MAC.on();
 
   /* new connection with remote host */
-  client_conn = udp_new(NULL, UIP_HTONS(UDP_PORT), NULL); 
-  if(client_conn == NULL) {
-    PRINTF("No UDP connection available, exiting the process!\n");
-    PROCESS_EXIT();
-  }
-  udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
-
-  /* interval is a slotframe duration. 
-  We convert the tsch_schedule_get_slotframe_duration in Rtimer to Ctimer
-  */
-  ctimer_set(&periodic_timer1, 15 * CLOCK_SECOND, send_allocation_probe_request, &periodic_timer1);
-  // ctimer_set(&periodic_timer1, 10 * CLOCK_SECOND, send_packet, &periodic_timer1);
+  //client_conn = udp_new(NULL, UIP_HTONS(UDP_PORT), NULL); 
+  //if(client_conn == NULL) {
+  //  PRINTF("No UDP connection available, exiting the process!\n");
+  //  PROCESS_EXIT();
+  //}
+  //udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
 
 
-  // ctimer_set(&periodic_timer2, (CLOCK_SECOND * 10), print_info, &periodic_timer2);
+  //ctimer_set(&periodic_timer1, 15 * CLOCK_SECOND, send_allocation_probe_request, &periodic_timer1);
 
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       tcpip_handler();
+    } else if (ev == serial_line_event_message && data != NULL) {
+      receive_uart(data, strlen(data));
     }
   }
 

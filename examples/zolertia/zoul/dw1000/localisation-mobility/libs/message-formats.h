@@ -17,12 +17,12 @@ typedef struct allocation_request_t {
 } allocation_request;
 
 typedef struct allocation_slot_t {
-  message_type message_type : 8;    // 1 byte
-  uint16_t ttl;                     // 2 bytes
-  uip_ipaddr_t mobile_addr;         // 16 bytes
-  uip_ipaddr_t anchor_addr;         // 16 bytes
-  uint8_t timeslot;                 // 1 byte
-  uint8_t channel;                  // 1 byte
+  message_type message_type : 8;      // 1 byte
+  uint16_t ttl;                       // 2 bytes
+  uip_ipaddr_t mobile_addr;           // 16 bytes
+  uip_ipaddr_t anchor_addr;           // 16 bytes
+  uint8_t timeslot;                   // 1 byte
+  uint8_t channel;                    // 1 byte
 } allocation_slot;
 
 typedef struct allocation_ack_t {

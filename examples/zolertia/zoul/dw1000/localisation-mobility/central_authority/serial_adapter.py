@@ -4,6 +4,8 @@ from time import sleep
 from enum import Enum
 from packets import IncomingPacket, OutgoingPacket, IPv6Address, ClearSlotframePacket
 
+ADPATERS = {}
+
 
 SERIAL_BAUDRATE = 115200
 SERIAL_TIMEOUT  = 0.05
@@ -19,7 +21,10 @@ BS_ESC = 0x33
 
 class SerialAdapter:
 
-    def __init__(self, device: str):
+    def __init__(self, device: str, clear: bool = False):
+        if device in ADPATERS: 
+            return ADPATERS[device]
+
         self.device = device
         self.serial = serial.Serial(
             port=device,
@@ -27,8 +32,15 @@ class SerialAdapter:
             timeout=SERIAL_TIMEOUT
         )
 
-        # Clear the slotframe of the node to start with a clean state.
-        self.send_to(ClearSlotframePacket())
+        self.state = STATE_WAIT_SFD
+        self.frame = bytearray()
+
+
+        if clear:
+            # Clear the slotframe of the node to start with a clean state.
+            self.send(ClearSlotframePacket())
+        
+        ADPATERS['device'] = self
 
     def send_to(self, pkt: OutgoingPacket):
         '''
@@ -36,7 +48,9 @@ class SerialAdapter:
         '''
         PORTS = {
             IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
-            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2'
+            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
+            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2',
+            IPv6Address(bytearray(b'\x00\x80\x00 m\x13\x00\x00\xb9\x13\x00\x00\xbb\x13\x00\x00')): '/dev/anchor2'
         }
 
         for dst in pkt.destinations():
@@ -52,29 +66,34 @@ class SerialAdapter:
         '''
         Receives one packet
         '''
-        state = STATE_WAIT_SFD
-        frame = bytearray()
-        
-        while True:
+
+        if True:
             recv_data = self.serial.read(1)
-            recv_byte = recv_data[0]
+            # logging.info(f'{self.device}: {recv_data}')
             
             if len(recv_data) == 0:
-                continue
+                # continue
+                return
+
+            recv_byte = recv_data[0]
             
-            if state == STATE_WAIT_SFD:
+            if self.state == STATE_WAIT_SFD:
                 if recv_byte == BS_SFD:
-                    state = STATE_READ_DATA
-            elif state == STATE_READ_DATA:
+                    self.state = STATE_READ_DATA
+            elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
-                    return IncomingPacket.packet_from_bytearray(IncomingPacket, frame)
+                    pkt = IncomingPacket.packet_from_bytearray(IncomingPacket, self.frame)
+                    # reset state for future use
+                    self.state = STATE_WAIT_SFD
+                    self.frame = bytearray()
+                    return pkt
                 elif recv_byte == BS_ESC:
-                    state = STATE_READ_ESC_DATA
+                    self.state = STATE_READ_ESC_DATA
                 else:
-                    frame.append(recv_byte)
-            elif state == STATE_READ_ESC_DATA:
-                frame.append(recv_byte)
-                state = STATE_READ_DATA
+                    self.frame.append(recv_byte)
+            elif self.state == STATE_READ_ESC_DATA:
+                self.frame.append(recv_byte)
+                self.state = STATE_READ_DATA
 
     def send(self, pkt: OutgoingPacket):
         logging.info(f'Outgoing Packet to {self.device}: {pkt}')

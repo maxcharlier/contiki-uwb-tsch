@@ -162,13 +162,16 @@ class DeallocationResquestPacket(IncomingPacket):
 
 class ClearSlotframePacket(OutgoingPacket):
 
-    def __init__(self) -> None:
+    def __init__(self):
         self.type = self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].id
     
     def to_bytearray(self) -> bytearray:
         frame = bytearray()
         frame.append(self.type)
         return frame
+    
+    def destinations(self) -> List[IPv6Address]:
+        return []
 
     def __len__(self):
         return self.PACKET_ID_SIZE[CLEAR_ACK].size

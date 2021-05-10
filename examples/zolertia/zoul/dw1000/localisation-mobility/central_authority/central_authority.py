@@ -11,18 +11,21 @@ from serial_adapter import SerialAdapter
 
 def main(*devices: Tuple[str]):
 
-    adapters: List[SerialAdapter] = [SerialAdapter(device) for device in devices]
+    adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
     scheduler = GreedyScheduler(max_length=100)
         
     while True:
         for sa in adapters:
+
             pkt = sa.receive()
-            logging.info(f'Incoming packet: {pkt}')
+            
+            if pkt != None:
+                logging.info(f'Incoming packet: {pkt}')
+                
+                actions = scheduler.schedule(pkt)
 
-            actions = scheduler.schedule(pkt)
-
-            for act in actions:
-                sa.send_to(act)
+                for act in actions:
+                    sa.send_to(act)
 
 
 if __name__ == "__main__":

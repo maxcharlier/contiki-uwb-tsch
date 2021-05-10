@@ -3,26 +3,26 @@
 
 import argh
 import logging
-from typing import Union, Tuple
+from typing import List, Tuple
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
 
 
-def main(device: str):
+def main(*devices: Tuple[str]):
 
-    sa = SerialAdapter(device)
+    adapters: List[SerialAdapter] = [SerialAdapter(device) for device in devices]
     scheduler = GreedyScheduler(max_length=100)
         
     while True:
-        
-        pkt = sa.receive()
-        logging.info(f'Incoming packet: {pkt}')
+        for sa in adapters:
+            pkt = sa.receive()
+            logging.info(f'Incoming packet: {pkt}')
 
-        actions = scheduler.schedule(pkt)
+            actions = scheduler.schedule(pkt)
 
-        for act in actions:
-            sa.send_to(act)
+            for act in actions:
+                sa.send_to(act)
 
 
 if __name__ == "__main__":

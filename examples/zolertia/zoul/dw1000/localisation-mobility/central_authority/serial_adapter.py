@@ -2,10 +2,11 @@ import serial
 import logging
 from time import sleep
 from enum import Enum
-from packets import IncomingPacket, OutgoingPacket, IPv6Address
+from packets import IncomingPacket, OutgoingPacket, IPv6Address, ClearSlotframePacket
 
 
 SERIAL_BAUDRATE = 115200
+SERIAL_TIMEOUT  = 0.05
 
 # Byte Stuffing
 STATE_WAIT_SFD      = 1
@@ -22,8 +23,12 @@ class SerialAdapter:
         self.device = device
         self.serial = serial.Serial(
             port=device,
-            baudrate=SERIAL_BAUDRATE
+            baudrate=SERIAL_BAUDRATE,
+            timeout=SERIAL_TIMEOUT
         )
+
+        # Clear the slotframe of the node to start with a clean state.
+        self.send_to(ClearSlotframePacket())
 
     def send_to(self, pkt: OutgoingPacket):
         '''

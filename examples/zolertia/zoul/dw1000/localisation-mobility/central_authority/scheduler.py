@@ -16,13 +16,19 @@ class GreedyScheduler:
         decisions: List[OutgoingPacket] = []
 
         if type(in_pkt) == AllocationRequestPacket:
+            
             timeslot, channel = self._ask_for_new_cell(in_pkt.mobile_addr, in_pkt.anchor_addr)
             decisions.append(
                 AllocationSlotPacket(in_pkt.mobile_addr, in_pkt.anchor_addr, timeslot, channel)
             )
+
+
         elif type(in_pkt) == DeallocationResquestPacket:
+            
             # TODO implement it!
             logging.warn(f'Not implemented, skipping request: {in_pkt}')
+
+
         else:
             logging.warn(f'Unsupported Incoming Packet, skipping request: {in_pkt}')
 

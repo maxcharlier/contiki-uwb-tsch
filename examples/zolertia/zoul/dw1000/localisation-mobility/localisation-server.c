@@ -171,7 +171,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       tcpip_handler();
-    } else if (ev == serial_line_event_message && data != NULL) {
+    } 
+    if (ev == serial_line_event_message && data != NULL) {
       receive_uart(data, strlen(data));
     }
   }

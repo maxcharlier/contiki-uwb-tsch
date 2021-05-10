@@ -45,10 +45,7 @@
 
 #undef PRINTF
 #if !PRINT_BYTE
-  #define PRINTF(...) printf(__VA_ARGS__)
-#else
-  #define PRINTF(...) do {} while(0)
-#endif
+  #define PRINTF(...) printf(__VA_ARGS__)#include "dev/serial-line.h"
 
 
 #define ROOT_ID  0X01
@@ -264,7 +261,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       tcpip_handler();
-    } else if (ev == serial_line_event_message && data != NULL) {
+    } 
+    if (ev == serial_line_event_message && data != NULL) {
       receive_uart(data, strlen(data));
     }
   }

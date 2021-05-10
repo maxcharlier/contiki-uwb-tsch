@@ -41,18 +41,18 @@ send_allocation_probe_request(void *ptr)
   // Check if a RPL parent is present
   rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
   
-  if (!rpl_parent) {
+  //if (!rpl_parent) {
     // No parent to send a probe request to.
     // Wait for RPL to find a parent.
-    PRINTF("APP: No parent, retrying in 1s\n");
+    //PRINTF("APP: No parent, retrying in 1s\n");
 
-    goto retry;
-  }
+    //goto retry;
+  //}
 
   uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
   uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
 
-  if (!memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t)) 
+  if (1 || !memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t))     // TODO remove true
       || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))) {
     /*
      *  Either there is a new parent, or the RPL parent changed.

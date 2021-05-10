@@ -11,12 +11,16 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 
-#define MAX_SERIAL_LEN    100
-
 static const uip_ipaddr_t null_attached_anchor;
 static uip_ipaddr_t current_attached_anchor;
 
 #define IS_LOCATION_SERVER 0
+
+#define MAX_SERIAL_LEN    100
+
+static int state = STATE_WAIT_SFD;
+static uint8_t receive_buffer[MAX_SERIAL_LEN];
+static uint8_t *receive_ptr = receive_buffer;
 
 
 #define PRINT_BYTE 1
@@ -87,10 +91,7 @@ send_to_central_authority(void *data_to_transmit, int length)
 
 void
 receive_uart(uint8_t *pkt, int length) {
-  uint8_t receive_buffer[MAX_SERIAL_LEN];
-  uint8_t *receive_ptr = receive_buffer;
 
-  int state = STATE_WAIT_SFD;
   uint8_t *ptr = pkt;
   while (ptr < pkt + length) {
     uint8_t byte = *ptr;
@@ -106,6 +107,9 @@ receive_uart(uint8_t *pkt, int length) {
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
         act_on_message(receive_buffer, ptr - receive_buffer);
+        // Empty the buffer for future use
+        memset(receive_buffer, 0, receive_ptr - receive_buffer);
+        receive_ptr = receive_buffer;
         
       } else if (byte == BS_ESC) {
         state = STATE_READ_ESC_DATA;

@@ -88,6 +88,17 @@ send_to_central_authority(void *data_to_transmit, int length)
   }
 }
 
+/*
+void 
+debug_print(char* msg, __size_t size) {
+  debug_packet message = {
+    DEBUG
+  };
+  memcpy(message.string, msg, size);
+
+  send_to_central_authority(&message, sizeof(message));
+}
+*/
 
 void
 receive_uart(uint8_t *pkt, int length) {
@@ -132,6 +143,7 @@ receive_uart(uint8_t *pkt, int length) {
 
 void
 act_on_message(uint8_t *msg, int length) {
+  return;
   
   switch (*msg) {
 
@@ -140,11 +152,11 @@ act_on_message(uint8_t *msg, int length) {
       tsch_schedule_remove_slotframe(tsch_slotframe);
       tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
-      clear_ack clear_ack = {
+      clear_ack clearack = {
         CLEAR_ACK,
       };
 
-      send_to_central_authority(&clear_ack, sizeof(clear_ack));
+      send_to_central_authority(&clearack, sizeof(clearack));
       break;
 
 
@@ -182,7 +194,14 @@ act_on_message(uint8_t *msg, int length) {
       break;
 
 
-    default:
+    default: ;
+
+      // TODO delete
+      clear_ack default_ack = {
+          CLEAR_ACK,
+      };
+
+      send_to_central_authority(&default_ack, sizeof(default_ack));
       break;
   }
 

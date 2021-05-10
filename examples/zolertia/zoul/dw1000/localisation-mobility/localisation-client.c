@@ -45,7 +45,10 @@
 
 #undef PRINTF
 #if !PRINT_BYTE
-  #define PRINTF(...) printf(__VA_ARGS__)#include "dev/serial-line.h"
+  #define PRINTF(...) printf(__VA_ARGS__)
+#else
+  #define PRINTF(...) do {} while(0)
+#endif
 
 
 #define ROOT_ID  0X01

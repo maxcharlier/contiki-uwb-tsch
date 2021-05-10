@@ -6,7 +6,9 @@ typedef enum message_type {
   ALLOCATION_SLOT,
   ALLOCATION_ACK,
   DEALLOCATION_REQUEST,
-  DEALLOCATION_SLOT
+  DEALLOCATION_SLOT,
+  CLEAR_SLOTFRAME,
+  CLEAR_ACK,
 } message_type;
 
 typedef struct allocation_request_t {
@@ -47,3 +49,11 @@ typedef struct deallocation_slot_t {
   uint8_t timeslot;                 // 1 byte
   uint8_t channel;                  // 1 byte
 } deallocation_slot;
+
+typedef struct clear_slotframe_t {
+  message_type message_type : 8;
+} clear_slotframe;
+
+typedef struct clear_ack_t {
+  message_type message_type : 8;
+} clear_ack;

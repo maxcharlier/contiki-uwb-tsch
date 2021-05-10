@@ -130,7 +130,20 @@ void
 act_on_message(uint8_t *msg, int length) {
   
   switch (*msg) {
-  
+
+    case CLEAR_SLOTFRAME: ;
+
+      tsch_schedule_remove_slotframe(tsch_slotframe);
+      tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
+
+      clear_ack clear_ack = {
+        CLEAR_ACK,
+      };
+
+      send_to_central_authority(&clear_ack, sizeof(clear_ack));
+      break;
+
+
     case ALLOCATION_SLOT: ;
       allocation_slot packet = *(allocation_slot *)(msg);
 

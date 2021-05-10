@@ -160,18 +160,7 @@ class DeallocationResquestPacket(IncomingPacket):
     def __str__(self):
         return f'DellocationRequestPacket({self.type}, {self.mobile_addr}, {self.anchor_addr})'
 
-class ClearSlotframePacket(IncomingPacket):
-
-    def __init__(self, frame: bytearray):
-        self.type = frame[0]
-
-    def __len__(self):
-        return self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].size
-    
-    def __str__(self):
-        return f'ClearSlotframePacket({self.type})'
-
-class ClearAckPacket(OutgoingPacket):
+class ClearSlotframePacket(OutgoingPacket):
 
     def __init__(self) -> None:
         self.type = self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].id
@@ -184,5 +173,18 @@ class ClearAckPacket(OutgoingPacket):
     def __len__(self):
         return self.PACKET_ID_SIZE[CLEAR_ACK].size
 
+    def __str__(self):
+        return f'ClearSlotframePacket({self.type})'
+
+
+
+class ClearAckPacket(IncomingPacket):
+
+    def __init__(self, frame: bytearray):
+        self.type = frame[0]
+
+    def __len__(self):
+        return self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].size
+    
     def __str__(self):
         return f'ClearAckPacket({self.type})'

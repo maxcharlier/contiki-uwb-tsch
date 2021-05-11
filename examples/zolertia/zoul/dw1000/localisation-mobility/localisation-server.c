@@ -28,7 +28,6 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 
 #include "dev/uart.h"
-#include "dev/serial-line.h"
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
@@ -185,11 +184,6 @@ PROCESS_THREAD(udp_server_process, ev, data)
       write_byte('.');
       uart_write_byte(0, '*');
       etimer_reset(&et);
-    }
-
-
-    if (ev == serial_line_event_message && data != NULL) {
-      receive_uart(data, strlen(data));
     }
 
   }

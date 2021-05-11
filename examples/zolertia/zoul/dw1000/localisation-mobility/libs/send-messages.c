@@ -96,6 +96,7 @@ uart_receive_byte(unsigned char c) {
 
     case STATE_WAIT_SFD:
       if (byte == BS_SFD) {
+        printf("BS_SFD\n");
         state = STATE_READ_DATA;
       }
       break;
@@ -215,7 +216,6 @@ act_on_message(uint8_t *msg, int length) {
 
 
     default: ;
-      printf("test\n");
 
       break;
   }

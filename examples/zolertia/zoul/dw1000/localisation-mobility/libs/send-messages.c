@@ -88,17 +88,39 @@ send_to_central_authority(void *data_to_transmit, int length)
   }
 }
 
-/*
-void 
-debug_print(char* msg, __size_t size) {
-  debug_packet message = {
-    DEBUG
-  };
-  memcpy(message.string, msg, size);
+int
+uart_receive_byte(unsigned char c) {
+    uint8_t byte = c;
 
-  send_to_central_authority(&message, sizeof(message));
+    switch (state){
+
+    case STATE_WAIT_SFD:
+      if (byte == BS_SFD) {
+        state = STATE_READ_DATA;
+      }
+      break;
+    
+    case STATE_READ_DATA:
+      if (byte == BS_EFD) {
+        act_on_message(receive_buffer, receive_ptr - receive_buffer);
+
+        // Empty the buffer for future use
+        receive_ptr = receive_buffer;
+      } else if (byte == BS_ESC) {
+        state = STATE_READ_ESC_DATA;
+      } else {
+        *receive_ptr++ = byte;
+      }
+      break;
+    
+    case STATE_READ_ESC_DATA:
+        *receive_ptr++ = byte;
+      break;
+    
+    default:
+      break;
+    }
 }
-*/
 
 void
 receive_uart(uint8_t *pkt, int length) {
@@ -117,11 +139,10 @@ receive_uart(uint8_t *pkt, int length) {
     
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
-        act_on_message(receive_buffer, ptr - receive_buffer);
+        act_on_message(receive_buffer, receive_ptr - receive_buffer);
+
         // Empty the buffer for future use
-        memset(receive_buffer, 0, receive_ptr - receive_buffer);
         receive_ptr = receive_buffer;
-        
       } else if (byte == BS_ESC) {
         state = STATE_READ_ESC_DATA;
       } else {
@@ -143,7 +164,6 @@ receive_uart(uint8_t *pkt, int length) {
 
 void
 act_on_message(uint8_t *msg, int length) {
-  return;
   
   switch (*msg) {
 
@@ -196,12 +216,7 @@ act_on_message(uint8_t *msg, int length) {
 
     default: ;
 
-      // TODO delete
-      clear_ack default_ack = {
-          CLEAR_ACK,
-      };
 
-      send_to_central_authority(&default_ack, sizeof(default_ack));
       break;
   }
 

@@ -15,3 +15,6 @@ send_to_central_authority(void *data_to_transmit, int length);
 
 void 
 act_on_message(uint8_t *msg, int length);
+
+int
+uart_receive_byte(unsigned char c);

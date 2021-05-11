@@ -105,6 +105,7 @@ print_local_addresses(void)
 }
 
 
+
 /*---------------------------------------------------------------------------*/
 static void
 set_global_address(void)
@@ -146,6 +147,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
+  uart_set_input(0, uart_receive_byte);
+
   // printf("Node ID::%02x%02x\n", uip_lladdr.addr[6],uip_lladdr.addr[7]);
   // PRINTF("UDP client process started nbr:%d routes:%d\n",
   //        NBR_TABLE_CONF_MAX_NEIGHBORS, UIP_CONF_MAX_ROUTES);
@@ -171,10 +174,13 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       tcpip_handler();
-    } 
+    }
+
+
     if (ev == serial_line_event_message && data != NULL) {
       receive_uart(data, strlen(data));
     }
+
   }
 
   PROCESS_END();

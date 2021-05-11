@@ -63,6 +63,8 @@
 
 static struct uip_udp_conn *client_conn;
 
+static struct etimer et;
+
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_server_process, "UDP Server");
@@ -170,13 +172,19 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
+  etimer_set(&et, 5 * CLOCK_SECOND);
+
   while(1) {
     PROCESS_YIELD();
 
-    uart_write_byte(0, '.');
-
     if(ev == tcpip_event) {
       tcpip_handler();
+    }
+
+    if (etimer_expired(&et)) {
+      write_byte('.');
+      uart_write_byte(0, '*');
+      etimer_reset(&et);
     }
 
 

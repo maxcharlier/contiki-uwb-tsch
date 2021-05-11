@@ -8,7 +8,6 @@ ADPATERS = {}
 
 
 SERIAL_BAUDRATE = 115200
-SERIAL_TIMEOUT  = 0.005
 
 # Byte Stuffing
 STATE_WAIT_SFD      = 1
@@ -28,8 +27,7 @@ class SerialAdapter:
         self.device = device
         self.serial = serial.Serial(
             port=device,
-            baudrate=SERIAL_BAUDRATE,
-            timeout=SERIAL_TIMEOUT
+            baudrate=SERIAL_BAUDRATE
         )
 
         self.state = STATE_WAIT_SFD
@@ -66,38 +64,40 @@ class SerialAdapter:
         '''
         Receives one packet
         '''
-        recv_data = self.serial.read(1)
+        while True:
+            recv_data = self.serial.read(1)
 
-        if len(recv_data) == 0:
-            # continue
-            return
+            if len(recv_data) == 0:
+                # continue
+                return
 
-        # logging.info(f'{self.device}: {recv_data}')
+            # logging.info(f'{self.device}: {recv_data}')
 
-        recv_byte = recv_data[0]
-        
-        if self.state == STATE_WAIT_SFD:
-            if recv_byte == BS_SFD:
-                self.state = STATE_READ_DATA
-            else:
-                if recv_byte > 255: 
-                    logging.info(f'{self.device}: Skipped reading byte: {recv_byte}')
+            recv_byte = recv_data[0]
+            
+            if self.state == STATE_WAIT_SFD:
+                if recv_byte == BS_SFD:
+                    self.state = STATE_READ_DATA
                 else:
-                    logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
-        elif self.state == STATE_READ_DATA:
-            if recv_byte == BS_EFD:
-                pkt = IncomingPacket.packet_from_bytearray(IncomingPacket, self.frame)
-                # reset state for future use
-                self.state = STATE_WAIT_SFD
-                self.frame = bytearray()
-                return pkt
-            elif recv_byte == BS_ESC:
-                self.state = STATE_READ_ESC_DATA
-            else:
+                    if recv_byte > 255: 
+                        logging.info(f'{self.device}: Skipped reading byte: {recv_byte}')
+                    else:
+                        logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
+            elif self.state == STATE_READ_DATA:
+                if recv_byte == BS_EFD:
+                    logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
+                    pkt = IncomingPacket.packet_from_bytearray(IncomingPacket, self.frame)
+                    # reset state for future use
+                    self.state = STATE_WAIT_SFD
+                    self.frame = bytearray()
+                    return pkt
+                elif recv_byte == BS_ESC:
+                    self.state = STATE_READ_ESC_DATA
+                else:
+                    self.frame.append(recv_byte)
+            elif self.state == STATE_READ_ESC_DATA:
                 self.frame.append(recv_byte)
-        elif self.state == STATE_READ_ESC_DATA:
-            self.frame.append(recv_byte)
-            self.state = STATE_READ_DATA
+                self.state = STATE_READ_DATA
 
     def send(self, pkt: OutgoingPacket):
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())

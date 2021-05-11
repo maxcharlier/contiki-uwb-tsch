@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
+import logging
 from typing import List, Sized
 import sys
 
@@ -62,6 +63,7 @@ class IncomingPacket(Packet):
         # type = next(filter(lambda k: PACKET_ID_SIZE[k][0] == size, PACKET_ID_SIZE.keys()))
         type_class = cls.PACKET_ID_SIZE[type].associated_class
         type_class = cls.str_to_class(type_class)
+        logging.info(f'Using class: {type_class}')
         return type_class(frame)
     
     @staticmethod

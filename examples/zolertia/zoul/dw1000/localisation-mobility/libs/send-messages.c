@@ -91,7 +91,6 @@ send_to_central_authority(void *data_to_transmit, int length)
 int
 uart_receive_byte(unsigned char c) {
     uint8_t byte = c;
-    uart_write_byte(0, byte);
 
     switch (state){
 
@@ -168,6 +167,8 @@ void
 act_on_message(uint8_t *msg, int length) {
   
   switch (*msg) {
+
+    uart_write_byte(0, *msg);
 
     case CLEAR_SLOTFRAME: ;
 

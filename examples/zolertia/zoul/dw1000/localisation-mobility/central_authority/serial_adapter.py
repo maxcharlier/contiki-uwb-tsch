@@ -100,8 +100,8 @@ class SerialAdapter:
             self.state = STATE_READ_DATA
 
     def send(self, pkt: OutgoingPacket):
-        logging.info(f'Outgoing Packet to {self.device}: {pkt}')
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())
+        logging.info(f'Outgoing Packet to {self.device}: {pkt}, {send_bytes}')
         self.serial.write(send_bytes)
 
     def _byte_stuffing_encode(self, bytes: bytearray):

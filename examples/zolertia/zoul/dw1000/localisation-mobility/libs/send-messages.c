@@ -215,7 +215,7 @@ act_on_message(uint8_t *msg, int length) {
 
 
     default: ;
-
+      printf("test\n");
 
       break;
   }

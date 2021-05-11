@@ -92,11 +92,12 @@ int
 uart_receive_byte(unsigned char c) {
     uint8_t byte = c;
 
+    uart_write_byte(0, state);
+
     switch (state){
 
     case STATE_WAIT_SFD:
       if (byte == BS_SFD) {
-        printf("BS_SFD\n");
         state = STATE_READ_DATA;
       }
       break;
@@ -105,8 +106,9 @@ uart_receive_byte(unsigned char c) {
       if (byte == BS_EFD) {
         act_on_message(receive_buffer, receive_ptr - receive_buffer);
 
-        // Empty the buffer for future use
+        // Reset buffer for future use
         receive_ptr = receive_buffer;
+        state = STATE_WAIT_SFD;
       } else if (byte == BS_ESC) {
         state = STATE_READ_ESC_DATA;
       } else {
@@ -116,6 +118,7 @@ uart_receive_byte(unsigned char c) {
     
     case STATE_READ_ESC_DATA:
         *receive_ptr++ = byte;
+        state = STATE_READ_DATA;
       break;
     
     default:
@@ -165,10 +168,12 @@ receive_uart(uint8_t *pkt, int length) {
 
 void
 act_on_message(uint8_t *msg, int length) {
+
+  uart_write_byte(0, 'Q');
+  uart_write_byte(0, *msg);
   
   switch (*msg) {
 
-    uart_write_byte(0, *msg);
 
     case CLEAR_SLOTFRAME: ;
 
@@ -185,6 +190,8 @@ act_on_message(uint8_t *msg, int length) {
 
     case ALLOCATION_SLOT: ;
       allocation_slot packet = *(allocation_slot *)(msg);
+
+      uart_write_byte(0, 'r');
 
 #if IS_LOCATION_SERVER == 1
 

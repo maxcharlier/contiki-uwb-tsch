@@ -18,6 +18,8 @@ BS_SFD = 0xBB
 BS_EFD = 0xEE
 BS_ESC = 0x33
 
+DEBUG = False
+
 class SerialAdapter:
 
     def __init__(self, device: str, clear: bool = False):
@@ -79,13 +81,14 @@ class SerialAdapter:
                 if recv_byte == BS_SFD:
                     self.state = STATE_READ_DATA
                 else:
-                    if recv_byte > 255: 
-                        logging.info(f'{self.device}: Skipped reading byte: {recv_byte}')
-                    else:
-                        logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
+                    if DEBUG:
+                        if recv_byte > 255: 
+                            logging.info(f'{self.device}: Skipped reading byte: {recv_byte}')
+                        else:
+                            logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
             elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
-                    logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
+                    # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
                     pkt = IncomingPacket.packet_from_bytearray(IncomingPacket, self.frame)
                     # reset state for future use
                     self.state = STATE_WAIT_SFD

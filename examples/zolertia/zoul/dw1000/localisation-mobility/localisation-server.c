@@ -172,6 +172,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   while(1) {
     PROCESS_YIELD();
+
+    uart_write_byte(0, '.');
+
     if(ev == tcpip_event) {
       tcpip_handler();
     }

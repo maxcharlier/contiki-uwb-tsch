@@ -252,7 +252,7 @@ main(void)
 #if UART_CONF_ENABLE
   uart_init(0);
   uart_init(1);
-  uart_set_input(SERIAL_LINE_CONF_UART, serial_line_input_byte);
+  //uart_set_input(SERIAL_LINE_CONF_UART, serial_line_input_byte); // TODO delete THOMAS
 #endif
 
 #if USB_SERIAL_CONF_ENABLE
@@ -260,7 +260,7 @@ main(void)
   usb_serial_set_input(serial_line_input_byte);
 #endif
 
-  serial_line_init();
+  // serial_line_init(); // TODO delete THOMAS
 
   INTERRUPTS_ENABLE();
   fade(LEDS_BLUE);

@@ -29,7 +29,7 @@ class Handler:
 def main(*devices: Tuple[str]):
 
     adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
-    scheduler = GreedyScheduler(max_length=100)
+    scheduler = GreedyScheduler(max_length=100, serial=adapters[0])
     eventQueue: Queue = Queue()
     handler = Handler(eventQueue)
 

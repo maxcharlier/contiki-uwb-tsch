@@ -56,6 +56,8 @@
 #include "net/ipv6/multicast/uip-mcast6.h"
 #include "random.h"
 
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
+
 #include <limits.h>
 #include <string.h>
 
@@ -1036,6 +1038,10 @@ dao_input(void)
            instance_id);
     goto discard;
   }
+
+  uip_ipaddr_t dao_sender_addr;
+  uip_ipaddr_copy(&dao_sender_addr, &UIP_IP_BUF->srcipaddr);
+  send_allocation_probe_request(&dao_sender_addr);
 
   if(RPL_IS_STORING(instance)) {
     dao_input_storing();

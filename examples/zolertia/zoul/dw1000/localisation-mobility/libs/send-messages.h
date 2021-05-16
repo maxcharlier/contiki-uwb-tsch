@@ -4,7 +4,7 @@ static struct ctimer retry_timer;
 static struct tsch_slotframe *tsch_slotframe;
 
 void
-send_allocation_probe_request(void *ptr);
+send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip);
 
 void
 receive_uart(uint8_t *pkt, int length);

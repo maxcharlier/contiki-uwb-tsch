@@ -1,8 +1,8 @@
 #include "contiki.h"
 
-#include "net/rpl/rpl.h"
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "net/ipv6/uip-ds6.h"
 
 #include "dev/uart.h"
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
@@ -34,12 +34,9 @@ static uint8_t *receive_ptr = receive_buffer;
 
 
 void
-send_allocation_probe_request(void *ptr)
+send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
 {
   PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
-  
-  // Check if a RPL parent is present
-  rpl_parent_t *rpl_parent = nbr_table_head(rpl_parents);
   
   //if (!rpl_parent) {
     // No parent to send a probe request to.
@@ -49,29 +46,29 @@ send_allocation_probe_request(void *ptr)
     //goto retry;
   //}
 
-  uip_ipaddr_t mobile_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
-  uip_ipaddr_t *rpl_parent_ip = rpl_get_parent_ipaddr(rpl_parent);
+  uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
-  if (1 || !memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t))     // TODO remove true
-      || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))) {
+  if (1) {
     /*
      *  Either there is a new parent, or the RPL parent changed.
      *  Send a request to receive a new cell, then unsubscribe from the current cell
+     * 
+     *  || !memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t))     // TODO remove true
+     *  || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))
      */
     PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
     
     allocation_request rqst = { 
       ALLOCATION_REQUEST,
       255,  // signal power
-      mobile_ip,
-      *rpl_parent_ip
+      *rpl_child_ip,
+      our_ip
     };
 
     send_to_central_authority(&rqst, sizeof(rqst));
   }
 
-retry:
-  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+  //ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
 }
 
 void

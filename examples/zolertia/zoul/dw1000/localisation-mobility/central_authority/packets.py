@@ -63,6 +63,7 @@ class IncomingPacket(Packet):
         # type = next(filter(lambda k: PACKET_ID_SIZE[k][0] == size, PACKET_ID_SIZE.keys()))
         type_class = cls.PACKET_ID_SIZE[type].associated_class
         type_class = cls.str_to_class(type_class)
+        logging.info(f"type_class: {type_class}")
         return type_class(frame)
     
     @staticmethod

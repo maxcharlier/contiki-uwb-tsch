@@ -302,10 +302,12 @@ dio_input(void)
 
   uip_ipaddr_copy(&from, &UIP_IP_BUF->srcipaddr);
 
+#if DEBUG
   /* DAG Information Object */
   PRINTF("RPL: Received a DIO from ");
   uip_debug_ipaddr_print(&from);
   PRINTF("\n");
+#endif /* DEBUG */
 
   buffer_length = uip_len - uip_l3_icmp_hdr_len;
 
@@ -632,7 +634,9 @@ dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
   } else {
     PRINTF("RPL: Sending unicast-DIO with rank %u to ",
            (unsigned)instance->current_dag->rank);
+#if DEBUG
     uip_debug_ipaddr_print(uc_addr);
+#endif /* DEBUG */
     PRINTF("\n");
     uip_icmp6_send(uc_addr, ICMP6_RPL, RPL_CODE_DIO, pos);
   }

@@ -32,6 +32,35 @@ static uint8_t *receive_ptr = receive_buffer;
 #endif
 
 
+void
+debug_send_allocation_probe_request()
+{
+  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
+  
+  //if (!rpl_parent) {
+    // No parent to send a probe request to.
+    // Wait for RPL to find a parent.
+    //PRINTF("APP: No parent, retrying in 1s\n");
+
+    //goto retry;
+  //}
+
+  uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
+
+  if (1) {
+    allocation_request rqst = { 
+      ALLOCATION_REQUEST,
+      255,  // signal power
+      our_ip,
+      our_ip
+    };
+
+    send_to_central_authority(&rqst, sizeof(rqst));
+  }
+
+  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+}
+
 
 void
 send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
@@ -89,7 +118,7 @@ int
 uart_receive_byte(unsigned char c) {
     uint8_t byte = c;
 
-    uart_write_byte(0, state);
+    write_byte(state);
 
     switch (state){
 
@@ -101,8 +130,9 @@ uart_receive_byte(unsigned char c) {
     
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
-        act_on_message(receive_buffer, receive_ptr - receive_buffer);
+        //act_on_message(receive_buffer, receive_ptr - receive_buffer);
 
+        uart_write_byte(0, 'o');
         // Reset buffer for future use
         receive_ptr = receive_buffer;
         state = STATE_WAIT_SFD;
@@ -166,8 +196,11 @@ receive_uart(uint8_t *pkt, int length) {
 void
 act_on_message(uint8_t *msg, int length) {
 
-  uart_write_byte(0, 'Q');
+  uart_write_byte(0, state);
   uart_write_byte(0, *msg);
+  uart_write_byte(0, length);
+
+  return;
   
   switch (*msg) {
 
@@ -188,7 +221,6 @@ act_on_message(uint8_t *msg, int length) {
     case ALLOCATION_SLOT: ;
       allocation_slot packet = *(allocation_slot *)(msg);
 
-      uart_write_byte(0, 'r');
 
 #if IS_LOCATION_SERVER == 1
 

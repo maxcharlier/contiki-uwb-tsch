@@ -246,6 +246,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
+  uart_set_input(0, uart_receive_byte);
 
   NETSTACK_MAC.on();
 
@@ -262,12 +263,11 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   while(1) {
     PROCESS_YIELD();
+    
     if(ev == tcpip_event) {
       tcpip_handler();
-    } 
-    if (ev == serial_line_event_message && data != NULL) {
-      receive_uart(data, strlen(data));
     }
+
   }
 
   PROCESS_END();

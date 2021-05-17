@@ -169,9 +169,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
   //udp_bind(client_conn, UIP_HTONS(UDP_PORT)); 
 
 
-  //ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
-  etimer_set(&et, 5 * CLOCK_SECOND);
+  etimer_set(&et, 1 * CLOCK_SECOND);
 
   while(1) {
     PROCESS_YIELD();
@@ -181,8 +181,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
     }
 
     if (etimer_expired(&et)) {
-      write_byte('.');
-      uart_write_byte(0, '*');
+      //uart_set_input(0, uart_receive_byte);
+      uart_receive_byte('c');
+      // write_byte('t');
       etimer_reset(&et);
     }
 

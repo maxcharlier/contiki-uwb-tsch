@@ -22,6 +22,9 @@ class Handler:
         while True:
             packet = sa.receive()
             logging.info(f'Incoming packet: {packet}.')
+
+            self.eventQueue.put(AllocationRequestPacket())
+
             self.eventQueue.put(packet)
             self.eventQueue.task_done()
         
@@ -39,7 +42,7 @@ def main(*devices: Tuple[str]):
 
     while True:
         pkt = eventQueue.get(block=True)
-        logging.info(f'Handling packet: {pkt} from the queue.')
+        # logging.info(f'Handling packet: {pkt} from the queue.')
         actions = scheduler.schedule(pkt)
 
         for act in actions:

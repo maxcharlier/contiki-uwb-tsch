@@ -1,5 +1,6 @@
 import logging
 import sched
+import heapq
 from queue import Queue
 import threading
 from typing import Tuple, List
@@ -45,12 +46,15 @@ class GreedyScheduler:
         elif type(in_pkt) == AllocationAckPacket:
             logging.info(f"Canced re-sending packets to {in_pkt.mobile_addr}")
             with self.scheduler._lock:
-                events_to_cancel = list(filter(lambda e: e.target == self.resend 
-                                                and self.argument[0].mobile_addr == in_pkt.mobile_addr, 
+                events_to_cancel = list(filter(lambda e: e.action == self.resend 
+                                                and e.argument[0].mobile_addr == in_pkt.mobile_addr, 
                                         self.scheduler._queue))
             
                 # Cancel sending packets again
                 map(self.scheduler.cancel, events_to_cancel)
+        
+        elif type(in_pkt) == ClearAckPacket:
+            logging.info(f"Clear Ack Packet received.")
 
 
         else:

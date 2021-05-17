@@ -158,7 +158,9 @@ set_global_address(void)
     state = uip_ds6_if.addr_list[i].state;
     if(uip_ds6_if.addr_list[i].isused &&
        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
+#if DEBUG
       uip_debug_ipaddr_print(&uip_ds6_if.addr_list[i].ipaddr);
+#endif
       printf("\n");
     }
   }

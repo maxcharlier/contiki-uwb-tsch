@@ -18,7 +18,7 @@ BS_SFD = 0xBB
 BS_EFD = 0xEE
 BS_ESC = 0x33
 
-DEBUG = False
+DEBUG = True
 
 class SerialAdapter:
 
@@ -50,7 +50,7 @@ class SerialAdapter:
             IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
             IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
             IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2',
-            IPv6Address(bytearray(b'\x00\x80\x00 m\x13\x00\x00\xb9\x13\x00\x00\xbb\x13\x00\x00')): '/dev/anchor2'
+            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2'
         }
 
         for dst in pkt.destinations():
@@ -73,7 +73,7 @@ class SerialAdapter:
                 # continue
                 return
 
-            # logging.info(f'{self.device}: {recv_data}')
+            logging.info(f'{self.device}: {recv_data}')
 
             recv_byte = recv_data[0]
             
@@ -82,10 +82,7 @@ class SerialAdapter:
                     self.state = STATE_READ_DATA
                 else:
                     if DEBUG:
-                        if recv_byte > 255: 
-                            logging.info(f'{self.device}: Skipped reading byte: {recv_byte}')
-                        else:
-                            logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
+                        logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
             elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
                     # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')

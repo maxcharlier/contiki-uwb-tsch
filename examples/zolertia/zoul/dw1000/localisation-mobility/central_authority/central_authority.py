@@ -23,8 +23,6 @@ class Handler:
             packet = sa.receive()
             logging.info(f'Incoming packet: {packet}.')
 
-            self.eventQueue.put(AllocationRequestPacket())
-
             self.eventQueue.put(packet)
             self.eventQueue.task_done()
         

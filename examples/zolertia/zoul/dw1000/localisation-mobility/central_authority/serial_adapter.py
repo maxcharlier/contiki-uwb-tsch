@@ -73,7 +73,7 @@ class SerialAdapter:
                 # continue
                 return
 
-            # logging.info(f'{self.device}: {recv_data}')
+            logging.info(f'{self.device}: {recv_data}')
 
             recv_byte = recv_data[0]
             

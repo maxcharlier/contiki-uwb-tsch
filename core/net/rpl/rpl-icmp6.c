@@ -1043,9 +1043,9 @@ dao_input(void)
     goto discard;
   }
 
-  uip_ipaddr_t dao_sender_addr;
-  uip_ipaddr_copy(&dao_sender_addr, &UIP_IP_BUF->srcipaddr);
-  send_allocation_probe_request(&dao_sender_addr);
+  // uip_ipaddr_t dao_sender_addr;
+  // uip_ipaddr_copy(&dao_sender_addr, &UIP_IP_BUF->srcipaddr);
+  // send_allocation_probe_request(&dao_sender_addr);
 
   if(RPL_IS_STORING(instance)) {
     dao_input_storing();

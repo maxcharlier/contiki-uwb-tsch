@@ -152,7 +152,6 @@ uart_receive_byte(unsigned char c) {
       break;
     }
 
-    serial_line_input_byte(c);
 }
 
 void

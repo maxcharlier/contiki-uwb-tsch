@@ -65,8 +65,10 @@
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 #define MAX_PAYLOAD_LEN		30
 
-static struct uip_udp_conn *client_conn;
-static uip_ipaddr_t server_ipaddr;
+static struct uip_udp_conn *client_conn[3];
+static uip_ipaddr_t server_ipaddr[3];
+static int current_server_index = 0;
+static const int NB_SERVERS = 3;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client process");
@@ -74,10 +76,6 @@ AUTOSTART_PROCESSES(&udp_client_process);
 /*---------------------------------------------------------------------------*/
 static int seq_id;
 static int reply;
-
-static uint8_t IP_SUFFIXES[] = {0X01, 0X02, 0X03};
-static int IP_SUFFIXES_LENGTH = 3;
-static int current_suffix_index = 0;
 
 static void
 tcpip_handler(void)
@@ -93,8 +91,6 @@ tcpip_handler(void)
   }
 }
 /*---------------------------------------------------------------------------*/
-
-static void set_global_address(uint8_t address_suffix);
 
 static void
 send_packet(void *ptr)
@@ -118,19 +114,20 @@ send_packet(void *ptr)
 #endif /* SERVER_REPLY */
 
   /* Round-Robin on the server address */
-  current_suffix_index = (current_suffix_index + 1) % IP_SUFFIXES_LENGTH;
-  uint8_t suffix = IP_SUFFIXES[current_suffix_index];
-  set_global_address(suffix);
+  current_server_index = (current_server_index + 1) % NB_SERVERS;
+  struct uip_udp_conn *server_conn = client_conn[current_server_index];
+  uip_ipaddr_t server_ip = server_ipaddr[current_server_index];
+  
 
   rpl_print_neighbor_etx_list();
 
   /* Send packet to that address */
   seq_id++;
   PRINTF("DATA send to %d 'Hello %d'\n",
-         server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
+         server_ip.u8[sizeof(server_ip.u8) - 1], seq_id);
   sprintf(buf, "Hello %d from the client", seq_id);
-  uip_udp_packet_sendto(client_conn, buf, strlen(buf),
-                        &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+  uip_udp_packet_sendto(server_conn, buf, strlen(buf),
+                        &server_ip, UIP_HTONS(UDP_SERVER_PORT));
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -155,54 +152,33 @@ print_local_addresses(void)
 }
 /*---------------------------------------------------------------------------*/
 static void
-set_global_address(uint8_t address_suffix)
+set_global_address(void)
 {
   uip_ipaddr_t ipaddr;
 
-  uip_lladdr_t server_lladdr;
-
+  #if NODEID == ROOT_ID
+  struct uip_ds6_addr *root_if;
 
   uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL);
+  root_if = uip_ds6_addr_lookup(&ipaddr);
+  if(root_if != NULL) {
+    rpl_dag_t *dag;
+    dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)&ipaddr);
+    uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
+    rpl_set_prefix(dag, &ipaddr, 64);
+    PRINTF("created a new RPL dag\n");
+  } else {
+    PRINTF("failed to create a new RPL DAG\n");
+  }
+  #else
+  uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
+  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
-
-/* The choice of server address determines its 6LoWPAN header compression.
- * (Our address will be compressed Mode 3 since it is derived from our
- * link-local address)
- * Obviously the choice made here must also be selected in udp-server.c.
- *
- * For correct Wireshark decoding using a sniffer, add the /64 prefix to the
- * 6LowPAN protocol preferences,
- * e.g. set Context 0 to fd00::. At present Wireshark copies Context/128 and
- * then overwrites it.
- * (Setting Context 0 to fd00::1111:2222:3333:4444 will report a 16 bit
- * compressed address of fd00::1111:22ff:fe33:xxxx)
- *
- * Note the IPCMV6 checksum verification depends on the correct uncompressed
- * addresses.
- */
- 
-// #if 0
-/* Mode 1 - 64 bits inline */
-   // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 1);
-// #elif 1
-/* Mode 2 - 16 bits inline */
-  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 1);
-// #else
-/* Mode 3 - derived from server link-local (MAC) address */
-  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0x0250, 0xc2ff, 0xfea8, 0xcd1a); //redbee-econotag
-  // uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0X01);
-
-  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
-  memcpy(&server_lladdr, &uip_lladdr, sizeof(uip_lladdr_t));
-  ((uint8_t *) &server_lladdr)[sizeof(uip_lladdr_t)-1] = address_suffix;
-  uip_ds6_set_addr_iid(&server_ipaddr, &server_lladdr);
-  // server_ipaddr.u16[7] = UDP_SERVER_ADDR;
-  //printf("server addr: ");
-  //uip_debug_ipaddr_print(&server_ipaddr);
-  //printf("\n");
-// #endif
+  #endif /* NODEID */
 }
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_client_process, ev, data)
 {
@@ -216,7 +192,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   PROCESS_PAUSE();
 
-  set_global_address(UDP_SERVER_IP_SUFFIX);
+  set_global_address();
 
   // Define the schedule
   tsch_schedule_create_udp_client();
@@ -226,18 +202,29 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   print_local_addresses();
 
-  /* new connection with remote host */
-  client_conn = udp_new(NULL, UIP_HTONS(UDP_SERVER_PORT), NULL); 
-  if(client_conn == NULL) {
-    PRINTF("No UDP connection available, exiting the process!\n");
-    PROCESS_EXIT();
-  }
-  udp_bind(client_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+  for (int i=0; i<3; i++) {
+    /* set the correct IP address */
+    switch (i) {
+      case 1: server_ipaddr[i] = ip_addr_node1; break;
+      case 2: server_ipaddr[i] = ip_addr_node2; break;
+      case 3: server_ipaddr[i] = ip_addr_node3; break;
+    }
+    
 
-  PRINTF("Created a connection with the server ");
-  PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+    /* new connection with remote host */
+    client_conn[0] = udp_new(&server_ipaddr[i], UIP_HTONS(UDP_SERVER_PORT), NULL); 
+    if(client_conn == NULL) {
+      PRINTF("No UDP connection available, exiting the process!\n");
+      PROCESS_EXIT();
+    }
+    udp_bind(client_conn[i], UIP_HTONS(UDP_CLIENT_PORT)); 
+
+    PRINTF("Created a connection with the server ");
+    PRINT6ADDR(&client_conn[i]->ripaddr);
+    PRINTF(" local/remote port %u/%u\n", UIP_HTONS(client_conn[i]->lport), UIP_HTONS(client_conn[i]->rport));
+  }
+
+  
 
 #if WITH_COMPOWER
   powertrace_sniff(POWERTRACE_ON);
@@ -256,36 +243,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
     if(ev == serial_line_event_message && data != NULL) {
       char *str;
       str = data;
-      printf("in loop %s", str);
-      if(str[0] == 'r') {
-        uip_ds6_route_t *r;
-        uip_ipaddr_t *nexthop;
-        uip_ds6_defrt_t *defrt;
-        uip_ipaddr_t *ipaddr;
-        defrt = NULL;
-        if((ipaddr = uip_ds6_defrt_choose()) != NULL) {
-          defrt = uip_ds6_defrt_lookup(ipaddr);
-        }
-        if(defrt != NULL) {
-          PRINTF("DefRT: :: -> %02d", defrt->ipaddr.u8[15]);
-          PRINTF(" lt:%lu inf:%d\n", stimer_remaining(&defrt->lifetime),
-                 defrt->isinfinite);
-        } else {
-          PRINTF("DefRT: :: -> NULL\n");
-        }
-
-        for(r = uip_ds6_route_head();
-          r != NULL;
-          r = uip_ds6_route_next(r)) {
-          nexthop = uip_ds6_route_nexthop(r);
-          PRINTF("Route: %02d -> %02d", r->ipaddr.u8[15], nexthop->u8[15]);
-          /* PRINT6ADDR(&r->ipaddr); */
-          /* PRINTF(" -> "); */
-          /* PRINT6ADDR(nexthop); */
-          PRINTF(" lt:%lu\n", r->state.lifetime);
-
-        }
-      } else if (str[0] == 'w') {
+      if (str[0] == 'w') {
         PRINTF("MARKER");
       }
     }
@@ -315,27 +273,47 @@ PROCESS_THREAD(udp_client_process, ev, data)
 /*---------------------------------------------------------------------------*/
 
 
+const uip_ipaddr_t ip_addr_node1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x01 } };
+const uip_ipaddr_t ip_addr_node2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x02 } };
+const uip_ipaddr_t ip_addr_node3 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x03 } };
+const uip_ipaddr_t ip_addr_node4 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x04 } };
+const uip_ipaddr_t ip_addr_node5 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x05 } };
+const uip_ipaddr_t ip_addr_node6 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x06 } };
+const uip_ipaddr_t ip_addr_node7 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x07 } };
+const uip_ipaddr_t ip_addr_node8 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x08 } };
+const uip_ipaddr_t ip_addr_node9 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x09 } };
+const uip_ipaddr_t ip_addr_node10 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0A } };
+const uip_ipaddr_t ip_addr_node11 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0B } };
+const uip_ipaddr_t ip_addr_node12 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0C } };
+const uip_ipaddr_t ip_addr_node13 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0D } };
+const uip_ipaddr_t ip_addr_node14 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0E } };
+const uip_ipaddr_t ip_addr_node15 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0F } };
+const uip_ipaddr_t ip_addr_node16 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x10 } };
+const uip_ipaddr_t ip_addr_node17 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x11 } };
+const uip_ipaddr_t ip_addr_nodem1 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x12 } };
+const uip_ipaddr_t ip_addr_nodem2 = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x13 } };
 
 
-const linkaddr_t node_1_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x01 } };
-const linkaddr_t node_2_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x02 } };
-const linkaddr_t node_3_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x03 } };
-const linkaddr_t node_4_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x04 } };
-const linkaddr_t node_5_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x05 } };
-const linkaddr_t node_6_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x06 } };
-const linkaddr_t node_7_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x07 } };
-const linkaddr_t node_8_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x08 } };
-const linkaddr_t node_9_address  = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x09 } };
-const linkaddr_t node_10_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0A } };
-const linkaddr_t node_11_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0B } };
-const linkaddr_t node_12_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0C } };
-const linkaddr_t node_13_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0D } };
-const linkaddr_t node_14_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0E } };
-const linkaddr_t node_15_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0F } };
-const linkaddr_t node_16_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x10 } };
-const linkaddr_t node_17_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x11 } };
-const linkaddr_t node_m1_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x12 } };
-const linkaddr_t node_m2_address = { { 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfd, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0X13 } };
+const linkaddr_t node_1_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x01 } };
+const linkaddr_t node_2_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x02 } };
+const linkaddr_t node_3_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x03 } };
+const linkaddr_t node_4_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x04 } };
+const linkaddr_t node_5_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x05 } };
+const linkaddr_t node_6_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x06 } };
+const linkaddr_t node_7_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x07 } };
+const linkaddr_t node_8_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x08 } };
+const linkaddr_t node_9_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x09 } };
+const linkaddr_t node_10_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0A } };
+const linkaddr_t node_11_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0B } };
+const linkaddr_t node_12_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0C } };
+const linkaddr_t node_13_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0D } };
+const linkaddr_t node_14_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0E } };
+const linkaddr_t node_15_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x0F } };
+const linkaddr_t node_16_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x10 } };
+const linkaddr_t node_17_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x11 } };
+const linkaddr_t node_m1_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0x12 } };
+const linkaddr_t node_m2_address = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, 0X13 } };
+
 
 const linkaddr_t * mac_neighborg_addr[] = { 
   &node_1_address, 
@@ -395,16 +373,16 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 12, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 14, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 16, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 18, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 20, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 22, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 24, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 26, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 28, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 30, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 32, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 34, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 36, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 18, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 20, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 22, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 24, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 26, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 28, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 30, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 32, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 34, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 36, 0 },
 #elif NODEID == 0x02
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 2, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 4, 0 },
@@ -414,16 +392,16 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 15, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 9, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 19, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 23, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 25, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 17, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 27, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 21, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 31, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 35, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 37, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 29, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 39, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 23, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 25, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 17, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 27, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 21, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 31, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 35, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 37, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 29, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 39, 0 },
 #elif NODEID == 0x03
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 6, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 8, 0 },
@@ -433,16 +411,16 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 33, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 38, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 40, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 42, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 44, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 46, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 48, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 50, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 52, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 54, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 56, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 58, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 60, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 42, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 44, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 46, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 48, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 50, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 52, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 54, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 56, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 58, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 60, 0 },
 #elif NODEID == 0x04
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 10, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 12, 0 },
@@ -452,16 +430,16 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 33, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 5, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 43, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 47, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 49, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 41, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 51, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 45, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 55, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 59, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 61, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 53, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 63, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 47, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 49, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 41, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 51, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 45, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 55, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 59, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 61, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 53, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 63, 0 },
 #elif NODEID == 0x07
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 14, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 16, 0 },
@@ -471,17 +449,17 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_3_address, 40, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_4_address, 5, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 43, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 57, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 62, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 64, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 66, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 68, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 70, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 72, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 74, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 76, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 78, 0 },
-#elif NODEID == 0x13
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 57, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 62, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 64, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 66, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 68, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 70, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 72, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 74, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 76, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 78, 0 },
+#elif NODEID == 0x0D
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 18, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 20, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 23, 0 },
@@ -492,15 +470,15 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 49, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 57, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 62, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 69, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 71, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 65, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 73, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 67, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 77, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 80, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 82, 0 },
-#elif NODEID == 0x0D
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 69, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 71, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 65, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 73, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 67, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 77, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 80, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 82, 0 },
+#elif NODEID == 0x0E
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 22, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 24, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 17, 0 },
@@ -511,15 +489,15 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 51, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 64, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 66, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 69, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 71, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 75, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 79, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 81, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 83, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 85, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 87, 0 },
-#elif NODEID == 0x0E
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 69, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 71, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 75, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 79, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 81, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 83, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 85, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 87, 0 },
+#elif NODEID == 0x0F
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 26, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 28, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 21, 0 },
@@ -530,15 +508,15 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 55, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 68, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 70, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 65, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 73, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 75, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 79, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 86, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 88, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 90, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 92, 0 },
-#elif NODEID == 0x0F
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 65, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 73, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 75, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 79, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 86, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 88, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 90, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 92, 0 },
+#elif NODEID == 0x10
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 30, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 32, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 35, 0 },
@@ -549,15 +527,15 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 61, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 72, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 74, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 67, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 77, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 81, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 83, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 86, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 88, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 94, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 96, 0 },
-#elif NODEID == 0x10
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 67, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 77, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 81, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 83, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 86, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 88, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_17_address, 94, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_17_address, 96, 0 },
+#elif NODEID == 0x17
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_1_address, 34, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_1_address, 36, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_2_address, 29, 0 },
@@ -568,14 +546,14 @@ void tsch_schedule_create_udp_client(void)
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_4_address, 63, 0 },
     { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_7_address, 76, 0 },
     { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_7_address, 78, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_m2_address, 80, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_m2_address, 82, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 85, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 87, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 90, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 92, 0 },
-    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 94, 0 },
-    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 96, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_13_address, 80, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_13_address, 82, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_14_address, 85, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_14_address, 87, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_15_address, 90, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_15_address, 92, 0 },
+    { sf_custom, LINK_OPTION_RX, LINK_TYPE_NORMAL, &node_16_address, 94, 0 },
+    { sf_custom, LINK_OPTION_TX, LINK_TYPE_NORMAL, &node_16_address, 96, 0 },
 #else
 #  error "Unhandled NODEID for static schedule."
 #endif /* NODEID */

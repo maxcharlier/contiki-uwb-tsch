@@ -25,11 +25,14 @@
 #include "net/mac/tsch/tsch-schedule.h" 
 
 
-#include "examples/zolertia/zoul/dw1000/localisation-mobility-reborn/libs/message-formats.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility-reborn/libs/send-messages.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 
 
 #include "dev/uart.h"
+
+#include "cpu/cc2538/lpm.h"
+
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
@@ -102,8 +105,8 @@ set_global_address(void)
   }
   #else
   uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
-  //uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
-  //uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
+  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
   #endif /* NODEID */
 
 }
@@ -113,19 +116,22 @@ PROCESS_THREAD(udp_server_process, ev, data)
   PROCESS_BEGIN();
   PROCESS_PAUSE();
 
+  lpm_set_max_pm(LPM_PM0);    // Keep the UART from going to sleep
+
   set_global_address();
 
   // print_local_addresses();
 
   // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
-  uart_set_input(0, debug_uart_receive_byte);
+  uart_set_input(0, uart_receive_byte);
   uart_set_input(1, debug_uart_receive_byte);
 
-  NETSTACK_MAC.on();
+  //NETSTACK_MAC.on();
+  NETSTACK_MAC.off(1);
 
 
-  ctimer_set(&retry_timer, 5 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  //ctimer_set(&retry_timer, 5 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();

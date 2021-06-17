@@ -82,7 +82,8 @@ class SerialAdapter:
                     self.state = STATE_READ_DATA
                 else:
                     if DEBUG:
-                        logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
+                        logging.warn(f'{self.device}: {recv_byte}')
+                        # logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
             elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
                     # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')

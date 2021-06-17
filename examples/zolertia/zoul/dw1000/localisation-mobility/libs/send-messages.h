@@ -1,7 +1,10 @@
 #include "contiki.h"
 
+#define UART_OUTPUT     0
+#define UART_DEBUG      1
+
 static struct tsch_slotframe *tsch_slotframe;
-static struct ctimer *retry_timer;
+static struct ctimer retry_timer;
 
 void
 debug_send_allocation_probe_request();

@@ -8,9 +8,9 @@
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
 
-#include "examples/zolertia/zoul/dw1000/localisation-mobility-reborn/libs/message-formats.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility-reborn/libs/byte-stuffing.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility-reborn/libs/send-messages.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 
 
 static const uip_ipaddr_t null_attached_anchor;
@@ -99,7 +99,7 @@ send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
     send_to_central_authority(&rqst, sizeof(rqst));
   }
 
-  //ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
 }
 
 void
@@ -111,7 +111,7 @@ send_to_central_authority(void *data_to_transmit, int length)
   uint8_t *current_ptr = stuffed_bytes;
   uint8_t *end = current_ptr + length_to_write;
   while (current_ptr < end) {
-    write_byte(*current_ptr);
+    uart_write_byte(UART_OUTPUT, *current_ptr);
     current_ptr += 1;
   }
 }
@@ -120,7 +120,7 @@ int
 uart_receive_byte(unsigned char c) {
     uint8_t byte = c;
 
-    uart_write_byte(1, state);
+    uart_write_byte(UART_DEBUG, byte);
 
     switch (state){
 
@@ -132,9 +132,8 @@ uart_receive_byte(unsigned char c) {
     
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
-        //act_on_message(receive_buffer, receive_ptr - receive_buffer);
-
-        uart_write_byte(0, 'o');
+        uart_write_byte(UART_DEBUG, '*');
+        act_on_message(receive_buffer, receive_ptr - receive_buffer);
         // Reset buffer for future use
         receive_ptr = receive_buffer;
         state = STATE_WAIT_SFD;
@@ -173,6 +172,11 @@ receive_uart(uint8_t *pkt, int length) {
     
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
+        
+        uart_write_byte(UART_DEBUG, 'a');
+        uart_write_byte(UART_DEBUG, 'c');
+        uart_write_byte(UART_DEBUG, 'k');
+        
         act_on_message(receive_buffer, receive_ptr - receive_buffer);
 
         // Empty the buffer for future use
@@ -199,29 +203,44 @@ receive_uart(uint8_t *pkt, int length) {
 void
 act_on_message(uint8_t *msg, int length) {
 
-  uart_write_byte(0, state);
-  uart_write_byte(0, *msg);
-  uart_write_byte(0, length);
+  uart_write_byte(UART_DEBUG, '0' + state);
+  uart_write_byte(UART_DEBUG, *msg);
+  uart_write_byte(UART_DEBUG, length);
 
-  return;
-  
   switch (*msg) {
 
 
     case CLEAR_SLOTFRAME: ;
 
+      uart_write_byte(UART_DEBUG, 'c');
+      uart_write_byte(UART_DEBUG, 'l');
+      uart_write_byte(UART_DEBUG, 'e');
+      uart_write_byte(UART_DEBUG, 'a');
+      uart_write_byte(UART_DEBUG, 'r');
+
       tsch_schedule_remove_slotframe(tsch_slotframe);
       tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
+      uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
+
       clear_ack clearack = {
         CLEAR_ACK,
+        our_ip
       };
 
       send_to_central_authority(&clearack, sizeof(clearack));
+
+      // for debbuging purposes
+      // tsch_schedule_print();
+
       break;
 
-
     case ALLOCATION_SLOT: ;
+
+        uart_write_byte(UART_DEBUG, 'a');
+        uart_write_byte(UART_DEBUG, 'd');
+        uart_write_byte(UART_DEBUG, 'd');
+
       allocation_slot packet = *(allocation_slot *)(msg);
 
 

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 
-import queue
 from struct import pack
 import argh
 import logging
@@ -23,7 +22,7 @@ class Handler:
             packet = sa.receive()
             logging.info(f'Incoming packet: {packet}.')
 
-            self.eventQueue.put(packet)
+            self.eventQueue.put((packet, sa.device))
             self.eventQueue.task_done()
         
 
@@ -39,9 +38,9 @@ def main(*devices: Tuple[str]):
         t.start()
 
     while True:
-        pkt = eventQueue.get(block=True)
+        pkt, device = eventQueue.get(block=True)
         # logging.info(f'Handling packet: {pkt} from the queue.')
-        actions = scheduler.schedule(pkt)
+        actions = scheduler.schedule(pkt, device)
 
         for act in actions:
             adapters[0].send_to(act)

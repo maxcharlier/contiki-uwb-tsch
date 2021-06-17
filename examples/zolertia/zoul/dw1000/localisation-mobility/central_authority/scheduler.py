@@ -24,7 +24,7 @@ class GreedyScheduler:
         self.scheduler_thread = threading.Thread(target=self.process_events)
         
 
-    def schedule(self, in_pkt: IncomingPacket) -> List[OutgoingPacket]:
+    def schedule(self, in_pkt: IncomingPacket, device: str) -> List[OutgoingPacket]:
         decisions: List[OutgoingPacket] = []
 
         if type(in_pkt) == AllocationRequestPacket:
@@ -45,16 +45,22 @@ class GreedyScheduler:
         
         elif type(in_pkt) == AllocationAckPacket:
             logging.info(f"Canced re-sending packets to {in_pkt.mobile_addr}")
-            with self.scheduler._lock:
-                events_to_cancel = list(filter(lambda e: e.action == self.resend 
-                                                and e.argument[0].mobile_addr == in_pkt.mobile_addr, 
-                                        self.scheduler._queue))
-            
-                # Cancel sending packets again
-                map(self.scheduler.cancel, events_to_cancel)
+            events_to_cancel = list(filter(lambda e: e.action == self.resend 
+                                                and e.argument[0].mobile_addr == in_pkt.mobile_addr,
+                                    self.scheduler.queue))
+        
+            # Cancel sending packets again
+            map(self.scheduler.cancel, events_to_cancel)
         
         elif type(in_pkt) == ClearAckPacket:
             logging.info(f"Clear Ack Packet received.")
+            
+            events_to_cancel = filter(lambda e: e.action == self.resend
+                                            and e.argument[0].from_addr == in_pkt.from_addr,
+                                    self.scheduler.queue)
+            
+            # Cancel sending packets again
+            map(self.scheduler.cancel, events_to_cancel)
 
 
         else:
@@ -64,8 +70,7 @@ class GreedyScheduler:
 
     def process_events(self):
         while True:
-            evnt = sched.Event = self.events.get(block=True)
-            # if ack -> remove event
+            self.scheduler.run(block=True)
             
 
     def _ask_for_new_cell(self, source: IPv6Address, destination: IPv6Address) -> Tuple[int, int]:
@@ -87,5 +92,5 @@ class GreedyScheduler:
         self.holes_in_slotframe.append(timeslot)
 
 
-    def resend(self, pkt: OutgoingPacket):
+    def resend(self, pkt: OutgoingPacket, device: str = ""):
         self.sa.send_to(pkt)

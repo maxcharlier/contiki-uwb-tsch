@@ -187,6 +187,7 @@ class ClearAckPacket(IncomingPacket):
 
     def __init__(self, frame: bytearray):
         self.type = frame[0]
+        self.from_addr: IPv6Address = self._parse_ipv6_address(self, frame[1:17])
 
     def __len__(self):
         return self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].size

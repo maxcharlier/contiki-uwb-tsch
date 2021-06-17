@@ -57,6 +57,7 @@ typedef struct clear_slotframe_t {
 
 typedef struct clear_ack_t {
   message_type message_type : 8;
+  uip_ipaddr_t from_addr;
 } clear_ack;
 
 typedef struct debug_packet_t {

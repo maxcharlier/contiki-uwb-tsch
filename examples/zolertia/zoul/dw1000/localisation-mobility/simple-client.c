@@ -87,6 +87,16 @@ debug_uart_receive_byte(unsigned char c) {
 }
 
 static void
+tcpip_handler(void)
+{
+  if(uip_newdata()) {
+    // This is a mobile node, messages coming from a UDP packet are just forwarded
+    // through the nearest anchor.
+    act_on_message(uip_appdata, uip_datalen());
+  }   
+}
+
+static void
 set_global_address(void)
 {
   uip_ipaddr_t ipaddr;
@@ -134,13 +144,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
   //NETSTACK_MAC.on();
   NETSTACK_MAC.off(1);
 
-  // ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();
     
     if(ev == tcpip_event) {
-      // tcpip_handler();
+      tcpip_handler();
     }
 
   }

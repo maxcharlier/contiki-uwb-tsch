@@ -80,6 +80,20 @@ debug_uart_receive_byte(unsigned char c) {
   return 1;
 }
 
+static void
+tcpip_handler(void)
+{
+
+  if(uip_newdata()) {
+    
+    // This is an anchor. UDP messages are coming from a mobile node and should be
+    // forwared to the central authority.
+
+    send_to_central_authority(uip_appdata, uip_data len()); 
+  }
+    
+}
+
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -137,7 +151,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
     PROCESS_YIELD();
 
     if(ev == tcpip_event) {
-      // tcpip_handler();
+      tcpip_handler();
     }
 
   }

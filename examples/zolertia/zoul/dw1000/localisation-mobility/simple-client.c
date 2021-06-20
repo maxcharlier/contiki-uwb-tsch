@@ -74,15 +74,16 @@
 PROCESS(udp_client_process, "UDP Client");
 AUTOSTART_PROCESSES(&udp_client_process);
 /*---------------------------------------------------------------------------*/
-static int seq_id=0;
-static int sending_index=0;
-
-/*---------------------------------------------------------------------------*/
 
 int
 debug_uart_receive_byte(unsigned char c) {
   uart_write_byte(0, c);
   uart_write_byte(1, c);
+
+  switch (c) {
+    case 's':   tsch_schedule_print(); break;
+    case 'p':   PRINT6ADDR(query_best_anchor()); break;
+  }
   return 1;
 }
 
@@ -143,7 +144,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   NETSTACK_MAC.off(1);
 
-  // ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();

@@ -8,7 +8,9 @@
 #include "dev/uart.h"
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
+
 #include "net/ip/uip-debug.h"
+#include "core/net/ip/uip-udp-packet.h"
 
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
@@ -39,34 +41,6 @@ static uint8_t *receive_ptr = receive_buffer;
 #endif
 
 
-void
-debug_send_allocation_probe_request()
-{
-  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
-  
-  //if (!rpl_parent) {
-    // No parent to send a probe request to.
-    // Wait for RPL to find a parent.
-    //PRINTF("APP: No parent, retrying in 1s\n");
-
-    //goto retry;
-  //}
-
-  uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
-
-  if (1) {
-    allocation_request rqst = { 
-      ALLOCATION_REQUEST,
-      255,  // signal power
-      our_ip,
-      our_ip
-    };
-
-    send_to_central_authority(&rqst, sizeof(rqst));
-  }
-
-  // ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
-}
 
 uip_ipaddr_t *
 query_best_anchor()
@@ -78,7 +52,7 @@ query_best_anchor()
 
 
 void
-send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
+send_allocation_probe_request()
 {
   PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
   
@@ -89,6 +63,8 @@ send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
 
     //goto retry;
   //}
+
+  uip_ipaddr_t *rpl_parent = query_best_anchor();
 
   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
@@ -105,14 +81,14 @@ send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
     allocation_request rqst = { 
       ALLOCATION_REQUEST,
       255,  // signal power
-      *rpl_child_ip,
+      *rpl_parent,
       our_ip
     };
 
     send_to_central_authority(&rqst, sizeof(rqst));
   }
 
-  //ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
 }
 
 void
@@ -173,7 +149,8 @@ uart_send_bytes(void *data_to_transmit, int length)
 }
 
 int
-uart_receive_byte(unsigned char c) {
+uart_receive_byte(unsigned char c)
+{
     uint8_t byte = c;
 
     uart_write_byte(UART_DEBUG, byte);
@@ -211,8 +188,8 @@ uart_receive_byte(unsigned char c) {
 }
 
 void
-receive_uart(uint8_t *pkt, int length) {
-
+receive_uart(uint8_t *pkt, int length)
+{
   uint8_t *ptr = pkt;
   while (ptr < pkt + length) {
     uint8_t byte = *ptr;
@@ -256,14 +233,13 @@ receive_uart(uint8_t *pkt, int length) {
 }
 
 void
-act_on_message(uint8_t *msg, int length) {
-
+act_on_message(uint8_t *msg, int length)
+{
   uart_write_byte(UART_DEBUG, '0' + state);
   uart_write_byte(UART_DEBUG, *msg);
   uart_write_byte(UART_DEBUG, length);
 
   switch (*msg) {
-
 
     case CLEAR_SLOTFRAME: ;
 
@@ -331,7 +307,6 @@ act_on_message(uint8_t *msg, int length) {
 
 
     default: ;
-
       break;
   }
 

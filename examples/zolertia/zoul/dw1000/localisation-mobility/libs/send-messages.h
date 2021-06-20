@@ -9,8 +9,11 @@ static struct ctimer retry_timer;
 void
 debug_send_allocation_probe_request();
 
+uip_ipaddr_t *
+query_best_anchor();
+
 void
-send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip);
+send_allocation_probe_request();
 
 void
 receive_uart(uint8_t *pkt, int length);

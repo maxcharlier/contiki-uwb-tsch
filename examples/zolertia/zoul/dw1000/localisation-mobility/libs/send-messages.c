@@ -3,10 +3,12 @@
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h"
 #include "net/ipv6/uip-ds6.h"
+#include "net/rpl/rpl.h"
 
 #include "dev/uart.h"
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
+#include "net/ip/uip-debug.h"
 
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
@@ -15,6 +17,9 @@
 
 static const uip_ipaddr_t null_attached_anchor;
 static uip_ipaddr_t current_attached_anchor;
+
+#define UDP_CLIENT_PORT 8765
+#define UDP_SERVER_PORT 5678
 
 #define IS_LOCATION_SERVER 0
 
@@ -60,7 +65,15 @@ debug_send_allocation_probe_request()
     send_to_central_authority(&rqst, sizeof(rqst));
   }
 
-  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+  // ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+}
+
+uip_ipaddr_t *
+query_best_anchor()
+{
+  // Take the fist parent in the table
+  rpl_parent_t *p = nbr_table_head(rpl_parents);
+  return rpl_get_parent_ipaddr(p);
 }
 
 
@@ -99,11 +112,54 @@ send_allocation_probe_request(uip_ipaddr_t *rpl_child_ip)
     send_to_central_authority(&rqst, sizeof(rqst));
   }
 
-  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
+  //ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
 }
 
 void
 send_to_central_authority(void *data_to_transmit, int length)
+{
+
+#if IS_LOCATION_SERVER
+
+  // An anchor has direct UART connection to the central authority.
+  
+  uart_send_bytes(data_to_transmit, length);
+
+#else /* IS_LOCATION_SERVER */
+
+  // A mobile needs to send packets wirelessly to an (ideally the nearest) anchor,
+  // which will forward it to the central autority.
+
+  // Initiate a connection.
+  // Remark: Ideally, an anchor should maintain constantly a connection with its nearest anchor.
+  uip_ipaddr_t *nearest_anchor_ip = query_best_anchor();
+  struct uip_udp_conn *server_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  
+  if (server_conn == NULL) {
+    PRINTF("No UDP connection available, exiting the process!\n");
+    return;
+  }
+
+  udp_bind(server_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+
+  // For debugging purposes
+  PRINTF("Created a connection with the server ");
+  PRINT6ADDR(&server_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n",
+	UIP_HTONS(server_conn->lport), UIP_HTONS(server_conn->rport));
+
+
+  PRINTF("Data Sent to the remote server\n");
+  uip_udp_packet_sendto(server_conn, data_to_transmit, length,
+                        nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
+
+#endif
+
+}
+
+
+void
+uart_send_bytes(void *data_to_transmit, int length)
 {
   uint8_t stuffed_bytes[2 * MAX_SERIAL_LEN + 2];
   int length_to_write = byte_stuffing_encode(data_to_transmit, length, stuffed_bytes);
@@ -132,7 +188,6 @@ uart_receive_byte(unsigned char c) {
     
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
-        uart_write_byte(UART_DEBUG, '*');
         act_on_message(receive_buffer, receive_ptr - receive_buffer);
         // Reset buffer for future use
         receive_ptr = receive_buffer;

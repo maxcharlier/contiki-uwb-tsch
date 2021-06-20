@@ -83,15 +83,11 @@ debug_uart_receive_byte(unsigned char c) {
 static void
 tcpip_handler(void)
 {
-
   if(uip_newdata()) {
-    
     // This is an anchor. UDP messages are coming from a mobile node and should be
     // forwared to the central authority.
-
-    send_to_central_authority(uip_appdata, uip_data len()); 
+    send_to_central_authority(uip_appdata, uip_datalen()); 
   }
-    
 }
 
 
@@ -138,10 +134,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
-  uart_set_input(0, uart_receive_byte);
-  uart_set_input(1, debug_uart_receive_byte);
+  uart_set_input(0, debug_uart_receive_byte);
+  uart_set_input(1, uart_receive_byte);
 
-  //NETSTACK_MAC.on();
   NETSTACK_MAC.off(1);
 
 

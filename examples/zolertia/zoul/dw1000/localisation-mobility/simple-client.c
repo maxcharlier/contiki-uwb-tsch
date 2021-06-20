@@ -138,13 +138,12 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
-  uart_set_input(0, uart_receive_byte);
-  uart_set_input(1, debug_uart_receive_byte);
+  uart_set_input(0, debug_uart_receive_byte);
+  uart_set_input(1, uart_receive_byte);
 
-  //NETSTACK_MAC.on();
   NETSTACK_MAC.off(1);
 
-  ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  // ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();

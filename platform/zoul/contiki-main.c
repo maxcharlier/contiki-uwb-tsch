@@ -72,6 +72,7 @@
 #include "reg.h"
 #include "ieee-addr.h"
 #include "lpm.h"
+#include "cpu/cc2538/lpm.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -289,6 +290,9 @@ main(void)
 
   rtc_init();
 
+#if UART_CONF_ALLWAYS_ON
+  lpm_set_max_pm(LPM_PM0);    // Keep the UART from going to sleep
+#endif
 
   process_start(&startup_process, NULL);
   // netstack_init();

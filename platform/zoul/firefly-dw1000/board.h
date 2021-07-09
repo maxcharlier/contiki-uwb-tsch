@@ -422,7 +422,9 @@
 // #endif
 
 
-
+#ifndef UART_CONF_ALLWAYS_ON
+#define UART_CONF_ALLWAYS_ON 1
+#endif
 
 #define RADIO_DRIVER_UWB 			1
 

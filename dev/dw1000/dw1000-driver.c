@@ -215,10 +215,10 @@ static int dw1000_driver_init_down = 0;
 /* Are we currently in poll mode? Disabled by default */
 static uint8_t volatile poll_mode = 0;
 
-#if DW1000_TSCH
+// #if DW1000_TSCH
   /* Define the current TSCH channel used */
   static uint8_t volatile tsch_channel = 0;
-#endif /* DW1000_TSCH */
+// #endif /* DW1000_TSCH */
 
 /* Used by the driver to know if the transmit() fonction 
 have to send directly the message or if it is a delayed transmission */

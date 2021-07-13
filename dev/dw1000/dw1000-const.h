@@ -163,6 +163,9 @@
 #define DW_REG_EC_CTRL      0x24        /* \brief dummy */
 #define DW_LEN_EC_CTRL      4           /* \brief dummy */
 
+#define DW_REG_ACC_MEM      0x25        /* \brief dummy */
+#define DW_LEN_ACC_MEM      4064        /* \brief dummy */
+
 #define DW_REG_GPIO_CTRL    0x26        /* \brief dummy */
 #define DW_LEN_GPIO_CTRL    4           /* \brief dummy */
 #define DW_SUBREG_GPIO_MODE 0x00        /* \brief dummy */

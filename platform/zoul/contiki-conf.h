@@ -414,10 +414,18 @@ typedef uint32_t rtimer_clock_t;
     #define PACKETBUF_CONF_SIZE       266
   #endif
 
+  #ifndef DW1000_CHANNEL
   #define DW1000_CHANNEL              0
+  #endif
+  #ifndef DW1000_DATA_RATE
   #define DW1000_DATA_RATE            DW_DATA_RATE_850_KBPS
+  #endif
+  #ifndef DW1000_PRF
   #define DW1000_PRF                  DW_PRF_16_MHZ
+  #endif
+  #ifndef DW1000_TSCH
   #define DW1000_TSCH                 1
+  #endif
 
 // #define RADIO_DELAY_MEASUREMENT 1
 

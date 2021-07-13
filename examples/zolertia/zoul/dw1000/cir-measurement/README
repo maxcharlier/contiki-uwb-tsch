@@ -1,0 +1,11 @@
+# CIR measureament files
+
+## Usefull commande
+make node.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0x01
+
+make reset-all TARGET=zoul BOARD=firefly
+
+make login TARGET=zoul PORT=
+
+login + times
+make serialview TARGET=zoul PORT=

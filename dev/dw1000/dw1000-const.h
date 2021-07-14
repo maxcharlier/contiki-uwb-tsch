@@ -823,8 +823,12 @@
 #define DW_RXCLKS_MASK       (0x3UL << 2)   /* \brief dummy */
 #define DW_TXCLKS            4              /* \brief dummy */
 #define DW_TXCLKS_MASK       (0x3UL << 4)   /* \brief dummy */
+#define DW_FACE              6              /* \brief dummy */
+#define DW_FACE_MASK         (0x1UL << 6)   /* \brief dummy */
 #define DW_ADCCE             10             /* \brief dummy */
 #define DW_ADCCE_MASK        (0x1UL << 10)  /* \brief dummy */
+#define DW_AMCE              15              /* \brief dummy */
+#define DW_AMCE_MASK         (0x1UL << 15)   /* \brief dummy */
 #define DW_GPCE              16             /* \brief dummy */
 #define DW_GPCE_MASK         (0x1UL << 16)  /* \brief dummy */
 #define DW_GPRN              17             /* \brief dummy */

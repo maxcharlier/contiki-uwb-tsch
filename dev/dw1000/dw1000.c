@@ -2672,6 +2672,30 @@ dw_init_delayed_rx(void)
     printf("dw_init_delayed_rx error\n");
   }
 }
+
+/**
+ * \brief Enable Accumulator memory to being able to 
+ * read the CIR value after reception of a message.
+ * FACE bit and the AMCE bit need to be set to 1 to 
+ * allow the accumulator reading to operate correctly.
+ */
+void 
+dw_enable_accumulator_memory(void)
+{
+
+  uint32_t psmc_ctrl0_val = 0UL;
+  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+    (uint8_t*) &psmc_ctrl0_val);
+  /* Force RX clock enable and sourced from the 125 MHz PLL clock. 
+  (NB: ensure PLL clock is present).*/
+  psmc_ctrl0_val &= ~DW_RXCLKS_MASK;
+  psmc_ctrl0_val |= 0x02 << DW_RXCLKS;
+  /* set FACE bit */
+  psmc_ctrl0_val |= DW_FACE_MASK;
+  /* set AMCE bit */
+  psmc_ctrl0_val |= DW_AMCE_MASK;
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &psmc_ctrl0_val);
+}
 /**
  * \brief Starts a new transmission. Data must either already be uploaded to
  *        DW1000 or be uploaded VERY shortly.

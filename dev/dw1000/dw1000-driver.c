@@ -429,7 +429,9 @@ dw1000_driver_init(void)
   INIT_GPIO_SLEEP_DEBUG();
 
   sleep_mode = RADIO_IDLE;
-
+#if ENABLE_ACCUMULATOR_CIR
+  dw_enable_accumulator_memory();
+#endif
   return 1;
 }
 /**

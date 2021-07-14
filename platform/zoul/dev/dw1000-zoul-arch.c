@@ -225,7 +225,7 @@ dw1000_arch_spi_dma(uint8_t *read_buf, const uint8_t *write_buf, uint16_t len,
                       UDMA_CHCTL_ARBSIZE_4);
   }
   if(read_buf == NULL){
-    /* We don't need the reeded value: we put these value in a dummy buffer.
+    /* We don't need the rereaded value: we put these value in a dummy buffer.
       Thanks to the DMA reception, we don't need to flush the SPI buffer 
       at the end of the SPI transfer. */
     udma_set_channel_dst(DW1000_CONF_RX_DMA_SPI_CHAN,
@@ -272,7 +272,7 @@ void dw_read_subreg(uint32_t reg_addr, uint16_t subreg_addr,
 
   DW1000_SELECT();
 
-  /* write bit = 1, sub-reg present bit = 1 */
+  /* write bit = 0, sub-reg present bit = 1 */
   SPIX_BUF(DWM1000_SPI_INSTANCE) = ((subreg_addr > 0?0x40:0x00) | 
                         (reg_addr & 0x3F));
   if (subreg_addr > 0) {
@@ -433,7 +433,7 @@ dw1000_arch_gpio8_read_pin(void)
   return GPIO_READ_PIN(DWM1000_INT_PORT_BASE, DWM1000_INT_PIN_MASK);
 }
 /*---------------------------------------------------------------------------*/
-/** Initialise the RESET PIN in INPUT and open drain */
+/** Initialize the RESET PIN in INPUT and open drain */
 void
 dw1000_arch_init_reset_pin(void)
 {
@@ -569,12 +569,12 @@ void dw1000_arch_wake_up(dw1000_pin_state state){
   }
 }
 /**
- * Configure the embedeed system to interact with the transceiver. 
+ * Configure the embedded system to interact with the transceiver. 
  * Enable SPICLK and SPIMISO.
  **/
 void dw1000_arch_restore_idle_state(void){
 
-  /* Enable Pull up restitance (default state) */
+  /* Enable Pull up resistance (default state) */
   ioc_set_over(DWM1000_CLK_PORT, DWM1000_CLK_PIN, IOC_OVERRIDE_PUE);
   ioc_set_over(DWM1000_MISO_PORT, DWM1000_MISO_PIN, IOC_OVERRIDE_PUE);
   // ioc_set_over(DWM1000_MOSI_PORT, DWM1000_MOSI_PIN, IOC_OVERRIDE_PUE);

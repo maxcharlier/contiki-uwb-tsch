@@ -65,7 +65,6 @@
   #define PRINTF(...) do {} while(0)
 #endif /* PRINT_BYTE */
 
-
 /*---------------------------------------------------------------------------*/
 PROCESS(example_unicast_process, "Example unicast");
 AUTOSTART_PROCESSES(&example_unicast_process);
@@ -73,8 +72,8 @@ AUTOSTART_PROCESSES(&example_unicast_process);
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
-uint8_t cir[DW_LEN_ACC_MEM]; 
-  NETSTACK_RADIO.off();
+  uint8_t cir[DW_LEN_ACC_MEM]; 
+
   // printf("unicast message received from %d.%d\n",
   //  from->u8[0], from->u8[1]);
 
@@ -83,20 +82,18 @@ uint8_t cir[DW_LEN_ACC_MEM];
   write_byte((uint8_t) ':');
   write_byte((uint8_t) from->u8[0]);
   write_byte((uint8_t) from->u8[1]);
-  // printf("%d",from->u8[0]);
-  // printf("%d",from->u8[1]);
   write_byte((uint8_t) ':');
 
   dw_read_reg(DW_REG_ACC_MEM, DW_LEN_ACC_MEM, cir);
+
+  NETSTACK_RADIO.off();
 
   /* send to serial the contain of the ACC memory */
   for( uint16_t i =1; i < DW_LEN_ACC_MEM; i++){
     write_byte((uint8_t) cir[i]);
     // write_byte((uint8_t) i);
     watchdog_periodic(); /* avoid watchdog timer to be reach */
-  }
-
-  write_byte((uint8_t) '\n');
+  }  write_byte((uint8_t) '\n');
   NETSTACK_RADIO.on();
 }
 /*---------------------------------------------------------------------------*/

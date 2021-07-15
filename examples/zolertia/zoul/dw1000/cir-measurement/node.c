@@ -70,10 +70,11 @@ void dw_read_CIR(uint8_t * read_buf);
 PROCESS(example_unicast_process, "Example unicast");
 AUTOSTART_PROCESSES(&example_unicast_process);
 /*---------------------------------------------------------------------------*/
+
+static uint8_t cir[DW_LEN_ACC_MEM]; 
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
-  uint8_t cir[DW_LEN_ACC_MEM]; 
 
   // printf("unicast message received from %d.%d\n",
   //  from->u8[0], from->u8[1]);
@@ -91,19 +92,30 @@ recv_uc(struct unicast_conn *c, const linkaddr_t *from)
   // printf("fp_index %d %d\n", dw_is_lde_done(), fp_index>>6);
   write_byte((uint8_t) ':');
 
+
+  /* Clear the memory (to check if data is write in the table later) */
+  for( uint16_t i =0; i < DW_LEN_ACC_MEM; i++){
+    cir[i] = 0;
+  }  
+
   // dw_read_reg(DW_REG_ACC_MEM, DW_LEN_ACC_MEM, cir);
+
+  /* read the ACC memory without using DMA */
   dw_read_CIR(cir);
+
   NETSTACK_RADIO.off();
 
   /* send to serial the contain of the ACC memory */
-  for( uint16_t i =1; i < DW_LEN_ACC_MEM; i++){
+  for( uint16_t i =0; i < DW_LEN_ACC_MEM; i++){
     write_byte((uint8_t) cir[i]);
-    // write_byte((uint8_t) i);
     watchdog_periodic(); /* avoid watchdog timer to be reach */
   }  
 
   write_byte((uint8_t) '\n');
   NETSTACK_RADIO.on();
+
+
+  watchdog_periodic(); /* avoid watchdog timer to be reach */
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -134,10 +146,11 @@ PROCESS_THREAD(example_unicast_process, ev, data)
   unicast_open(&uc, 146, &unicast_callbacks);
 
   while(1) {
+
     static struct etimer et;
     linkaddr_t addr;
     
-    etimer_set(&et, CLOCK_SECOND*5);
+    etimer_set(&et, CLOCK_SECOND);
     
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 
@@ -145,7 +158,7 @@ PROCESS_THREAD(example_unicast_process, ev, data)
     addr.u8[0] = 0;
     addr.u8[1] = DESTINATION_ID;
 
-    /* disable ACk request to avoid modify the CIR on the receiver side */
+    /* disable ACK request to avoid modify the CIR on the receiver side */
     packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
     packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS, 1);
     if(!linkaddr_cmp(&addr, &linkaddr_node_addr)) {

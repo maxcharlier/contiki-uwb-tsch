@@ -84,6 +84,12 @@ recv_uc(struct unicast_conn *c, const linkaddr_t *from)
   write_byte((uint8_t) from->u8[0]);
   write_byte((uint8_t) from->u8[1]);
   write_byte((uint8_t) ':');
+  uint16_t fp_index = dw_get_fp_index();
+  write_byte((uint8_t) (fp_index >> 6) & 0XFF);
+  write_byte((uint8_t) (fp_index >> (8+6)) & 0xFF );
+  write_byte((uint8_t) (fp_index & 0x3F));
+  // printf("fp_index %d %d\n", dw_is_lde_done(), fp_index>>6);
+  write_byte((uint8_t) ':');
 
   // dw_read_reg(DW_REG_ACC_MEM, DW_LEN_ACC_MEM, cir);
   dw_read_CIR(cir);

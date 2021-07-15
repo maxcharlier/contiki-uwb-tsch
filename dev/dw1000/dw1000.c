@@ -2279,6 +2279,54 @@ dw_is_rx_timeout()
 }
 
 /**
+ * \brief Enable Accumulator memory to being able to 
+ * read the CIR value after reception of a message.
+ * FACE bit and the AMCE bit need to be set to 1 to 
+ * allow the accumulator reading to operate correctly.
+ */
+void 
+dw_enable_accumulator_memory(void)
+{
+
+  uint32_t psmc_ctrl0_val = 0UL;
+  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+    (uint8_t*) &psmc_ctrl0_val);
+  /* Force RX clock enable and sourced from the 125 MHz PLL clock. 
+  (NB: ensure PLL clock is present).*/
+  psmc_ctrl0_val &= ~DW_RXCLKS_MASK;
+  psmc_ctrl0_val |= 0x02 << DW_RXCLKS;
+  /* set FACE bit */
+  psmc_ctrl0_val |= DW_FACE_MASK;
+  /* set AMCE bit */
+  psmc_ctrl0_val |= DW_AMCE_MASK;
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &psmc_ctrl0_val);
+}
+/**
+ * \brief Return 1 to indicate the completion of the leading
+ * edge detection and other adjustments of the receive timestamp information.
+ * */
+uint8_t 
+dw_is_lde_done(void){
+  uint32_t sys_status = 0UL;
+  dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
+  return ((sys_status & DW_MLDEDONE_MASK) != 0);
+}
+
+/**
+ * \brief After the reception of a message, get the First Path Index 
+ * of the Channel Impuse Response placed in the accumulator data
+ * register.
+ * The 10 most significant bits of FP_INDEX represent the integer 
+ * portion of the number and the 6 least significant bits represent 
+ * the fractional part.
+ * */
+uint16_t 
+dw_get_fp_index(void) {
+  uint16_t fp_index = 0UL;
+  dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_FP_INDEX, DW_SUBLEN_FP_INDEX, (uint8_t*) &fp_index);
+  return fp_index;
+}
+/**
  * \brief Gets the timestamps for the latest received frame.
  * \note  This is the Raw Timestamp for the received frame.
  *        This is the value of the system clock (125 MHz) captured at 
@@ -2673,39 +2721,6 @@ dw_init_delayed_rx(void)
   }
 }
 
-/**
- * \brief Enable Accumulator memory to being able to 
- * read the CIR value after reception of a message.
- * FACE bit and the AMCE bit need to be set to 1 to 
- * allow the accumulator reading to operate correctly.
- */
-void 
-dw_enable_accumulator_memory(void)
-{
-
-  uint32_t psmc_ctrl0_val = 0UL;
-  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
-    (uint8_t*) &psmc_ctrl0_val);
-  /* Force RX clock enable and sourced from the 125 MHz PLL clock. 
-  (NB: ensure PLL clock is present).*/
-  psmc_ctrl0_val &= ~DW_RXCLKS_MASK;
-  psmc_ctrl0_val |= 0x02 << DW_RXCLKS;
-  /* set FACE bit */
-  psmc_ctrl0_val |= DW_FACE_MASK;
-  /* set AMCE bit */
-  psmc_ctrl0_val |= DW_AMCE_MASK;
-  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &psmc_ctrl0_val);
-}
-/**
- * \brief Return 1 to indicate the completion of the leading
- * edge detection and other adjustments of the receive timestamp information.
- * */
-uint8_t 
-dw_is_lde_done(void){
-  uint32_t sys_status = 0UL;
-  dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
-  return ((sys_status & DW_MLDEDONE_MASK) != 0);
-}
 /**
  * \brief Starts a new transmission. Data must either already be uploaded to
  *        DW1000 or be uploaded VERY shortly.

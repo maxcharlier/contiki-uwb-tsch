@@ -653,8 +653,6 @@ void dw_fs_xtalt(uint8_t value);
 void dw_set_snif_mode(uint8_t enable, uint8_t rx_on, uint8_t rx_off);
 void dw_init_rx(void);
 void dw_init_delayed_rx(void);
-void dw_enable_accumulator_memory(void);
-uint8_t dw_is_lde_done(void);
 /* Utility */
 
 /* Device independent */
@@ -703,6 +701,11 @@ uint16_t dw_get_rx_timeout(void);
 void     dw_enable_rx_timeout(void);
 void     dw_disable_rx_timeout(void);
 uint8_t     dw_is_rx_timeout(void);
+
+/* Channel Impulse Responce */
+void dw_enable_accumulator_memory(void);
+uint8_t dw_is_lde_done(void);
+uint16_t dw_get_fp_index(void);
 
 /* Ranging  / timestamps */
 uint64_t dw_get_rx_timestamp(void);

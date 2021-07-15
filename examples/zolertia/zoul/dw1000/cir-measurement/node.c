@@ -65,6 +65,7 @@
   #define PRINTF(...) do {} while(0)
 #endif /* PRINT_BYTE */
 
+void dw_read_CIR(uint8_t * read_buf);
 /*---------------------------------------------------------------------------*/
 PROCESS(example_unicast_process, "Example unicast");
 AUTOSTART_PROCESSES(&example_unicast_process);
@@ -84,8 +85,8 @@ recv_uc(struct unicast_conn *c, const linkaddr_t *from)
   write_byte((uint8_t) from->u8[1]);
   write_byte((uint8_t) ':');
 
-  dw_read_reg(DW_REG_ACC_MEM, DW_LEN_ACC_MEM, cir);
-
+  // dw_read_reg(DW_REG_ACC_MEM, DW_LEN_ACC_MEM, cir);
+  dw_read_CIR(cir);
   NETSTACK_RADIO.off();
 
   /* send to serial the contain of the ACC memory */
@@ -93,7 +94,9 @@ recv_uc(struct unicast_conn *c, const linkaddr_t *from)
     write_byte((uint8_t) cir[i]);
     // write_byte((uint8_t) i);
     watchdog_periodic(); /* avoid watchdog timer to be reach */
-  }  write_byte((uint8_t) '\n');
+  }  
+
+  write_byte((uint8_t) '\n');
   NETSTACK_RADIO.on();
 }
 /*---------------------------------------------------------------------------*/
@@ -128,7 +131,7 @@ PROCESS_THREAD(example_unicast_process, ev, data)
     static struct etimer et;
     linkaddr_t addr;
     
-    etimer_set(&et, CLOCK_SECOND);
+    etimer_set(&et, CLOCK_SECOND*5);
     
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 

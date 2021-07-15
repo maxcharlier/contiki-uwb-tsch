@@ -2697,6 +2697,16 @@ dw_enable_accumulator_memory(void)
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &psmc_ctrl0_val);
 }
 /**
+ * \brief Return 1 to indicate the completion of the leading
+ * edge detection and other adjustments of the receive timestamp information.
+ * */
+uint8_t 
+dw_is_lde_done(void){
+  uint32_t sys_status = 0UL;
+  dw_read_subreg(DW_REG_SYS_STATUS, 0x0, 4, (uint8_t*) &sys_status);
+  return ((sys_status & DW_MLDEDONE_MASK) != 0);
+}
+/**
  * \brief Starts a new transmission. Data must either already be uploaded to
  *        DW1000 or be uploaded VERY shortly.
  *

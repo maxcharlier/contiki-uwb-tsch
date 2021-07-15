@@ -654,6 +654,7 @@ void dw_set_snif_mode(uint8_t enable, uint8_t rx_on, uint8_t rx_off);
 void dw_init_rx(void);
 void dw_init_delayed_rx(void);
 void dw_enable_accumulator_memory(void);
+uint8_t dw_is_lde_done(void);
 /* Utility */
 
 /* Device independent */

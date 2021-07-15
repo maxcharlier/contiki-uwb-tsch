@@ -45,6 +45,7 @@
  */
 /*---------------------------------------------------------------------------*/
 #include "dw1000-arch.h"
+#include "dw1000-const.h"
 
 #include "contiki.h"
 #include "contiki-net.h"
@@ -64,6 +65,12 @@
 #include "watchdog.h"
 
 #include <stdio.h>
+
+#include "dev/uart.h"
+#define DBG_CONF_UART               0
+#define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
+
+
 /*---------------------------------------------------------------------------*/
 #define DWM1000_SPI_CLK_PORT_BASE   GPIO_PORT_TO_BASE(DWM1000_CLK_PORT)
 #define DWM1000_SPI_CLK_PIN_MASK    GPIO_PIN_MASK(DWM1000_CLK_PIN)
@@ -596,9 +603,52 @@ void dw1000_arch_restore_idle_state(void){
   /* drive CSn Low */
   // DW1000_DESELECT();
 
-  /* reenable SPI clock */
+  /* re-enable SPI clock */
   // spix_enable(DWM1000_SPI_INSTANCE);
   // dw1000_arch_init();
 }
 
 
+/*---------------------------------------------------------------------------*/
+void dw_read_CIR(uint8_t * read_buf)
+{
+
+  // printf("dw_read_CIR \n");
+  uint32_t reg_addr = DW_REG_ACC_MEM;
+  uint16_t subreg_len = DW_LEN_ACC_MEM;
+  uint16_t  spi_cmd_len = 1, i;
+
+  /* We write the SPI commands on the SPI TX FIFO and we flush the SPI RX FIFO 
+    later (there are a delay between the reception of the byte on the physical 
+    SPI and the availability of the byte on the RX FIFO). */
+
+  DW1000_SELECT();
+
+  /* write bit = 0, sub-reg present bit = 1 */
+  SPIX_BUF(DWM1000_SPI_INSTANCE) = reg_addr & 0x3F;
+
+  for(i = 0; i < spi_cmd_len ; i++) {
+    SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
+    
+    SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
+    /* read the receive FIFO to clear it*/
+    SPIX_BUF(DWM1000_SPI_INSTANCE);
+  }
+
+  for(i = 0; i < subreg_len-spi_cmd_len; i++) {
+    SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
+    
+    SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
+    read_buf[i] = SPIX_BUF(DWM1000_SPI_INSTANCE);
+  }
+
+  for(i = subreg_len-spi_cmd_len; i < subreg_len; i++) {
+    SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
+    /* read the receive FIFO to clear it*/
+    read_buf[i] = SPIX_BUF(DWM1000_SPI_INSTANCE);
+
+    watchdog_periodic(); /* avoid watchdog timer to be reach */
+  }
+  
+  DW1000_DESELECT();
+}

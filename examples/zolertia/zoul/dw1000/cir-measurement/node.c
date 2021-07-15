@@ -42,6 +42,8 @@
 #include <stdio.h>
 #include "dev/watchdog.h"
 
+#include "sys/timer.h"
+
 #define DESTINATION_ID 0x01
 
 // uint8_t cir[DW_LEN_ACC_MEM]; 
@@ -133,6 +135,19 @@ sent_uc(struct unicast_conn *c, int status, int num_tx)
   NETSTACK_RADIO.on();
 }
 
+
+static struct ctimer timer_transceiver_reset;
+/**
+ * Perfomes a Soft Reset of the transceiver every 5 seconds 
+ * to restore a working state.
+ * */
+void
+transceiver_soft_reset(void){
+    ctimer_reset(&timer_transceiver_reset);
+    NETSTACK_RADIO.off();
+    NETSTACK_RADIO.init();
+    NETSTACK_RADIO.on();
+}
 /*---------------------------------------------------------------------------*/
 static const struct unicast_callbacks unicast_callbacks = {recv_uc, sent_uc};
 static struct unicast_conn uc;
@@ -144,6 +159,8 @@ PROCESS_THREAD(example_unicast_process, ev, data)
   PROCESS_BEGIN();
 
   unicast_open(&uc, 146, &unicast_callbacks);
+  
+  ctimer_set(&timer_transceiver_reset, 5 * CLOCK_SECOND, transceiver_soft_reset, NULL);
 
   while(1) {
 
@@ -161,6 +178,8 @@ PROCESS_THREAD(example_unicast_process, ev, data)
     /* disable ACK request to avoid modify the CIR on the receiver side */
     packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);
     packetbuf_set_attr(PACKETBUF_ATTR_MAX_MAC_TRANSMISSIONS, 1);
+
+
     if(!linkaddr_cmp(&addr, &linkaddr_node_addr)) {
       unicast_send(&uc, &addr);
     }

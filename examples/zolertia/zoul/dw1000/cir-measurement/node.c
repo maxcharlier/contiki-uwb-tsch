@@ -142,7 +142,7 @@ static struct ctimer timer_transceiver_reset;
  * to restore a working state.
  * */
 void
-transceiver_soft_reset(void){
+transceiver_soft_reset(){
     ctimer_reset(&timer_transceiver_reset);
     NETSTACK_RADIO.off();
     NETSTACK_RADIO.init();

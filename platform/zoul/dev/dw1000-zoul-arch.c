@@ -625,6 +625,11 @@ void dw_read_CIR(uint8_t * read_buf)
   SPIX_BUF(DWM1000_SPI_INSTANCE) = reg_addr & 0x3F;
   DW1000_SPI_RX_FLUSH(1);
 
+
+  SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
+  SPIX_WAITFOREORx(DWM1000_SPI_INSTANCE); /* RX FIFO is not empty */
+  SPIX_BUF(DWM1000_SPI_INSTANCE);
+  
   for(i = 0; i < subreg_len; i++) {
     SPIX_BUF(DWM1000_SPI_INSTANCE) = 0;
     

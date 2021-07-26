@@ -2326,6 +2326,18 @@ dw_get_fp_index(void) {
   dw_read_subreg(DW_REG_RX_TIME, DW_SUBREG_FP_INDEX, DW_SUBLEN_FP_INDEX, (uint8_t*) &fp_index);
   return fp_index;
 }
+
+/**
+ * \brief Return the LDE Threshold value. This threshold is calculated 
+ * based on an estimate of the noise made during the LDE algorithm’s 
+ * analysis of the accumulator data.
+ * */
+uint16_t
+dx_get_lde_threshold(void){
+  uint16_t lde_thresh = 0UL;
+  dw_read_subreg(DW_REG_LDE_IF, DW_SUBREG_LDE_THRESH, DW_SUBLEN_LDE_THRESH, (uint8_t*) &lde_thresh);
+  return lde_thresh;
+}
 /**
  * \brief Gets the timestamps for the latest received frame.
  * \note  This is the Raw Timestamp for the received frame.

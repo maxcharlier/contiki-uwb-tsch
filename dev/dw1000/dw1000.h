@@ -706,6 +706,7 @@ uint8_t     dw_is_rx_timeout(void);
 void dw_enable_accumulator_memory(void);
 uint8_t dw_is_lde_done(void);
 uint16_t dw_get_fp_index(void);
+uint16_t dx_get_lde_threshold(void);
 
 /* Ranging  / timestamps */
 uint64_t dw_get_rx_timestamp(void);
@@ -760,7 +761,6 @@ int  dw_is_receive_timeout(uint64_t status);
 /* LDO TUNE */
 int dw_is_ldotune(void);
 void dw_load_ldotune(void);
-
 void set_in_deep_sleep(void);
 
 /*===========================================================================*/

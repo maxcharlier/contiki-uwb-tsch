@@ -251,6 +251,8 @@
 #define DW_SUBLEN_OTP_SF    1           /* \brief dummy */
 
 #define DW_REG_LDE_IF        0x2E       /* \brief dummy */
+#define DW_SUBREG_LDE_THRESH 0x00       /* \brief dummy */
+#define DW_SUBLEN_LDE_THRESH 2          /* \brief dummy */
 #define DW_SUBREG_LDE_CFG1   0x0806     /* \brief dummy */
 #define DW_SUBLEN_LDE_CFG1   1          /* \brief dummy */
 #define DW_SUBREG_LDE_RXANTD 0x1804     /* \brief dummy */

@@ -71,6 +71,8 @@ void dw1000_driver_set_reply_time(uint32_t reply_time);
 int32_t dw1000_driver_get_propagation_time(void);
 dw1000_frame_quality dw1000_driver_get_packet_quality(void);
 
+void dw1000_schedule_tx_chorus(uint64_t delay);
+
 /*---------------------------------------------------------------------------*/
 /** The NETSTACK data structure for the cc2538 RF driver */
 extern const struct radio_driver dw1000_driver;
@@ -84,6 +86,7 @@ extern const struct radio_driver dw1000_driver;
                       * (RTIMER_ARCH_SECOND /1024) / (DW_TIMESTAMP_CLOCK/1024)))
 #define RADIO_TO_US(X) ((uint32_t)((uint64_t) ((X) / DW_TIMESTAMP_CLOCK_INCREMENT) \
                      / DW_TIMESTAMP_CLOCK_DIVIDER_TO_US))
+#define RADIO_TO_NS(X) ((uint32_t)((uint64_t) (((X) >> (DW_TIMESTAMP_CLOCK_OFFSET))*8)))
 
 #define US_TO_RADIO(x)  (((uint64_t) x * DW_TIMESTAMP_CLOCK_DIVIDER_TO_US) \
 						* DW_TIMESTAMP_CLOCK_INCREMENT)

@@ -531,11 +531,13 @@ dw1000_driver_transmit(unsigned short payload_len)
     /* wait the effective start of the transmission */
     uint64_t sys_time = 0ULL, dx_time = 0ULL;
 
-    // dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);
-    // dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);
+    dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);
+    dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);
     // printf("dw1000_driver_transmit init %lu %llu %llu\n", RADIO_TO_US(dx_time-sys_time), sys_time, dx_time);
-
-    /* We wait for a maximum of 1ms to be improve in case of lower bitrate */
+    if(sys_time > dx_time){
+      printf("dw1000_driver_transmit timeout %lu\n", RADIO_TO_US(sys_time-dx_time));
+    }
+    /* We wait for a maximum of 2ms to be improve in case of lower bitrate */
     BUSYWAIT_UPDATE_UNTIL(
                     dw_read_reg(DW_REG_SYS_TIME, DW_LEN_SYS_TIME, (uint8_t *)&sys_time);\
                     dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);\
@@ -1921,6 +1923,8 @@ get_sfd_timestamp(uint32_t reg_addr)
 /**
  * \brief Based on the delay (in us) and the RX timestamps, this function schedule 
  *        the ranging reply message.
+ * 
+ * NOTE: The transceiver need to be in IDLE when invocking a delayed transmition.
  */
 void 
 dw1000_schedule_tx(uint16_t delay_us)
@@ -1973,4 +1977,30 @@ dw1000_update_frame_quality(void){
 dw1000_frame_quality
 dw1000_driver_get_packet_quality(void){
   return last_packet_quality;
+}
+
+
+/*===========================================================================*/
+/* Chorus                                                                    */
+/*===========================================================================*/
+/**
+ * \brief Based on the delay (in decawave unit) and the RX timestamps, this function schedule 
+ *        the ranging reply message.
+ * 
+ * NOTE: The transceiver need to be in IDLE when invocking a delayed transmition.
+ */
+void 
+dw1000_schedule_tx_chorus(uint64_t delay)
+{
+  uint64_t schedule_time = dw_get_rx_timestamp();
+  /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
+  schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  /* The 10nd bit have a "value" of 125Mhz */
+  schedule_time = schedule_time + delay; 
+
+  dw_set_dx_timestamp(schedule_time);
+  // printf("schedule tx time %llu\n", (schedule_time-(dw_get_rx_timestamp()&DW_TIMESTAMP_CLEAR_LOW_9)));
+
+  dw1000_is_delayed_tx = 1;
+  dw_init_tx(0,1);
 }

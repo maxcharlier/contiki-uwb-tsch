@@ -115,9 +115,10 @@ void send_delayed_response(struct broadcast_conn *conn){
 
   NETSTACK_RADIO.off();
   //Anchors receive a message and send a response after a fixed delay.
-  // 1500 us + 128 ns * offset => one unit is 8 ns
+  // 5000 us + 200 ns * offset => one unit is 8 ns
+  // 5000 us needed due to the delay for calling the interupt in Contiki OS
   // 9 lower bit are ignored by the transceiver, unit of the 10nd is 8 ns
-  uint64_t delay_radio =  US_TO_RADIO(1500) + (((linkaddr_node_addr.u8[1] - ANCHOR_ID)*16) << DW_TIMESTAMP_CLOCK_OFFSET);
+  uint64_t delay_radio =  US_TO_RADIO(5000) + (((linkaddr_node_addr.u8[1] - ANCHOR_ID)*25) << DW_TIMESTAMP_CLOCK_OFFSET);
 
   // preparation duration is about 185 us
   //prepare the response
@@ -153,17 +154,18 @@ void send_delayed_response(struct broadcast_conn *conn){
   
   uint8_t value = NETSTACK_RADIO.transmit(packet_len);
 
-    NETSTACK_RADIO.on();
   printf("message received\n");
-  printf("Delay %lld in ns : %ld\n", delay_radio, RADIO_TO_NS(delay_radio));
+  printf("Delay %lld in ns : %lu\n", delay_radio, RADIO_TO_NS(delay_radio));
 
   if(value ==  RADIO_TX_OK)
     printf("Transmit OK\n");
   else
     printf("Transmit Error %d\n", value);
-  
+  printf("real delay : %ld \n", RADIO_TO_NS(dw_get_tx_timestamp() - dw_get_rx_timestamp()));
+  printf("real delay inv: %ld \n", RADIO_TO_NS(dw_get_rx_timestamp() - dw_get_tx_timestamp()));
   watchdog_periodic(); /* avoid watchdog timer to be reach */
 
+    NETSTACK_RADIO.on();
 }
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)

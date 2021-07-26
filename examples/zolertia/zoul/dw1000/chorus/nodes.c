@@ -107,7 +107,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
     uint16_t lde_threshold = dx_get_lde_threshold();
     write_byte((uint8_t) lde_threshold & 0xFF );
     write_byte((uint8_t) (lde_threshold >> 8) & 0XFF);
-    
+
     write_byte((uint8_t) ':');
 
     /* Clear the memory (to check if data is write in the table later) */
@@ -177,7 +177,8 @@ PROCESS_THREAD(initiator_process, ev, data)
   while(1) {
     linkaddr_t addr;
     /* Delay 2-4 seconds */
-    etimer_set(&et, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
+    // etimer_set(&et, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
+    etimer_set(&et, CLOCK_SECOND * 2 + random_rand() % (CLOCK_SECOND * 2));
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 

@@ -543,7 +543,7 @@ dw1000_driver_transmit(unsigned short payload_len)
                     dw_read_reg(DW_REG_DX_TIME, DW_LEN_DX_TIME, (uint8_t *)&dx_time);\
                     watchdog_periodic();,
                     (sys_time > dx_time), 
-                    (2000));
+                    (5000));
     if(sys_time < dx_time){
       printf("dw1000_driver_transmit wait too long %lu\n", RADIO_TO_US(dx_time-sys_time));
     }

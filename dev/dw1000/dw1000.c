@@ -632,7 +632,7 @@ dw_conf(dw1000_base_conf_t *dw_conf)
 
   /* === Configure LDE Replica Coefficient */
   dw_lde_repc_config(dw_conf->preamble_code, dw_conf->data_rate);
-  dw_configure_lde(dw_conf->preamble_code);
+  dw_configure_lde(dw_conf->prf);
 
   /* === Configure PAC size */
   dw_set_pac_size(dw_conf->pac_size, dw_conf->prf);

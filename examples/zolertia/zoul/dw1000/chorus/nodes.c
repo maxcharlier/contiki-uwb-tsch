@@ -61,6 +61,7 @@
 #include "dw1000-arch.h"
 #include "dw1000-const.h"
 #include "dw1000.h"
+#include "dw1000-driver.h"
 
 
 #include "dev/uart.h"

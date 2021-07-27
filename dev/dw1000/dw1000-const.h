@@ -202,7 +202,7 @@
 
 #define DW_REG_TX_CAL        0x2A       /* \brief dummy */
 #define DW_SUBREG_TC_SARC    0x00       /* \brief dummy */
-#define DW_SUBLEN_TC_SARC    3          /* \brief dummy */
+#define DW_SUBLEN_TC_SARC    2          /* \brief dummy */
 #define DW_SUBREG_TC_SARL    0x03       /* \brief dummy */
 #define DW_SUBLEN_TC_SARL    3          /* \brief dummy */
 #define DW_SUBREG_TC_SARW    0x06       /* \brief dummy */

@@ -79,6 +79,22 @@
 
 void dw_read_CIR(uint8_t * read_buf);
 
+/** 
+ * Use the same configuration as Chorus :
+ * In all experiments, we set the DW1000 to use
+ * channel 7 with center frequency f c = 6489.6 GHz 
+ * and bandwidth 1081.6 MHz. We use the shortest preamble 
+ * length of 64 symbols with preamble code 17, 
+ * the highest PRF = 64 MHz, and the highest
+ * 6.8 Mbps data rate. 
+ * Finally, we set the response delay δ TX = 280 μs
+ * 
+ * In out case due to contiki implementation, the response delay is about 5000 us */
+void set_chorus_radio_configuration(void){
+  // be default we use the preamble code 17 
+  dw1000_driver_config(DW_CHANNEL_7, DW_DATA_RATE_6800_KBPS, DW_PREAMBLE_LENGTH_64, DW_PRF_64_MHZ);
+}
+
 static struct ctimer timer_transceiver_reset;
 /**
  * Perfomes a Soft Reset of the transceiver every 5 seconds 
@@ -89,6 +105,7 @@ transceiver_soft_reset(){
     ctimer_reset(&timer_transceiver_reset);
     NETSTACK_RADIO.off();
     NETSTACK_RADIO.init();
+    set_chorus_radio_configuration();
     NETSTACK_RADIO.on();
 }
 
@@ -183,6 +200,8 @@ PROCESS_THREAD(anchor_process, ev, data)
   ctimer_set(&timer_transceiver_reset, 20 * CLOCK_SECOND, transceiver_soft_reset, NULL);
 
   broadcast_open(&broadcast, 129, &broadcast_call);
+  
+  set_chorus_radio_configuration();
 
   while(1) {
     PROCESS_WAIT_EVENT();

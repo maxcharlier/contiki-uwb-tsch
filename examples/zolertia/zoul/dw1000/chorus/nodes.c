@@ -96,8 +96,15 @@ static uint8_t cir[DW_LEN_ACC_MEM];
  * 
  * In out case due to contiki implementation, the response delay is about 5000 us */
 void set_chorus_radio_configuration(void){
+  /* we place the radio in IDLE before any change to the configuration */
+
+  NETSTACK_RADIO.off();
+  NETSTACK_RADIO.init();
+
   // be default we use the preamble code 17 
   dw1000_driver_config(DW_CHANNEL_7, DW_DATA_RATE_6800_KBPS, DW_PREAMBLE_LENGTH_64, DW_PRF_64_MHZ);
+
+  NETSTACK_RADIO.on();
 }
 
 static void
@@ -171,10 +178,7 @@ static struct ctimer timer_transceiver_reset;
 void
 transceiver_soft_reset(){
     ctimer_reset(&timer_transceiver_reset);
-    NETSTACK_RADIO.off();
-    NETSTACK_RADIO.init();
     set_chorus_radio_configuration();
-    NETSTACK_RADIO.on();
 }
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};

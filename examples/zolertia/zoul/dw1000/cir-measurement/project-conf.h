@@ -60,7 +60,7 @@
 #endif
 
 /* Transceiver configuration */
-#define DW1000_CHANNEL              5
+#define DW1000_CHANNEL              3
 #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
 /*#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256 */
 #define DW1000_PRF                  DW_PRF_64_MHZ

@@ -80,12 +80,22 @@
 #define LINK_OPTION_SHARED          4
 #define LINK_OPTION_TIME_KEEPING    8
 
+
+
+/* Chorus Node Type */
+#define CHORUS_NOT_TO_PARTICIPATE   0
+#define CHORUS_INITIATOR_NODE       1
+#define CHORUS_ANCHORS_NODE         2
+#define CHORUS_MOBILE_NODE          3
+
 /************ Types ***********/
 
 /* 802.15.4e link types.
  * LINK_TYPE_PROP for propagation time measurement (Two way ranging protocol).
- * LINK_TYPE_ADVERTISING_ONLY is an extra one: for EB-only links. */
-enum link_type { LINK_TYPE_NORMAL, LINK_TYPE_ADVERTISING, LINK_TYPE_PROP, LINK_TYPE_ADVERTISING_ONLY };
+ * LINK_TYPE_CHORUS for Chorus scheme localisation, LINK_OPTION_TX for the initiator, LINK_OPTION_RX for anchors and mobile nodes. 
+ * LINK_TYPE_ADVERTISING_ONLY is an extra one: for EB-only links. 
+ **/
+enum link_type { LINK_TYPE_NORMAL, LINK_TYPE_ADVERTISING, LINK_TYPE_PROP, LINK_TYPE_ADVERTISING_ONLY, LINK_TYPE_CHORUS };
 
 struct tsch_link {
   /* Links are stored as a list: "next" must be the first field */

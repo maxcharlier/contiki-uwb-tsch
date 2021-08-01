@@ -222,6 +222,8 @@
   #define TSCH_LOC_RX_OFFSET          (TSCH_LOC_RX_GUARD)
   #define TSCH_LOC_TX_OFFSET          (TSCH_LOC_RX_OFFSET+TSCH_LOC_RX_GUARD+UWB_T_SHR)
 
+  /* CHORUS configuration */
+  #define TSCH_CONF_CHORUS              1
 
 #else
 /* The default timeslot timing in the standard is a guard time of
@@ -345,6 +347,37 @@
 #define TSCH_LOCALISATION TSCH_CONF_LOCALISATION
 #else
 #define TSCH_LOCALISATION 0
+#endif 
+
+/* Used to enable TSCH Chorus slot */
+#ifdef TSCH_CONF_CHORUS
+#define TSCH_CHORUS TSCH_CONF_CHORUS
+#else
+#define TSCH_CHORUS 0
+#endif 
+
+/* Used to define the type of node in Chorus (Anchors, mobile node, initiator) */
+#ifdef TSCH_CONF_CHORUS_NODE_TYPE
+#define TSCH_CHORUS_NODE_TYPE TSCH_CONF_CHORUS_NODE_TYPE
+#else
+/* Node do not participate in chorus */
+#define TSCH_CHORUS_NODE_TYPE 0
+#endif 
+
+/* Used to define the anchors offset*/
+#ifdef TSCH_CONF_CHORUS_FIRST_ANCHOR_ID
+#define TSCH_CHORUS_FIRST_ANCHOR_ID TSCH_CONF_CHORUS_FIRST_ANCHOR_ID
+#else
+/* Node do not participate in chorus */
+#define TSCH_CHORUS_FIRST_ANCHOR_ID 0XA1
+#endif
+
+/* Used to define the transmittion offset between anchors in ns*/
+#ifdef TSCH_CONF_CHORUS_TX_OFFSET
+#define TSCH_CHORUS_TX_OFFSET TSCH_CONF_CHORUS_TX_OFFSET
+#else
+/* By default the TX offset between anchors is 200 ns*/
+#define TSCH_CHORUS_TX_OFFSET 200
 #endif 
 
 #endif /* __TSCH_CONF_H__ */

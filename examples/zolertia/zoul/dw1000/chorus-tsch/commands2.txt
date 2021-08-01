@@ -1,0 +1,10 @@
+make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0XA1 && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB1 NODEID=0XA2 && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB2 NODEID=0XA3 && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB3 NODEID=0XA4
+
+
+make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0X01
+
+
+touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0XA1 && touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB1 NODEID=0x01
+
+
+touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0X01 && touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB1 NODEID=0xA1 && touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB2 NODEID=0xA2 && make reset-all TARGET=zoul BOARD=firefly-dw1000

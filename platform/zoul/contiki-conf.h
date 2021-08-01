@@ -489,6 +489,16 @@ typedef uint32_t rtimer_clock_t;
   // #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  2
   #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  12
 
+  /* Chorus Config : */
+  #ifdef CHORUS_CONFIG
+    #undef TSCH_CONF_DEFAULT_HOPPING_SEQUENCE
+    #undef TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN
+    #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE  TSCH_CHORUS_HOPPING_SEQUENCE
+    #define TSCH_CONF_HOPPING_SEQUENCE_MAX_LEN  TSCH_CHORUS_HOPPING_SEQUENCE_MAX_LEN
+  #endif /* CHORUS_CONFIG */
+  
+
+
   // #undef TSCH_CONF_RADIO_ON_DURING_TIMESLOT
   // #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT 1
 
@@ -505,7 +515,9 @@ typedef uint32_t rtimer_clock_t;
   // #define TSCH_CONF_KEEPALIVE_TIMEOUT (10*CLOCK_SECOND)
   // #define TSCH_CONF_MAX_EB_PERIOD (10*CLOCK_SECOND)
   // #define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT (20*CLOCK_SECOND)
+#ifndef TSCH_CONF_SLEEP
   #define TSCH_CONF_SLEEP 0
+#endif
 
   /* Used to start the slot in advance to avoid miss deadline because of the slow processing speed */
   

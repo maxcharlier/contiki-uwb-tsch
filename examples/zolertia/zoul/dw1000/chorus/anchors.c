@@ -78,6 +78,7 @@
 #endif /* PRINT_BYTE */
 
 void dw_read_CIR(uint8_t * read_buf);
+static rtimer_clock_t last_transmission = 0;
 
 /** 
  * Use the same configuration as Chorus :
@@ -110,7 +111,9 @@ static struct ctimer timer_transceiver_reset;
 void
 transceiver_soft_reset(){
     ctimer_reset(&timer_transceiver_reset);
-    set_chorus_radio_configuration();
+    //reset the transceiver only if we don't receive a request for more the 2 seconde.
+    if(RTIMER_NOW() > (last_transmission + 2 * CLOCK_SECOND))
+      set_chorus_radio_configuration();
 }
 
 
@@ -175,6 +178,8 @@ void send_delayed_response(struct broadcast_conn *conn){
   
   uint8_t value = NETSTACK_RADIO.transmit(packet_len);
 
+  last_transmission = RTIMER_NOW();
+
   printf("message received\n");
   printf("Delay %lld in ns : %lu\n", delay_radio, RADIO_TO_NS(delay_radio));
 
@@ -201,12 +206,12 @@ PROCESS_THREAD(anchor_process, ev, data)
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
-  ctimer_set(&timer_transceiver_reset, 20 * CLOCK_SECOND, transceiver_soft_reset, NULL);
+  ctimer_set(&timer_transceiver_reset, CLOCK_SECOND, transceiver_soft_reset, NULL);
 
   broadcast_open(&broadcast, 129, &broadcast_call);
   
   set_chorus_radio_configuration();
-
+  last_transmission = RTIMER_NOW();
   while(1) {
     PROCESS_WAIT_EVENT();
   }

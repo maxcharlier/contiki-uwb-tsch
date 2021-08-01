@@ -199,14 +199,14 @@ PROCESS_THREAD(initiator_process, ev, data)
 
   PROCESS_BEGIN();
 
-  ctimer_set(&timer_transceiver_reset, 15 * CLOCK_SECOND, transceiver_soft_reset, NULL);
+  ctimer_set(&timer_transceiver_reset, CLOCK_SECOND, transceiver_soft_reset, NULL);
 
   broadcast_open(&broadcast, RIME_CHANNEL, &broadcast_call);
 
   while(1) {
     linkaddr_t addr;
     /* Delay 2-4 seconds */
-    etimer_set(&et, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
+    etimer_set(&et, CLOCK_SECOND);
 
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 

@@ -178,4 +178,8 @@ void dw1000_arch_wake_up(dw1000_pin_state state);
 void dw1000_arch_restore_idle_state(void);
 /*---------------------------------------------------------------------------*/
 
+/**
+ * \brief Read the 4096 bytes of the Accumulator CIR memory.
+ * */
+void dw_read_CIR(uint8_t * read_buf);
 #endif /* __DW1000_ARCH_H__ */

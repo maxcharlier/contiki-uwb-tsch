@@ -83,6 +83,7 @@ PROCESS(initiator_process, "Initiator Process");
 AUTOSTART_PROCESSES(&initiator_process);
 /*---------------------------------------------------------------------------*/
 static uint8_t cir[DW_LEN_ACC_MEM]; 
+static rtimer_clock_t last_receive = 0;
 /*---------------------------------------------------------------------------*/
 /** 
  * Use the same configuration as Chorus :
@@ -114,6 +115,9 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
   // printf("unicast message received from %d.%d\n",
   //  from->u8[0], from->u8[1]);
   if(from->u8[1] !=  INITIATOR_ID){
+
+    last_receive = RTIMER_NOW();
+
     write_byte((uint8_t) '-');
     write_byte((uint8_t) 'R');
     write_byte((uint8_t) ':');
@@ -178,7 +182,10 @@ static struct ctimer timer_transceiver_reset;
 void
 transceiver_soft_reset(){
     ctimer_reset(&timer_transceiver_reset);
-    set_chorus_radio_configuration();
+
+    //reset the transceiver only if we don't receive a request for more the 2 seconde.
+    if(RTIMER_NOW() > (last_receive + 2 * CLOCK_SECOND))
+      set_chorus_radio_configuration();
 }
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
@@ -188,16 +195,24 @@ PROCESS_THREAD(initiator_process, ev, data)
 {
   static struct etimer et;
 
+  static linkaddr_t addr;
+  addr.u8[0] = 0;
+  addr.u8[1] = INITIATOR_ID;
+
   PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
 
   PROCESS_BEGIN();
+  // reset the initiator every 15 seconds, mobile each 2 seconds if no messages received.
+  if(linkaddr_cmp(&addr, &linkaddr_node_addr))
+    ctimer_set(&timer_transceiver_reset, 15 * CLOCK_SECOND, transceiver_soft_reset, NULL);
+  else
+    ctimer_set(&timer_transceiver_reset, CLOCK_SECOND, transceiver_soft_reset, NULL);
 
-  ctimer_set(&timer_transceiver_reset, 15 * CLOCK_SECOND, transceiver_soft_reset, NULL);
+  last_receive = RTIMER_NOW();
 
   broadcast_open(&broadcast, 129, &broadcast_call);
   set_chorus_radio_configuration();
   while(1) {
-    linkaddr_t addr;
     /* Delay 2-4 seconds */
     // etimer_set(&et, CLOCK_SECOND * 4 + random_rand() % (CLOCK_SECOND * 4));
     etimer_set(&et, CLOCK_SECOND * 2 + random_rand() % (CLOCK_SECOND * 2));
@@ -206,8 +221,6 @@ PROCESS_THREAD(initiator_process, ev, data)
 
 
     packetbuf_copyfrom("Req.", 4);
-    addr.u8[0] = 0;
-    addr.u8[1] = INITIATOR_ID;
 
     /* disable ACK request to avoid modify the CIR on the receiver side */
     packetbuf_set_attr(PACKETBUF_ATTR_MAC_ACK, 0);

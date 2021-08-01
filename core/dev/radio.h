@@ -190,6 +190,12 @@ enum {
   RADIO_LOC_RX_DELAYED_US,
 
   /*
+   * Set a delayed reception based on the previews receiption.
+   * The delay is set in micro second.
+   * */
+  RADIO_CHORUS_RX_DELAYED_US,
+
+  /*
    * Set a timeout value for the reception duration. 
    * Usefull when delayed reception is used to avoid listening too long 
    * if we don't receive a frame. 

@@ -116,7 +116,7 @@
 
 /* #define DEBUG_RANGING 1 */
 
-// #define DEBUG 1
+#define DEBUG 0
 #define DEBUG_VERBOSE 0
 #if DEBUG_VERBOSE
 #define DEBUG 1
@@ -267,7 +267,8 @@ static volatile uint16_t last_packet_timestamp = 0;
 
 /* start private function */
 void dw1000_schedule_tx(uint16_t delay_us);
-void dw1000_schedule_rx(uint16_t delay_us);
+void dw1000_schedule_tx_to_rx(uint16_t delay_us);
+void dw1000_schedule_rx_to_rx(uint16_t delay_us);
 void dw1000_update_frame_quality(void);
 dw1000_preamble_code_t
 dw1000_get_preamble_code(dw1000_channel_t channel, dw1000_prf_t prf);
@@ -1190,6 +1191,9 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
       #if DEBUG_LED
       dw_enable_gpio_led_from_deepsleep(); /* /!\ Increase the power consumption. */
       #endif /* DEBUG_LED */
+      #if ENABLE_ACCUMULATOR_CIR
+        dw_enable_accumulator_memory();
+      #endif
     }
     else{
       return RADIO_RESULT_INVALID_VALUE;
@@ -1364,7 +1368,14 @@ dw1000_driver_set_object(radio_param_t param,
       return RADIO_RESULT_INVALID_VALUE;
     }
     uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
-    dw1000_schedule_rx(schedule);
+    dw1000_schedule_tx_to_rx(schedule);
+  }
+  else if(param == RADIO_CHORUS_RX_DELAYED_US){
+    if(size != 2 || !src) {
+      return RADIO_RESULT_INVALID_VALUE;
+    }
+    uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
+    dw1000_schedule_rx_to_rx(schedule);
   }
   else if(param == RADIO_RX_TIMEOUT_US){
     if(size != 2 || !src) {
@@ -1798,7 +1809,6 @@ dw1000_set_tsch_channel(uint8_t channel){
   }
   tsch_channel = channel;
   dw1000_conf.preamble_code = dw1000_get_preamble_code(dw1000_conf.channel, dw1000_conf.prf);
-
   dw_set_prf(dw1000_conf.prf);
   dw_set_channel(dw1000_conf.channel);
   #if UWB_SMART_TX_POWER
@@ -1948,9 +1958,29 @@ dw1000_schedule_tx(uint16_t delay_us)
  *        /!\ Private function.
  */
 void
-dw1000_schedule_rx(uint16_t delay_us)
+dw1000_schedule_tx_to_rx(uint16_t delay_us)
 {
   uint64_t schedule_time = dw_get_tx_timestamp();
+  /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
+  schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
+  /* The 10nd bit have a "value" of 125Mhz */
+  schedule_time= schedule_time + US_TO_RADIO(delay_us);
+
+  // printf("schedule rx time %llu\n", (schedule_time-(dw_get_tx_timestamp()&DW_TIMESTAMP_CLEAR_LOW_9)));
+
+  dw_set_dx_timestamp(schedule_time);
+  dw_init_delayed_rx();
+}
+
+/**
+ * \brief Configures the DW1000 to be ready to receive a ranging response 
+ *          based on the lasted reiceived messages. The delay is in micro seconds.
+ *        /!\ Private function.
+ */
+void
+dw1000_schedule_rx_to_rx(uint16_t delay_us)
+{
+  uint64_t schedule_time = dw_get_rx_timestamp();
   /* require \ref note in the section 3.3 Delayed Transmission of the manual. */
   schedule_time &= DW_TIMESTAMP_CLEAR_LOW_9; /* clear the low order nine bits */
   /* The 10nd bit have a "value" of 125Mhz */

@@ -2030,12 +2030,12 @@ static uint8_t cir[DW_LEN_ACC_MEM];
  * received message and write it on the serial line 
  * Disable Accumulation memory ofter the read.
  * */
-void tsch_chorus_output_anchors_cir(linkaddr_t  source_address){
+void tsch_chorus_output_anchors_cir(linkaddr_t* source_address){
   write_byte((uint8_t) '-');
   write_byte((uint8_t) 'R');
   write_byte((uint8_t) ':');
-  write_byte((uint8_t) source_address.u8[sizeof(source_address)-2]);
-  write_byte((uint8_t) source_address.u8[sizeof(source_address)-1]);
+  write_byte((uint8_t) source_address->u8[sizeof(source_address)-2]);
+  write_byte((uint8_t) source_address->u8[sizeof(source_address)-1]);
   write_byte((uint8_t) ':');
   uint16_t fp_index = dw_get_fp_index();
   write_byte((uint8_t) (fp_index >> 6) & 0XFF);
@@ -2099,7 +2099,6 @@ PT_THREAD(tsch_chorus_initiator_slot(struct pt *pt, struct rtimer *t))
 
   static uint8_t mac_status;
 
-  static linkaddr_t source_address;
   static linkaddr_t destination_address;
   PT_BEGIN(pt);
 
@@ -2188,19 +2187,23 @@ PT_THREAD(tsch_chorus_initiator_slot(struct pt *pt, struct rtimer *t))
 
       if(NETSTACK_RADIO.pending_packet()){
         // printf("rx response message\n");
-        static frame802154_t frame;
+        frame802154_t frame;
         /* Read packet */
         packet_len = NETSTACK_RADIO.read((void *) packet_buf, sizeof(packet_buf));
 
+        linkaddr_t source_address;
         frame802154_parse((uint8_t *) packet_buf, packet_len, &frame);
         frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
 
         /* Read the CIR, output it and disable the CIR memory */
-        tsch_chorus_output_anchors_cir(source_address);
+        // tsch_chorus_output_anchors_cir(&source_address);
 
-        // printf("Source and dest addr \n");
-        // PRINTADDR(&source_address);
-        // PRINTADDR(&destination_address);
+        printf("Source addr : ");
+        PRINTADDR(&source_address);
+        PRINTADDR(&destination_address);
+        printf("\n");
+        
+        print_frame(packet_len, (uint8_t *) packet_buf);
 
         mac_tx_status = MAC_TX_OK;
       } else {
@@ -2437,9 +2440,7 @@ struct tsch_neighbor *n;
               frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
 
               /* Read the CIR, output it and disable the CIR memory */
-              tsch_chorus_output_anchors_cir(source_address);
-
-            
+              tsch_chorus_output_anchors_cir(&source_address);            
             }
           }
         } /* end frame valid (msg1) */
@@ -2612,6 +2613,7 @@ PT_THREAD(tsch_chorus_anchor_slot(struct pt *pt, struct rtimer *t))
             dw1000_schedule_tx_chorus(delay_radio);
               
             uint8_t do_nack = 0;
+            linkaddr_copy(&destination_address, &tsch_broadcast_address);
             response_len = tsch_packet_create_eack(packet_buf, sizeof(packet_buf), &destination_address, frame.seq, (int16_t)RTIMERTICKS_TO_US(estimated_drift), do_nack);
            
             if(response_len <= 0)
@@ -2631,6 +2633,16 @@ PT_THREAD(tsch_chorus_anchor_slot(struct pt *pt, struct rtimer *t))
                 printf("Error during transmission of the anchor response.\n");
               }
               printf("Delay %lld in ns : %lu\n", delay_radio, RADIO_TO_NS(delay_radio));
+
+
+        frame802154_parse((uint8_t *) packet_buf, response_len, &frame);
+        frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
+
+        printf("Source addr : ");
+        PRINTADDR(&source_address);
+        PRINTADDR(&destination_address);
+        printf("\n");
+        print_frame(response_len, (uint8_t *) packet_buf);
             }
             /* If the sender is a time source, proceed to clock drift compensation */
             n = tsch_queue_get_nbr(&source_address);

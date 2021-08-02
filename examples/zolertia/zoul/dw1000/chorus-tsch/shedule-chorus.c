@@ -26,7 +26,7 @@ void tsch_schedule_chorus(void)
 
   /* Build schedule.
    * We pick a slotframe length of TSCH_SCHEDULE_DEFAULT_LENGTH */
-  sf_custom = tsch_schedule_add_slotframe(0, 201);
+  sf_custom = tsch_schedule_add_slotframe(0, 601);
 
   #define INDEX_NODE_ID (sizeof(linkaddr_t)-1)
 

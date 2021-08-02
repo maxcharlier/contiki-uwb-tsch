@@ -162,6 +162,7 @@
   #define UART_WRITE 1
   #include "dw1000-driver.h" /* US_TO_RADIO */
   #include "dw1000-arch.h" /* US_TO_RADIO */
+  #include "dw1000-util.h"
 
 
 #endif /* TSCH_CHORUS */ 
@@ -2191,20 +2192,23 @@ PT_THREAD(tsch_chorus_initiator_slot(struct pt *pt, struct rtimer *t))
         /* Read packet */
         packet_len = NETSTACK_RADIO.read((void *) packet_buf, sizeof(packet_buf));
 
+    
         linkaddr_t source_address;
         frame802154_parse((uint8_t *) packet_buf, packet_len, &frame);
         frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
 
         /* Read the CIR, output it and disable the CIR memory */
-        // tsch_chorus_output_anchors_cir(&source_address);
+        tsch_chorus_output_anchors_cir(&source_address);
 
-        printf("Source addr : ");
-        PRINTADDR(&source_address);
-        PRINTADDR(&destination_address);
-        printf("\n");
+        // printf("Source addr : ");
+        // PRINTADDR(&source_address);
+        // PRINTADDR(&destination_address);
+        // printf("\n");
         
-        print_frame(packet_len, (uint8_t *) packet_buf);
+        // print_frame(packet_len, (uint8_t *) packet_buf);
 
+        // dw_read_reg(DW_REG_RX_BUFFER, sizeof(packet_buf), (uint8_t *)packet_buf);
+        // print_buf("  ", packet_buf, sizeof(packet_buf));
         mac_tx_status = MAC_TX_OK;
       } else {
         mac_tx_status = MAC_TX_NOACK;
@@ -2614,15 +2618,23 @@ PT_THREAD(tsch_chorus_anchor_slot(struct pt *pt, struct rtimer *t))
               
             uint8_t do_nack = 0;
             linkaddr_copy(&destination_address, &tsch_broadcast_address);
-            response_len = tsch_packet_create_eack(packet_buf, sizeof(packet_buf), &destination_address, frame.seq, (int16_t)RTIMERTICKS_TO_US(estimated_drift), do_nack);
-           
+
+            // Anchors response buffer
+            static uint8_t anchor_resp_buff[TSCH_PACKET_MAX_LEN];
+            response_len = tsch_packet_create_eack(anchor_resp_buff, sizeof(anchor_resp_buff), &destination_address, frame.seq, (int16_t)RTIMERTICKS_TO_US(estimated_drift), do_nack);
+          // printf("Anchor response before upload to transceiver\n");
+          // print_buf("  ", anchor_resp_buff, sizeof(anchor_resp_buff));
+
             if(response_len <= 0)
               printf("error creation of anchor response\n");
             if(response_len > 0) {
               // printf("prepare to transmit %d\n", loc_reply_delay);
               
               /* Copy to radio buffer */
-              NETSTACK_RADIO.prepare((const void *)packet_buf, response_len);
+              NETSTACK_RADIO.prepare((const void *)anchor_resp_buff, response_len);
+
+
+
 
 
               // TSCH_WAIT(pt, t, rx_start_time+TSCH_PACKET_DURATION(response_len), tsch_timing[tsch_ts_loc_tx_reply_time]-RADIO_DELAY_BEFORE_TX, "responseTX");
@@ -2634,15 +2646,22 @@ PT_THREAD(tsch_chorus_anchor_slot(struct pt *pt, struct rtimer *t))
               }
               printf("Delay %lld in ns : %lu\n", delay_radio, RADIO_TO_NS(delay_radio));
 
+    
+        // frame802154_parse((uint8_t *) anchor_resp_buff, response_len, &frame);
+        // frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
+    
+        // printf("Source addr : ");
+        // PRINTADDR(&source_address);
+        // PRINTADDR(&destination_address);
+        // printf("\n");
+        // print_frame(response_len, (uint8_t *) anchor_resp_buff);
+        
+        //   printf("Anchor response after upload to transceiver\n");
+        //   static uint8_t read_anchor_resp_buff[TSCH_PACKET_MAX_LEN];
 
-        frame802154_parse((uint8_t *) packet_buf, response_len, &frame);
-        frame802154_extract_linkaddr(&frame, &source_address, &destination_address);
+        // dw_read_reg(DW_REG_TX_BUFFER, sizeof(read_anchor_resp_buff), (uint8_t *)read_anchor_resp_buff);
+        // print_buf("  ", read_anchor_resp_buff, sizeof(read_anchor_resp_buff));
 
-        printf("Source addr : ");
-        PRINTADDR(&source_address);
-        PRINTADDR(&destination_address);
-        printf("\n");
-        print_frame(response_len, (uint8_t *) packet_buf);
             }
             /* If the sender is a time source, proceed to clock drift compensation */
             n = tsch_queue_get_nbr(&source_address);

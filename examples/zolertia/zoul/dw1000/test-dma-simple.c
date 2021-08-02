@@ -18,8 +18,10 @@
 
 #include "dw1000.h"
 #include "dw1000-arch.h"
+#include "dw1000-const.h"
 
-// #define DEBUG 1
+#define DEBUG 1
+#define GPIO_DEBUG 0
 
 /* DW_REG_TX_BUFFER | DW_REG_RX_BUFFER | DW_REG_USR_SFD */
 #define WRITE_BUFFER        DW_REG_TX_BUFFER 
@@ -36,6 +38,7 @@ AUTOSTART_PROCESSES(&dw1000_dma);
 #else
 #define PRINTF(...) do {} while(0)
 #endif
+
 
 #define TIME_PORT     GPIO_A_NUM
 #define TIME_PIN      2
@@ -57,6 +60,8 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 #ifndef RADIO_DRIVER_UWB
   /* initialize SPI 1 */
   dw1000_arch_init();
+#else
+  NETSTACK_RADIO.off();
 #endif
 
   spix_cs_init(TIME_PORT, TIME_PIN);
@@ -70,9 +75,9 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 
   // dw1000_arch_spi_set_clock_freq(DW_SPI_CLOCK_FREQ_INIT_STATE);
 
-  for(;;) {
-    PROCESS_YIELD();
-    if(ev == serial_line_event_message) {
+  while(1) {
+    PROCESS_WAIT_EVENT();
+    if(ev == serial_line_event_message && data != NULL)  {
       /* we convert the input string data to tow int using strlol see 
       https://www.tutorialspoint.com/c_standard_library/c_function_strtol.htm */
       char * str;
@@ -174,6 +179,9 @@ PROCESS_THREAD(dw1000_dma, ev, data)
         printf("Offset  %04X \n ", offset);
       }
     }
+    else{
+      printf("Nothing received\n");
+    }
   }
   printf("end\n");
   PROCESS_END();
@@ -183,20 +191,26 @@ PROCESS_THREAD(dw1000_dma, ev, data)
 void 
 init_gpio(void)
 {
+#if GPIO_DEBUG
   GPIO_SOFTWARE_CONTROL(GPIO_PORT_TO_BASE(TIME_PORT),
                         GPIO_PIN_MASK(TIME_PORT));
   ioc_set_over(TIME_PORT, TIME_PIN, IOC_OVERRIDE_DIS);
   GPIO_SET_OUTPUT(GPIO_PORT_TO_BASE(TIME_PORT), GPIO_PIN_MASK(TIME_PIN));
   GPIO_CLR_PIN(GPIO_PORT_TO_BASE(TIME_PORT), GPIO_PIN_MASK(TIME_PIN));
+#endif /* GPIO_DEBUG */
 }
 
 void
 gpio_up(void)
 {
+#if GPIO_DEBUG
   GPIO_SET_PIN(GPIO_PORT_TO_BASE(TIME_PORT), GPIO_PIN_MASK(TIME_PIN));
+#endif /* GPIO_DEBUG */
 }
 void
 gpio_down(void)
 {
+#if GPIO_DEBUG
   GPIO_CLR_PIN(GPIO_PORT_TO_BASE(TIME_PORT), GPIO_PIN_MASK(TIME_PIN));
+#endif /* GPIO_DEBUG */
 }

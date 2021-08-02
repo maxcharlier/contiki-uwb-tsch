@@ -16,3 +16,8 @@ touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-ope
 //initiator and mobile
 
 touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0X01 && touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB1 NODEID=0x02 && make reset-all TARGET=zoul BOARD=firefly-dw1000 && make reset-all TARGET=zoul BOARD=firefly-dw1000
+
+
+
+
+touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB0 NODEID=0X01 && touch ./shedule-chorus.c && touch ../../../../../core/net/mac/tsch/tsch-slot-operation.c && make nodes.upload TARGET=zoul BOARD=firefly-dw1000 PORT=/dev/ttyUSB1 NODEID=0xA1

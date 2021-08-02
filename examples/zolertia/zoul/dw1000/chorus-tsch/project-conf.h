@@ -174,6 +174,6 @@ We increase the number to 16 because we have up to 16 nodes */
 #define TSCH_CONF_CHORUS_TX_OFFSET 128
 
 /* reply time of 600 us */
-#define TSCH_CONF_CHORUS_REPLY_TIME 600
+#define TSCH_CONF_CHORUS_REPLY_TIME 800
 
 #endif /* __PROJECT_CONF_H__ */

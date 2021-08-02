@@ -156,7 +156,7 @@ We increase the number to 16 because we have up to 16 nodes */
 
 /* Enable Chorus */
 #define CHORUS_CONFIG 1
-#define TSCH_CHORUS_HOPPING_SEQUENCE  (uint8_t[]){11}
+#define TSCH_CHORUS_HOPPING_SEQUENCE  (uint8_t[]){11, 9}
 #define TSCH_CHORUS_HOPPING_SEQUENCE_MAX_LEN  2
   // #define TSCH_CHORUS_HOPPING_SEQUENCE  (uint8_t[]){1, 7, 6, 5, 0, 4, 2, 3}
 // #define TSCH_CHORUS_HOPPING_SEQUENCE_MAX_LEN  8
@@ -170,8 +170,8 @@ We increase the number to 16 because we have up to 16 nodes */
   #define TSCH_CONF_CHORUS_NODE_TYPE  CHORUS_MOBILE_NODE
 #endif /* NODEID */
 
-/* offset between anchore response 128 ns */
-#define TSCH_CONF_CHORUS_TX_OFFSET 128
+/* offset between anchore response 200 ns */
+#define TSCH_CONF_CHORUS_TX_OFFSET 200
 
 /* reply time of 600 us */
 #define TSCH_CONF_CHORUS_REPLY_TIME 800

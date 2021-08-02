@@ -2035,8 +2035,8 @@ void tsch_chorus_output_anchors_cir(linkaddr_t* source_address){
   write_byte((uint8_t) '-');
   write_byte((uint8_t) 'R');
   write_byte((uint8_t) ':');
-  write_byte((uint8_t) source_address->u8[sizeof(source_address)-2]);
-  write_byte((uint8_t) source_address->u8[sizeof(source_address)-1]);
+  write_byte(((uint8_t *)source_address)[6]);
+  write_byte(((uint8_t *)source_address)[7]);
   write_byte((uint8_t) ':');
   uint16_t fp_index = dw_get_fp_index();
   write_byte((uint8_t) (fp_index >> 6) & 0XFF);

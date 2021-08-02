@@ -2301,6 +2301,25 @@ dw_enable_accumulator_memory(void)
   psmc_ctrl0_val |= DW_AMCE_MASK;
   dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &psmc_ctrl0_val);
 }
+
+/**
+ * \brief Disable Accumulator memory tor educe power consumption.
+ */
+void 
+dw_disable_accumulator_memory(void)
+{
+
+  uint32_t psmc_ctrl0_val = 0UL;
+  dw_read_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, 
+    (uint8_t*) &psmc_ctrl0_val);
+  /* Set RX clock to auto mode.*/
+  psmc_ctrl0_val &= ~DW_RXCLKS_MASK;
+  /* clear FACE bit */
+  psmc_ctrl0_val &= ~DW_FACE_MASK;
+  /* clear AMCE bit */
+  psmc_ctrl0_val &= ~DW_AMCE_MASK;
+  dw_write_subreg(DW_REG_PMSC, DW_SUBREG_PMSC_CTRL0, DW_SUBLEN_PMSC_CTRL0, (uint8_t*) &psmc_ctrl0_val);
+}
 /**
  * \brief Return 1 to indicate the completion of the leading
  * edge detection and other adjustments of the receive timestamp information.

@@ -162,6 +162,9 @@ PROCESS_THREAD(example_unicast_process, ev, data)
   
   ctimer_set(&timer_transceiver_reset, 5 * CLOCK_SECOND, transceiver_soft_reset, NULL);
 
+  /* Enable Accumulator memory used to store the CIR after the transmittion or the recpeiton of a message */
+  NETSTACK_RADIO.set_value(RADIO_ACCUMULATOR_MEMORY, RADIO_POWER_MODE_ON);
+  
   while(1) {
 
     static struct etimer et;

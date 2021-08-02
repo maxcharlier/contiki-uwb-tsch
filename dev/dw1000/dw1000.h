@@ -704,6 +704,7 @@ uint8_t     dw_is_rx_timeout(void);
 
 /* Channel Impulse Responce */
 void dw_enable_accumulator_memory(void);
+void dw_disable_accumulator_memory(void);
 uint8_t dw_is_lde_done(void);
 uint16_t dw_get_fp_index(void);
 uint16_t dx_get_lde_threshold(void);

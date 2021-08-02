@@ -380,4 +380,13 @@
 #define TSCH_CHORUS_TX_OFFSET 200
 #endif 
 
+/* Used to define the reply time between the reception of the initiator 
+ * request and the anchors response TX in us*/
+#ifdef TSCH_CONF_CHORUS_REPLY_TIME
+#define TSCH_CHORUS_REPLY_TIME TSCH_CONF_CHORUS_REPLY_TIME
+#else
+/* By default the reply time is 1000 us*/
+#define TSCH_CHORUS_REPLY_TIME 1000
+#endif 
+
 #endif /* __TSCH_CONF_H__ */

@@ -65,8 +65,6 @@
 /*#define DW1000_PREAMBLE             DW_PREAMBLE_LENGTH_256 */
 #define DW1000_PRF                  DW_PRF_64_MHZ
 
-/* enable CIR memory accumulator */
-#define ENABLE_ACCUMULATOR_CIR      1
 
 #define DW1000_TSCH                 0
 

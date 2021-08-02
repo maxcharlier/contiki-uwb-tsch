@@ -100,6 +100,7 @@ void set_chorus_radio_configuration(void){
   // be default we use the preamble code 17 
   dw1000_driver_config(DW_CHANNEL_7, DW_DATA_RATE_6800_KBPS, DW_PREAMBLE_LENGTH_64, DW_PRF_64_MHZ);
 
+  NETSTACK_RADIO.set_value(RADIO_ACCUMULATOR_MEMORY, RADIO_POWER_MODE_ON);
   NETSTACK_RADIO.on();
 }
 

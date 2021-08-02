@@ -247,7 +247,13 @@ enum {
 
 
   /* The maximum transmission power in dBm. */
-  RADIO_SLEEP_STATE
+  RADIO_SLEEP_STATE,
+
+  /* The Accumulator Memory is used to register the CIR of a UWB message
+  Need to be enable before receiving a message and until the read of the CIR. 
+  RADIO_POWER_MODE_ON to enable the memory, RADIO_POWER_MODE_OFF to disable.
+  */
+  RADIO_ACCUMULATOR_MEMORY
 };
 
 /* Radio power modes */

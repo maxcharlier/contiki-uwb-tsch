@@ -150,9 +150,6 @@ We increase the number to 16 because we have up to 16 nodes */
 
 #define DW1000_DATA_RATE            DW_DATA_RATE_6800_KBPS
 
-/* Enable DW1000 Channel Impulse Response register */
-#define ENABLE_ACCUMULATOR_CIR      1
-
 /* Add SRC addr to EACK */ 
 #define TSCH_PACKET_CONF_EACK_WITH_SRC_ADDR 1
 #define CHORUS_CONFIG 1
@@ -169,5 +166,8 @@ We increase the number to 16 because we have up to 16 nodes */
 #else
   #define TSCH_CONF_CHORUS_NODE_TYPE  CHORUS_MOBILE_NODE
 #endif /* NODEID */
+
+/* reply time of 600 us */
+#define TSCH_CONF_CHORUS_REPLY_TIME 600
 
 #endif /* __PROJECT_CONF_H__ */

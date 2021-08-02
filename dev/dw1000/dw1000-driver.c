@@ -331,6 +331,7 @@ const struct radio_driver dw1000_driver =
 /*---------------------------------------------------------------------------*/
 
 static uint8_t receive_on = 0;
+static uint8_t accumulator_memory_enable = 0;
 
 /*---------------------------------------------------------------------------*/
 static uint8_t locked = 0;
@@ -430,9 +431,6 @@ dw1000_driver_init(void)
   INIT_GPIO_SLEEP_DEBUG();
 
   sleep_mode = RADIO_IDLE;
-#if ENABLE_ACCUMULATOR_CIR
-  dw_enable_accumulator_memory();
-#endif
   return 1;
 }
 /**
@@ -1070,6 +1068,8 @@ dw1000_driver_get_value(radio_param_t param,
   case RADIO_SLEEP_STATE:
     *value =  sleep_mode;
     return RADIO_RESULT_OK;
+  case RADIO_ACCUMULATOR_MEMORY:
+    return *value = accumulator_memory_enable;
   default:
     return RADIO_RESULT_NOT_SUPPORTED;
   }
@@ -1191,9 +1191,6 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
       #if DEBUG_LED
       dw_enable_gpio_led_from_deepsleep(); /* /!\ Increase the power consumption. */
       #endif /* DEBUG_LED */
-      #if ENABLE_ACCUMULATOR_CIR
-        dw_enable_accumulator_memory();
-      #endif
     }
     else{
       return RADIO_RESULT_INVALID_VALUE;
@@ -1201,7 +1198,19 @@ dw1000_driver_set_value(radio_param_t param, radio_value_t value)
     SLEEP_CLR();
     sleep_mode = value;
     return RADIO_RESULT_OK;
-
+  case RADIO_ACCUMULATOR_MEMORY:
+    if(value == RADIO_POWER_MODE_ON) {
+      dw_enable_accumulator_memory();
+      accumulator_memory_enable = 1;
+      return RADIO_RESULT_OK;
+    }
+    else if(value == RADIO_REQUEST_WAKEUP) {
+      dw_disable_accumulator_memory();
+      accumulator_memory_enable = 0;
+      return RADIO_RESULT_OK;
+    }
+    else
+    return RADIO_RESULT_NOT_SUPPORTED;
   default:
     return RADIO_RESULT_NOT_SUPPORTED;
   }
@@ -1347,6 +1356,8 @@ dw1000_driver_set_object(radio_param_t param,
     }
     uint16_t delay = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
     dw_set_tx_antenna_delay(delay);
+
+    return RADIO_RESULT_OK;
   }
   else if(param == RADIO_LOC_RX_ANTENNA_DELAY){
     if(size != 2 || !src) {
@@ -1354,6 +1365,8 @@ dw1000_driver_set_object(radio_param_t param,
     }
     uint16_t delay = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
     dw_set_rx_antenna_delay(delay);
+
+    return RADIO_RESULT_OK;
   }
   else if(param == RADIO_LOC_TX_DELAYED_US){
     if(size != 2 || !src) {
@@ -1362,6 +1375,8 @@ dw1000_driver_set_object(radio_param_t param,
     uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
     // printf("schedule %d \n", schedule);
     dw1000_schedule_tx(schedule);
+
+    return RADIO_RESULT_OK;
   }
   else if(param == RADIO_LOC_RX_DELAYED_US){
     if(size != 2 || !src) {
@@ -1369,6 +1384,8 @@ dw1000_driver_set_object(radio_param_t param,
     }
     uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
     dw1000_schedule_tx_to_rx(schedule);
+
+    return RADIO_RESULT_OK;
   }
   else if(param == RADIO_CHORUS_RX_DELAYED_US){
     if(size != 2 || !src) {
@@ -1376,6 +1393,8 @@ dw1000_driver_set_object(radio_param_t param,
     }
     uint16_t schedule = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8; 
     dw1000_schedule_rx_to_rx(schedule);
+
+    return RADIO_RESULT_OK;
   }
   else if(param == RADIO_RX_TIMEOUT_US){
     if(size != 2 || !src) {
@@ -1383,6 +1402,8 @@ dw1000_driver_set_object(radio_param_t param,
     }
     uint16_t timeout = ((uint8_t *)src)[0] | ((uint8_t *)src)[1] << 8;
     dw1000_rx_timeout(timeout);
+
+    return RADIO_RESULT_OK;
   }
   return RADIO_RESULT_NOT_SUPPORTED;
 }

@@ -81,8 +81,9 @@ debug_uart_receive_byte(unsigned char c) {
   uart_write_byte(1, c);
 
   switch (c) {
-    case 's':   tsch_schedule_print(); break;
-    case 'p':   PRINT6ADDR(query_best_anchor()); break;
+    case 's':   tsch_schedule_print();                  break;
+    case 'p':   PRINT6ADDR(query_best_anchor());        break;
+    case 'n':   rpl_print_neighbor_list();              break;
   }
   return 1;
 }
@@ -142,7 +143,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   uart_set_input(0, debug_uart_receive_byte);
   uart_set_input(1, uart_receive_byte);
 
-  NETSTACK_MAC.off(1);
+  // NETSTACK_MAC.off(1);
 
   ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 

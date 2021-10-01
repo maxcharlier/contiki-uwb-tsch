@@ -73,8 +73,6 @@ class SerialAdapter:
                 # continue
                 return
 
-            logging.info(f'{self.device}: {recv_data}')
-
             recv_byte = recv_data[0]
             
             if self.state == STATE_WAIT_SFD:

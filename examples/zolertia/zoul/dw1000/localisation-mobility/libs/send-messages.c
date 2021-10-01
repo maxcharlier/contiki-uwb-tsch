@@ -23,7 +23,7 @@ static uip_ipaddr_t current_attached_anchor;
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 
-#define IS_LOCATION_SERVER 0
+#define IS_LOCATION_SERVER 1
 
 #define MAX_SERIAL_LEN    100
 
@@ -49,6 +49,17 @@ query_best_anchor()
   rpl_parent_t *p = nbr_table_head(rpl_parents);
   return rpl_get_parent_ipaddr(p);
 }
+
+
+void
+uart_write_string(int output, char text[], int size)
+{
+  for (int i=0; i<size; i++) {
+    uart_write_byte(output, text[i]);
+  }
+}
+
+#define UART_WRITE_STRING(output, text) uart_write_string(output, text, sizeof(text))
 
 
 void
@@ -112,7 +123,7 @@ send_to_central_authority(void *data_to_transmit, int length)
   struct uip_udp_conn *server_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
   
   if (server_conn == NULL) {
-    PRINTF("No UDP connection available, exiting the process!\n");
+    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process!\n");
     return;
   }
 
@@ -205,10 +216,8 @@ receive_uart(uint8_t *pkt, int length)
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
         
-        uart_write_byte(UART_DEBUG, 'a');
-        uart_write_byte(UART_DEBUG, 'c');
-        uart_write_byte(UART_DEBUG, 'k');
-        
+        UART_WRITE_STRING(UART_DEBUG, "ack");
+
         act_on_message(receive_buffer, receive_ptr - receive_buffer);
 
         // Empty the buffer for future use
@@ -243,11 +252,7 @@ act_on_message(uint8_t *msg, int length)
 
     case CLEAR_SLOTFRAME: ;
 
-      uart_write_byte(UART_DEBUG, 'c');
-      uart_write_byte(UART_DEBUG, 'l');
-      uart_write_byte(UART_DEBUG, 'e');
-      uart_write_byte(UART_DEBUG, 'a');
-      uart_write_byte(UART_DEBUG, 'r');
+      UART_WRITE_STRING(UART_DEBUG, "clear");
 
       tsch_schedule_remove_slotframe(tsch_slotframe);
       tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
@@ -268,14 +273,12 @@ act_on_message(uint8_t *msg, int length)
 
     case ALLOCATION_SLOT: ;
 
-        uart_write_byte(UART_DEBUG, 'a');
-        uart_write_byte(UART_DEBUG, 'd');
-        uart_write_byte(UART_DEBUG, 'd');
+      UART_WRITE_STRING(UART_DEBUG,  "add");
 
       allocation_slot packet = *(allocation_slot *)(msg);
 
 
-#if IS_LOCATION_SERVER == 1
+#if IS_LOCATION_SERVER
 
       linkaddr_t *mobile_addr = (linkaddr_t *) uip_ds6_nbr_lladdr_from_ipaddr(&(packet.mobile_addr));
       tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_NORMAL, mobile_addr, packet.timeslot, packet.channel);
@@ -300,6 +303,9 @@ act_on_message(uint8_t *msg, int length)
       break;
 
     case DEALLOCATION_SLOT: ;
+
+      UART_WRITE_STRING(UART_DEBUG, "del");
+
       deallocation_slot pkt = *(deallocation_slot *)(msg);
       struct tsch_link *to_delete = tsch_schedule_get_link_by_timeslot(tsch_slotframe, pkt.timeslot);
       tsch_schedule_remove_link(tsch_slotframe, to_delete);

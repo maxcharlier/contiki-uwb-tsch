@@ -1,12 +1,14 @@
 import logging
 import sched
-import heapq
-from queue import Queue
 import threading
+from collections import namedtuple
 from typing import Tuple, List
 
 from serial_adapter import SerialAdapter
 from packets import *
+
+
+Task = namedtuple('Task', 'port packet_type arguments')
 
 class GreedyScheduler:
     
@@ -18,6 +20,8 @@ class GreedyScheduler:
         self.holes_in_slotframe = [] 
         self.cells_per_node = {}
 
+        self.known_devices = set()
+
         self.sa = serial
 
         self.scheduler = sched.scheduler()
@@ -27,6 +31,12 @@ class GreedyScheduler:
     def schedule(self, in_pkt: IncomingPacket, device: str) -> List[OutgoingPacket]:
         decisions: List[OutgoingPacket] = []
 
+        # Send ClearSlotframePaket if first time we receive a packet
+        if device in self.known_devices:
+            decisions.append(ClearSlotframePacket())
+            self.known_devices.add(device)
+
+        # Handle reveived Packet
         if type(in_pkt) == AllocationRequestPacket:
             
             timeslot, channel = self._ask_for_new_cell(in_pkt.mobile_addr, in_pkt.anchor_addr)
@@ -45,9 +55,9 @@ class GreedyScheduler:
         
         elif type(in_pkt) == AllocationAckPacket:
             logging.info(f"Canced re-sending packets to {in_pkt.mobile_addr}")
-            events_to_cancel = list(filter(lambda e: e.action == self.resend 
-                                                and e.argument[0].mobile_addr == in_pkt.mobile_addr,
-                                    self.scheduler.queue))
+            events_to_cancel = filter(lambda e: e.action == self.resend 
+                                            and e.argument[0].mobile_addr == in_pkt.mobile_addr,
+                                    self.scheduler.queue)
         
             # Cancel sending packets again
             map(self.scheduler.cancel, events_to_cancel)
@@ -94,3 +104,7 @@ class GreedyScheduler:
 
     def resend(self, pkt: OutgoingPacket, device: str = ""):
         self.sa.send_to(pkt)
+
+
+    def execute(self, task: Task):
+        pass

@@ -137,7 +137,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uart_set_input(0, debug_uart_receive_byte);
   uart_set_input(1, uart_receive_byte);
 
-  NETSTACK_MAC.off(1);
+  // NETSTACK_MAC.off(1);
 
 
   //ctimer_set(&retry_timer, 5 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);

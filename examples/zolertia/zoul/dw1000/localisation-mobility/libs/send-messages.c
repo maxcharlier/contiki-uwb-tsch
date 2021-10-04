@@ -8,7 +8,7 @@
 #include "dev/uart.h"
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
-
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 #include "core/net/ip/uip-udp-packet.h"
 
@@ -31,7 +31,7 @@ static int state = STATE_WAIT_SFD;
 static uint8_t receive_buffer[MAX_SERIAL_LEN];
 static uint8_t *receive_ptr = receive_buffer;
 
-
+/*
 #define PRINT_BYTE 0
 #undef PRINTF
 #if !PRINT_BYTE
@@ -39,7 +39,11 @@ static uint8_t *receive_ptr = receive_buffer;
 #else
   #define PRINTF(...) do {} while(0)
 #endif
+*/
 
+#define UART_WRITE_STRING(output, text) uart_write_string(output, text, sizeof(text))
+
+//#define SEND_TO_CENTRAL_AUTHORITY(data) send_to_central_authority(&(data), sizeof(data))
 
 
 uip_ipaddr_t *
@@ -59,8 +63,24 @@ uart_write_string(int output, char text[], int size)
   }
 }
 
-#define UART_WRITE_STRING(output, text) uart_write_string(output, text, sizeof(text))
 
+
+
+allocation_request get_allocation_request() {
+
+  uip_ipaddr_t *rpl_parent = query_best_anchor();
+  uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
+
+  allocation_request rqst = { 
+      ALLOCATION_REQUEST,
+      255,  // signal power
+      *rpl_parent,
+      our_ip
+    };
+
+    return rqst;
+
+}
 
 void
 send_allocation_probe_request()
@@ -146,7 +166,6 @@ send_to_central_authority(void *data_to_transmit, int length)
 #endif
 
 }
-
 
 void
 uart_send_bytes(void *data_to_transmit, int length)
@@ -268,6 +287,7 @@ act_on_message(uint8_t *msg, int length)
       };
 
       send_to_central_authority(&clearack, sizeof(clearack));
+      //SEND_TO_CENTRAL_AUTHORITY(clear_ack);
 
       // for debbuging purposes
       // tsch_schedule_print();
@@ -276,6 +296,11 @@ act_on_message(uint8_t *msg, int length)
        * After a Clear slotframe, try to join the network via an ACK 
        */
 
+      allocation_request rqst = get_allocation_request();
+      send_to_central_authority(&rqst, sizeof(rqst));
+      //SEND_TO_CENTRAL_AUTHORITY(rqst);
+
+
       break;
 
     case ALLOCATION_SLOT: ;
@@ -283,6 +308,11 @@ act_on_message(uint8_t *msg, int length)
       UART_WRITE_STRING(UART_DEBUG,  "add\n");
 
       allocation_slot packet = *(allocation_slot *)(msg);
+
+      PRINT6ADDR(&packet.mobile_addr);
+      UART_WRITE_STRING(UART_DEBUG, "\n");
+      PRINT6ADDR(&packet.anchor_addr);
+      UART_WRITE_STRING(UART_DEBUG, "\n");
 
 
 #if IS_LOCATION_SERVER
@@ -306,7 +336,7 @@ act_on_message(uint8_t *msg, int length)
         packet.channel
       };
 
-      UART_WRITE_STRING(UART_DEBUG, "mobile_addr :"); PRINT6ADDR(packet.mobile_addr); UART_WRITE_STRING(UART_DEBUG, "\n");
+      UART_WRITE_STRING(UART_DEBUG, "mobile_addr :"); PRINT6ADDR(&packet.mobile_addr); UART_WRITE_STRING(UART_DEBUG, "\n");
 
       send_to_central_authority(&ack, sizeof(ack));
       break;

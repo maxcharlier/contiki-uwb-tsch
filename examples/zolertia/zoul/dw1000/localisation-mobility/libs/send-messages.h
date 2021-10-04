@@ -26,3 +26,6 @@ act_on_message(uint8_t *msg, int length);
 
 int
 uart_receive_byte(unsigned char c);
+
+void
+uart_send_bytes(void *data_to_transmit, int length);

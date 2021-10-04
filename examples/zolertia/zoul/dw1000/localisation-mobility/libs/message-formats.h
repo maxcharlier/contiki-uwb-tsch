@@ -9,7 +9,7 @@ typedef enum message_type {
   DEALLOCATION_SLOT,
   CLEAR_SLOTFRAME,
   CLEAR_ACK,
-  DEBUG = 255
+  DEBUGGING = 255
 } message_type;
 
 typedef struct allocation_request_t {

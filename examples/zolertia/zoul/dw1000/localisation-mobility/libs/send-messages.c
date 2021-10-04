@@ -71,14 +71,28 @@ allocation_request get_allocation_request() {
   uip_ipaddr_t *rpl_parent = query_best_anchor();
   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
+  if (!rpl_parent) {
+    // There is no RPL parent yet -> error
+    UART_WRITE_STRING(UART_DEBUG, "ERROR: No PRL parent is available\n");
+    // For now, only send our own IP as a parent.
+    //*rpl_parent = our_ip; 
+  }
+
   allocation_request rqst = { 
       ALLOCATION_REQUEST,
       255,  // signal power
+      0,
       *rpl_parent,
       our_ip
-    };
+  };
 
-    return rqst;
+  UART_WRITE_STRING(UART_DEBUG, "parent, our_ip: \n");
+  PRINT6ADDR(rpl_parent);
+  UART_WRITE_STRING(UART_DEBUG, "\n");
+  PRINT6ADDR(&our_ip);
+  UART_WRITE_STRING(UART_DEBUG, "\n");
+
+  return rqst;
 
 }
 
@@ -109,17 +123,11 @@ send_allocation_probe_request()
      */
     PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
     PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
-    
-    allocation_request rqst = { 
-      ALLOCATION_REQUEST,
-      255,  // signal power
-      *rpl_parent,
-      our_ip
-    };
 
     // UART_WRITE_STRING(UART_DEBUG, "mobile_addr ->"); PRINT6ADDR(rpl_parent); UART_WRITE_STRING(UART_DEBUG, "\n");
-
+    allocation_request rqst = get_allocation_request();
     send_to_central_authority(&rqst, sizeof(rqst));
+
   }
 
   ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
@@ -289,17 +297,17 @@ act_on_message(uint8_t *msg, int length)
       send_to_central_authority(&clearack, sizeof(clearack));
       //SEND_TO_CENTRAL_AUTHORITY(clear_ack);
 
-      // for debbuging purposes
-      // tsch_schedule_print();
-
       /*
-       * After a Clear slotframe, try to join the network via an ACK 
+       * After a Clear slotframe, try to join the network via an ACK if the node is a mobile
        */
+
+#if NODEID != 0X7     // TODO if !IS_LOCATION_SERVER
 
       allocation_request rqst = get_allocation_request();
       send_to_central_authority(&rqst, sizeof(rqst));
       //SEND_TO_CENTRAL_AUTHORITY(rqst);
 
+#endif /* NODEID != 0X7 */
 
       break;
 
@@ -330,13 +338,12 @@ act_on_message(uint8_t *msg, int length)
       // Successfully added slot, send ack
       allocation_ack ack = {
         ALLOCATION_ACK,
-        packet.mobile_addr,
-        packet.anchor_addr,
+        0,    // padding
         packet.timeslot,
-        packet.channel
+        packet.channel,
+        packet.mobile_addr,
+        packet.anchor_addr
       };
-
-      UART_WRITE_STRING(UART_DEBUG, "mobile_addr :"); PRINT6ADDR(&packet.mobile_addr); UART_WRITE_STRING(UART_DEBUG, "\n");
 
       send_to_central_authority(&ack, sizeof(ack));
       break;

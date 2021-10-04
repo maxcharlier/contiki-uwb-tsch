@@ -63,7 +63,7 @@ class IncomingPacket(Packet):
         # type = next(filter(lambda k: PACKET_ID_SIZE[k][0] == size, PACKET_ID_SIZE.keys()))
         type_class = cls.PACKET_ID_SIZE[type].associated_class
         type_class = cls.str_to_class(type_class)
-        logging.info(f"type_class: {type_class}")
+        # logging.info(f"type_class: {type_class}")
         return type_class(frame)
     
     @staticmethod
@@ -91,8 +91,8 @@ class AllocationRequestPacket(IncomingPacket):
     def __init__(self, frame: bytearray):
         self.type = frame[0]
         self.signal_power = frame[1]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[2:18])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[18:34])
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
     
     def __len__(self):
         return self.PACKET_ID_SIZE[ALLOCATION_REQUEST].size
@@ -116,10 +116,11 @@ class AllocationSlotPacket(OutgoingPacket):
     def to_bytearray(self) -> bytearray:
         frame = bytearray()
         frame.append(self.type)
-        frame.extend(self.mobile_addr.address)
-        frame.extend(self.anchor_addr.address)
+        frame.append(0)                              # ttl
         frame.append(self.timeslot)
         frame.append(self.channel)
+        frame.extend(self.mobile_addr.address)
+        frame.extend(self.anchor_addr.address)
         return frame
 
     
@@ -137,10 +138,11 @@ class AllocationAckPacket(IncomingPacket):
 
     def __init__(self, frame: bytearray):
         self.type = frame[0]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[1:17])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[17:33])
-        self.timeslot = frame[33]
-        self.channel = frame[34]
+        self.timeslot = frame[2]
+        self.channel = frame[3]
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+
 
     def __len__(self):
         return self.PACKET_ID_SIZE[ALLOCATION_ACK].size
@@ -153,8 +155,10 @@ class DeallocationResquestPacket(IncomingPacket):
     
     def __init__(self, frame: bytearray):
         self.type = frame[0]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[1:17])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[17:33])
+        self.timeslot = frame[2]
+        self.channel = frame[3]
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
     
     def __len__(self):
         return self.PACKET_ID_SIZE[DEALLOCATION_REQUEST].size

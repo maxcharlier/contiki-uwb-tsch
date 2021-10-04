@@ -187,10 +187,10 @@ class ClearAckPacket(IncomingPacket):
 
     def __init__(self, frame: bytearray):
         self.type = frame[0]
-        self.from_addr: IPv6Address = self._parse_ipv6_address(self, frame[1:17])
+        self.from_addr: IPv6Address = self._parse_ipv6_address(self, frame[2:18])
 
     def __len__(self):
         return self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].size
     
     def __str__(self):
-        return f'ClearAckPacket({self.type})'
+        return f'ClearAckPacket({self.type}, {self.from_addr})'

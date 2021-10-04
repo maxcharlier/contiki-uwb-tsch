@@ -53,7 +53,7 @@
 #endif
 
 
-#define ROOT_ID  0X05
+#define ROOT_ID  0X07
 
 #define UDP_PORT 5678
 #define MAX_PAYLOAD_LEN   30
@@ -77,6 +77,15 @@ int
 debug_uart_receive_byte(unsigned char c) {
   uart_write_byte(0, c);
   uart_write_byte(1, c);
+
+  switch (c) {
+    case 's':   tsch_schedule_print();                  break;
+    case 'p':   PRINT6ADDR(query_best_anchor());        break;
+    case 'n':   rpl_print_neighbor_list();              break;
+    case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip); break;
+    case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type)); break;
+    case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent); break;
+  }
   return 1;
 }
 
@@ -98,6 +107,7 @@ set_global_address(void)
   uip_ipaddr_t ipaddr;
 
   #if NODEID == ROOT_ID
+  /* Set this node as the RPL root */
   struct uip_ds6_addr *root_if;
 
   uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
@@ -130,6 +140,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   set_global_address();
 
+  // Define the schedule
+  tsch_schedule_create_initial();
+
   // print_local_addresses();
 
   // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
@@ -138,6 +151,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uart_set_input(1, uart_receive_byte);
 
   // NETSTACK_MAC.off(1);
+  NETSTACK_MAC.on();
 
 
   //ctimer_set(&retry_timer, 5 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);

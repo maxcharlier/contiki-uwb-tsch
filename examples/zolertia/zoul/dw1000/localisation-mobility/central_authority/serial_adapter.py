@@ -40,24 +40,29 @@ class SerialAdapter:
             # Clear the slotframe of the node to start with a clean state.
             self.send(ClearSlotframePacket())
         
-        ADPATERS['device'] = self
+        ADPATERS[device] = self
 
     def send_to(self, pkt: OutgoingPacket):
         '''
         Sends a packet to the correct serial port
         '''
-        PORTS = {
+        PORTS = {       # TODO store at runtime
             IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
             IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
             IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2',
-            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2'
+            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2',
+            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
+            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
+            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB1',
+            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB1'
         }
 
         for dst in pkt.destinations():
             if PORTS[dst] == self.device:
                 self.send(pkt)
             else:
-                sa = SerialAdapter(PORTS[dst])
+                # sa = SerialAdapter(PORTS[dst])
+                sa = ADPATERS[PORTS[dst]]
                 sa.send(pkt)
         
 

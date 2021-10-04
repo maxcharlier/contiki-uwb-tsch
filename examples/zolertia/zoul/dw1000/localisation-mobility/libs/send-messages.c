@@ -32,7 +32,7 @@ static uint8_t receive_buffer[MAX_SERIAL_LEN];
 static uint8_t *receive_ptr = receive_buffer;
 
 
-#define PRINT_BYTE 1
+#define PRINT_BYTE 0
 #undef PRINTF
 #if !PRINT_BYTE
   #define PRINTF(...) printf(__VA_ARGS__)
@@ -65,7 +65,7 @@ uart_write_string(int output, char text[], int size)
 void
 send_allocation_probe_request()
 {
-  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
+  
   
   //if (!rpl_parent) {
     // No parent to send a probe request to.
@@ -79,7 +79,7 @@ send_allocation_probe_request()
 
   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
-  if (1) {
+  if (0) {
     /*
      *  Either there is a new parent, or the RPL parent changed.
      *  Send a request to receive a new cell, then unsubscribe from the current cell
@@ -87,6 +87,7 @@ send_allocation_probe_request()
      *  || !memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t))     // TODO remove true
      *  || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))
      */
+    PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
     PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
     
     allocation_request rqst = { 
@@ -95,6 +96,8 @@ send_allocation_probe_request()
       *rpl_parent,
       our_ip
     };
+
+    // UART_WRITE_STRING(UART_DEBUG, "mobile_addr ->"); PRINT6ADDR(rpl_parent); UART_WRITE_STRING(UART_DEBUG, "\n");
 
     send_to_central_authority(&rqst, sizeof(rqst));
   }
@@ -216,7 +219,7 @@ receive_uart(uint8_t *pkt, int length)
     case STATE_READ_DATA:
       if (byte == BS_EFD) {
         
-        UART_WRITE_STRING(UART_DEBUG, "ack");
+        UART_WRITE_STRING(UART_DEBUG, "ack\n");
 
         act_on_message(receive_buffer, receive_ptr - receive_buffer);
 
@@ -245,17 +248,17 @@ void
 act_on_message(uint8_t *msg, int length)
 {
   uart_write_byte(UART_DEBUG, '0' + state);
-  uart_write_byte(UART_DEBUG, *msg);
-  uart_write_byte(UART_DEBUG, length);
+  uart_write_byte(UART_DEBUG, '0' + *msg);
 
   switch (*msg) {
 
     case CLEAR_SLOTFRAME: ;
 
-      UART_WRITE_STRING(UART_DEBUG, "clear");
+      UART_WRITE_STRING(UART_DEBUG, "clear\n");
 
       tsch_schedule_remove_slotframe(tsch_slotframe);
-      tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
+      // tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
+      tsch_schedule_create_minimal();
 
       uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
 
@@ -269,11 +272,15 @@ act_on_message(uint8_t *msg, int length)
       // for debbuging purposes
       // tsch_schedule_print();
 
+      /*
+       * After a Clear slotframe, try to join the network via an ACK 
+       */
+
       break;
 
     case ALLOCATION_SLOT: ;
 
-      UART_WRITE_STRING(UART_DEBUG,  "add");
+      UART_WRITE_STRING(UART_DEBUG,  "add\n");
 
       allocation_slot packet = *(allocation_slot *)(msg);
 
@@ -299,12 +306,14 @@ act_on_message(uint8_t *msg, int length)
         packet.channel
       };
 
+      UART_WRITE_STRING(UART_DEBUG, "mobile_addr :"); PRINT6ADDR(packet.mobile_addr); UART_WRITE_STRING(UART_DEBUG, "\n");
+
       send_to_central_authority(&ack, sizeof(ack));
       break;
 
     case DEALLOCATION_SLOT: ;
 
-      UART_WRITE_STRING(UART_DEBUG, "del");
+      UART_WRITE_STRING(UART_DEBUG, "del\n");
 
       deallocation_slot pkt = *(deallocation_slot *)(msg);
       struct tsch_link *to_delete = tsch_schedule_get_link_by_timeslot(tsch_slotframe, pkt.timeslot);
@@ -313,6 +322,9 @@ act_on_message(uint8_t *msg, int length)
 
 
     default: ;
+
+      UART_WRITE_STRING(UART_DEBUG, "frame ID does not match any known frame types.\n");
+
       break;
   }
 

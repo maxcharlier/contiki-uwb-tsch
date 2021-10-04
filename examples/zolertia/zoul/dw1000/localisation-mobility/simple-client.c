@@ -29,13 +29,14 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
 
 #include "cpu/cc2538/lpm.h"
 
-#define DEBUG DEBUG_NONE
+#define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
@@ -43,7 +44,7 @@
 #define PRINT_BYTE 1
 
 #undef IS_LOCATION_SERVER
-#define IS_LOCATION_SERVER 0
+#define IS_LOCATION_SERVER 1
 
 
 #undef PRINTF
@@ -54,7 +55,7 @@
 #endif
 
 
-#define ROOT_ID  0X05
+#define ROOT_ID  0X07
 
 #undef RPL_LEAF_ONLY
 #define RPL_LEAF_ONLY 1
@@ -84,6 +85,9 @@ debug_uart_receive_byte(unsigned char c) {
     case 's':   tsch_schedule_print();                  break;
     case 'p':   PRINT6ADDR(query_best_anchor());        break;
     case 'n':   rpl_print_neighbor_list();              break;
+    case 'i':   { uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip); break; }
+    case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type)); break;
+    case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent); break;
   }
   return 1;
 }
@@ -121,7 +125,7 @@ set_global_address(void)
   }
   #else
   uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
-  usip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
+  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
   #endif /* NODEID */
 
@@ -136,6 +140,9 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   set_global_address();
 
+  // Define the schedule
+  tsch_schedule_create_initial();
+
   // print_local_addresses();
 
   // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
@@ -144,6 +151,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   uart_set_input(1, uart_receive_byte);
 
   // NETSTACK_MAC.off(1);
+  NETSTACK_MAC.on();
 
   ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 

@@ -5,4 +5,4 @@
 extern const linkaddr_t node_5_address;
 extern const linkaddr_t node_7_address;
 
-void tsch_schedule_create_initial(void);
+struct tsch_slotframe *tsch_schedule_create_initial(void);

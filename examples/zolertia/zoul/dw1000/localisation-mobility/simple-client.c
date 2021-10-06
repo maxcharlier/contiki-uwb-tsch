@@ -78,20 +78,19 @@ AUTOSTART_PROCESSES(&udp_client_process);
 
 int
 debug_uart_receive_byte(unsigned char c) {
-  uart_write_byte(0, c);
-  uart_write_byte(1, c);
-
   switch (c) {
-    case 's':   tsch_schedule_print();                  break;
-    case 'p':   PRINT6ADDR(query_best_anchor());        break;
-    case 'n':   rpl_print_neighbor_list();              break;
-    case 'i':   { uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip); break; }
-    case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type)); break;
-    case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent); break;
+    case 's':   tsch_schedule_print();                                                                      break;
+    case 'S':   tsch_slotframe = tsch_schedule_create_initial();                                            break;
+    case 'p':   PRINT6ADDR(query_best_anchor());                                                            break;
+    case 'n':   rpl_print_neighbor_list();                                                                  break;
+    case 'd':   uart_write_byte(UART_DEBUG, '0' + NODEID);                                                  break;
+    case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip);      break;
+    case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
+    case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
+    default :   uart_write_byte(UART_DEBUG, c);                                                             break;
   }
   return 1;
 }
-
 static void
 tcpip_handler(void)
 {
@@ -141,19 +140,22 @@ PROCESS_THREAD(udp_client_process, ev, data)
   set_global_address();
 
   // Define the schedule
-  tsch_schedule_create_initial();
+  // tsch_schedule_init();
+  tsch_slotframe = tsch_schedule_create_initial();
 
   // print_local_addresses();
 
   // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
 
-  uart_set_input(0, debug_uart_receive_byte);
-  uart_set_input(1, uart_receive_byte);
+  // uart_set_input(0, debug_uart_receive_byte);
+  // uart_set_input(1, uart_receive_byte);
 
-  // NETSTACK_MAC.off(1);
+  uart_set_input(0, debug_uart_receive_byte);
+  uart_set_input(1, debug_uart_receive_byte);
+
   NETSTACK_MAC.on();
 
-  ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  // ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();

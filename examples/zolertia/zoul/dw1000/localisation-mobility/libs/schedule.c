@@ -21,7 +21,7 @@ const linkaddr_t * mac_neighborg_addr[] = {
 #  error "Node ID not defined. Perhaps you need to tweak target Makefile."
 #endif /* NODEID */
 
-void tsch_schedule_create_initial(void)
+struct tsch_slotframe *tsch_schedule_create_initial(void)
 {
   struct tsch_slotframe *sf_custom;
 
@@ -55,4 +55,6 @@ void tsch_schedule_create_initial(void)
 
   for(l = timeslots ; l->slotframe ; l++)
     tsch_schedule_add_link(l->slotframe, l->link_options, l->link_type, l->address, l->timeslot, l->channel_offset);
+  
+  return sf_custom;
 }

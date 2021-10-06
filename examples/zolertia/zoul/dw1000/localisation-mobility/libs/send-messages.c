@@ -15,6 +15,7 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule.h"
 
 
 static const uip_ipaddr_t null_attached_anchor;
@@ -68,26 +69,29 @@ uart_write_string(int output, char text[], int size)
 
 allocation_request get_allocation_request() {
 
-  uip_ipaddr_t *rpl_parent = query_best_anchor();
+  uip_ipaddr_t *rpl_parent_ptr = query_best_anchor();
+  uip_ipaddr_t rpl_parent;
   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
-  if (!rpl_parent) {
+  if (!rpl_parent_ptr) {
     // There is no RPL parent yet -> error
     UART_WRITE_STRING(UART_DEBUG, "ERROR: No PRL parent is available\n");
     // For now, only send our own IP as a parent.
-    //*rpl_parent = our_ip; 
+    rpl_parent = our_ip; 
+  } else {
+    rpl_parent = *rpl_parent_ptr;
   }
 
   allocation_request rqst = { 
       ALLOCATION_REQUEST,
       255,  // signal power
       0,
-      *rpl_parent,
+      rpl_parent,
       our_ip
   };
 
   UART_WRITE_STRING(UART_DEBUG, "parent, our_ip: \n");
-  PRINT6ADDR(rpl_parent);
+  PRINT6ADDR(&rpl_parent);
   UART_WRITE_STRING(UART_DEBUG, "\n");
   PRINT6ADDR(&our_ip);
   UART_WRITE_STRING(UART_DEBUG, "\n");
@@ -108,10 +112,6 @@ send_allocation_probe_request()
 
     //goto retry;
   //}
-
-  uip_ipaddr_t *rpl_parent = query_best_anchor();
-
-  uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
   if (0) {
     /*
@@ -283,9 +283,10 @@ act_on_message(uint8_t *msg, int length)
 
       UART_WRITE_STRING(UART_DEBUG, "clear\n");
 
-      tsch_schedule_remove_slotframe(tsch_slotframe);
+      // tsch_schedule_remove_all_slotframes();
+      // tsch_schedule_remove_slotframe(tsch_slotframe);
       // tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
-      tsch_schedule_create_minimal();
+      // tsch_slotframe = tsch_schedule_create_initial();
 
       uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
 
@@ -301,7 +302,7 @@ act_on_message(uint8_t *msg, int length)
        * After a Clear slotframe, try to join the network via an ACK if the node is a mobile
        */
 
-#if NODEID != 0X7     // TODO if !IS_LOCATION_SERVER
+#if NODEID != 0x07    // TODO if !IS_LOCATION_SERVER
 
       allocation_request rqst = get_allocation_request();
       send_to_central_authority(&rqst, sizeof(rqst));

@@ -1,10 +1,10 @@
-all: localisation-client localisation-server
+all: simple-client simple-server
 CONTIKI = ../../../../..
 
 CFLAGS += -DPROJECT_CONF_H=\"project-conf.h\"
 
 MODULES += core/net/mac/tsch
-MODULES += examples/zolertia/zoul/dw1000/localisation-mobility-reborn/libs
+MODULES += examples/zolertia/zoul/dw1000/localisation-mobility/libs
 
 ifdef WITH_COMPOWER
 APPS+=powertrace

@@ -122,7 +122,9 @@
  * Larger values result in less frequent active slots: reduces capacity and saves energy. */
 /* by default 3 */
 #undef TSCH_SCHEDULE_CONF_DEFAULT_LENGTH
-#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 120
+#define TSCH_SCHEDULE_CONF_DEFAULT_LENGTH 20
+
+#define TSCH_SCHEDULE_CONF_WITH_6TISCH_MINIMAL 0
 
 #if WITH_SECURITY
 

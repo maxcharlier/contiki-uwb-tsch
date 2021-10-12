@@ -1,0 +1,18 @@
+node_id,ipv6,x_pos,y_pos,z_pos,USB_port,zolertia_serial, raspberry_pi
+0x01,fe80000000000000fdffffffffff0001,11.55,13.26,2.45,/dev/anchor1,ZOL-B001-A200002005,testbed1
+0x02,fe80000000000000fdffffffffff0002,7.52,13.24,2.45,/dev/anchor2,ZOL-B001-A200001919,testbed1
+0x03,fe80000000000000fdffffffffff0003,7.52,9.08,2.45,/dev/anchor3,ZOL-B001-A200001968,testbed1
+0x04,fe80000000000000fdffffffffff0004,11.56,9.09,2.45,/dev/anchor4,ZOL-B001-A200001993,testbed1
+0x05,fe80000000000000fdffffffffff0005,16.35,18.31,2.45,/dev/anchor5,ZOL-B001-A200001917,testbed1
+0x06,fe80000000000000fdffffffffff0006,16.38,13.32,2.45,/dev/anchor6,ZOL-B001-A200001965,testbed1
+0x07,fe80000000000000fdffffffffff0007,2.36,7.21,2.37,/dev/anchor7,ZOL-B001-A200001897,testbed1
+0x08,fe80000000000000fdffffffffff0008,16.37,7.99,2.45,/dev/anchor8,ZOL-B001-A200002010,testbed1
+0x09,fe80000000000000fdffffffffff0009,2.36,11.23,2.45,/dev/anchor9,ZOL-B001-A200001899,testbed1
+0x0A,fe80000000000000fdffffffffff000a,9.59,15.66,2.45,/dev/anchor10,ZOL-B001-A200001992,testbed1
+0x0B,fe80000000000000fdffffffffff000b,2.36,17.29,2.45,/dev/anchor11,ZOL-B001-A200001900,testbed1
+0x0C,fe80000000000000fdffffffffff000c,7.43,21.35,2.45,/dev/anchor12,ZOL-B001-A200001907,testbed1
+0x0D,fe80000000000000fdffffffffff000d,1,1.29,2.45,/dev/anchor13,ZOL-B001-A200001960,testbed2
+0x0E,fe80000000000000fdffffffffff000e,9.59,0.81,2.45,/dev/anchor14,ZOL-B001-A200001983,testbed2
+0x0F,fe80000000000000fdffffffffff000f,9.32,4.98,2.45,/dev/anchor15,ZOL-B001-A200001976,testbed2
+0x10,fe80000000000000fdffffffffff0010,1.5,4.98,2.45,/dev/anchor16,ZOL-B001-A200001988,testbed2
+

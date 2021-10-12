@@ -140,18 +140,12 @@ PROCESS_THREAD(udp_client_process, ev, data)
   set_global_address();
 
   // Define the schedule
-  // tsch_schedule_init();
   tsch_slotframe = tsch_schedule_create_initial();
 
-  // print_local_addresses();
-
-  // struct tsch_slotframe *tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
-
-  // uart_set_input(0, debug_uart_receive_byte);
-  // uart_set_input(1, uart_receive_byte);
 
   uart_set_input(0, debug_uart_receive_byte);
-  uart_set_input(1, debug_uart_receive_byte);
+  uart_set_input(1, uart_receive_byte);
+
 
   NETSTACK_MAC.on();
 

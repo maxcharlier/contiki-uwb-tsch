@@ -1,9 +1,16 @@
+from __future__ import annotations
+
+import sys
+import logging
+import math
+import csv
+
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
-import logging
-from typing import List, Sized
-import sys
+from functools import lru_cache
+from typing import List, Dict, Collection, Sized, Union
+
 
 PacketParameter = namedtuple('PacketParameter', 'id size associated_class')
 
@@ -12,31 +19,92 @@ ALLOCATION_SLOT      = 1
 ALLOCATION_ACK       = 2
 DEALLOCATION_REQUEST = 3
 DEALLOCATION_SLOT    = 4
-CLEAR_SLOTFRAME      = 5
-CLEAR_ACK            = 6
+DEALLOCATION_ACK     = 5
+CLEAR_SLOTFRAME      = 6
+CLEAR_ACK            = 7
 
 @dataclass
 class IPv6Address:
     address: bytearray
 
+    def __init__(self, address: Union[bytearray, bytes, str]):
+        if type(address) is bytearray:
+            self.address = address
+        elif type(address) is bytes:
+            self.address = bytearray(bytes)
+        elif type(address) is str:
+            self.address = bytearray.fromhex(address)
+        else:
+            raise ValueError(f"address should be a `bytes` or a `str`, got a {type(address)}")
+
     def __str__(self):
         return ":".join(map(lambda b: hex(b)[2:], self.address))
 
+    def __eq__(self, o: object) -> bool:
+        """
+        fe80000000000000fdffffffffff0001 and fd80000000000000fdffffffffff0001 should be the same address
+        """
+        if type(o) is not IPv6Address:
+            return False
+        return self.address[3:] == o.address[3:]
+
     def __hash__(self):
         return hash(self.__str__())
+
+@dataclass
+class Anchor:
+
+    address: IPv6Address
+    x_pos: float = 0.
+    y_pos: float = 0.
+    z_pos: float = 0.
+
+    def distance(self, other_anchor: Anchor) -> float:
+        return math.sqrt(
+            (self.x_pos - other_anchor.x_pos) ** 2
+            + (self.y_pos - other_anchor.y_pos) ** 2
+            + (self.z_pos - other_anchor.z_pos) ** 2
+        )
+    
+    def nearest_anchors(self, amount: int=3) -> List[Anchor]:
+        return sorted(self.all_anchors(), key=lambda b: self.distance(b))[:amount]
+    
+    def __eq__(self, o: object) -> bool:
+        if type(o) is not Anchor:
+            return False
+        return self.address == o.address
+
+    @classmethod
+    def from_IPv6(cls, ipv6: IPv6Address) -> Anchor:
+        return next(filter(lambda a: ipv6 == a.address, cls.all_anchors()))
+    
+    @classmethod
+    def all_anchors(cls) -> Collection[Anchor]:
+        return list(cls._read_anchors().values())
+
+    @classmethod
+    @lru_cache(maxsize=1)
+    def _read_anchors(cls, sourcefile="nodes.csv") -> Dict[str, Anchor]:
+        neighbours: Dict = {}
+        with open(sourcefile, 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                neighbours[row['node_id']] = Anchor(IPv6Address(row['ipv6']), float(row['x_pos']), float(row['y_pos']), float(row['z_pos']))
+        return neighbours
 
 class Packet(ABC, Sized):
 
     type: int
 
     PACKET_ID_SIZE = {
-        ALLOCATION_REQUEST:     PacketParameter(0, 34, 'AllocationRequestPacket'),
-        ALLOCATION_SLOT:        PacketParameter(1, 37, 'AllocationSlotPacket'),
+        ALLOCATION_REQUEST:     PacketParameter(0, 16, 'AllocationRequestPacket'),
+        ALLOCATION_SLOT:        PacketParameter(1, 16, 'AllocationSlotPacket'),
         ALLOCATION_ACK:         PacketParameter(2, 16, 'AllocationAckPacket'),
         DEALLOCATION_REQUEST:   PacketParameter(3, 16, 'DeallocationResquestPacket'),
         DEALLOCATION_SLOT:      PacketParameter(4, 16, None),
-        CLEAR_SLOTFRAME:        PacketParameter(5, 8, 'ClearSlotframePacket'),
-        CLEAR_ACK:              PacketParameter(6, 8, 'ClearAckPacket'),
+        DEALLOCATION_ACK:       PacketParameter(5, 16, None),
+        CLEAR_SLOTFRAME:        PacketParameter(6, 8, 'ClearSlotframePacket'),
+        CLEAR_ACK:              PacketParameter(7, 8, 'ClearAckPacket'),
     }
 
     @abstractmethod

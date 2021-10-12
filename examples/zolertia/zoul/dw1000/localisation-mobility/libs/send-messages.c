@@ -283,10 +283,7 @@ act_on_message(uint8_t *msg, int length)
 
       UART_WRITE_STRING(UART_DEBUG, "clear\n");
 
-      // tsch_schedule_remove_all_slotframes();
-      // tsch_schedule_remove_slotframe(tsch_slotframe);
-      // tsch_slotframe = tsch_schedule_add_slotframe(0, 31);
-      // tsch_slotframe = tsch_schedule_create_initial();
+      tsch_slotframe = tsch_schedule_create_initial();
 
       uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
 
@@ -356,6 +353,19 @@ act_on_message(uint8_t *msg, int length)
       deallocation_slot pkt = *(deallocation_slot *)(msg);
       struct tsch_link *to_delete = tsch_schedule_get_link_by_timeslot(tsch_slotframe, pkt.timeslot);
       tsch_schedule_remove_link(tsch_slotframe, to_delete);
+
+      // Successfully deleted slot, send ack
+      deallocation_ack d_ack = {
+        DEALLOCATION_ACK,
+        0,    // padding
+        pkt.timeslot,
+        pkt.channel,
+        pkt.mobile_addr,
+        pkt.anchor_addr
+      };
+
+      send_to_central_authority(&d_ack, sizeof(d_ack));
+
       break;
 
 

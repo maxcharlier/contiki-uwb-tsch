@@ -7,6 +7,7 @@ typedef enum message_type {
   ALLOCATION_ACK,
   DEALLOCATION_REQUEST,
   DEALLOCATION_SLOT,
+  DEALLOCATION_ACK,
   CLEAR_SLOTFRAME,
   CLEAR_ACK,
   DEBUGGING = 255
@@ -57,6 +58,15 @@ typedef struct deallocation_slot_t {
   uip_ipaddr_t anchor_addr;         // 16 bytes
 
 } deallocation_slot;
+
+typedef struct deallocation_ack_t {
+  message_type message_type : 8;
+  uint8_t padding1;
+  uint8_t timeslot;
+  uint8_t channel;
+  uip_ipaddr_t mobile_addr;
+  uip_ipaddr_t anchor_addr;
+} deallocation_ack;
 
 typedef struct clear_slotframe_t {
   message_type message_type : 8;

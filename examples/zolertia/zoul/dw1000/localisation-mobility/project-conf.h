@@ -110,6 +110,11 @@
 #undef TSCH_LOG_CONF_LEVEL
 #define TSCH_LOG_CONF_LEVEL 0
 
+/* We use a specific thread for the localisation */
+#define TSCH_LOC_THREAD 1
+#define TSCH_CONF_LOCALISATION 1
+// #define TSCH_CONF_PROP_MEASUREMENT_ENABLED_AR_STARTUP 1
+
 /* IEEE802.15.4 PANID */
 #undef IEEE802154_CONF_PANID
 #define IEEE802154_CONF_PANID 0xabcd
@@ -199,4 +204,21 @@
 #define RPL_CONF_DIO_INTERVAL_MIN 13
 #define RPL_CONF_DIO_INTERVAL_DOUBLINGS 1
 
-/* #define RPL_LEAF_ONLY 1 */
+
+#define ROOT_ID  0X07
+
+#if NODEID == ROOT_ID
+
+#define IS_LOCATION_SERVER 1 // The root is connected via UART to the central authority
+
+#endif /* NODEID == ROOT_ID */
+
+#ifdef IS_MOBILE
+#define IS_ANCHOR 0
+#else
+#define IS_ANCHOR 1
+//#define IS_MOBILE 0
+#endif
+
+#undef RPL_LEAF_ONLY
+#define RPL_LEAF_ONLY 0

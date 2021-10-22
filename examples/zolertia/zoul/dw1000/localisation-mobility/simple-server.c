@@ -43,9 +43,6 @@
 
 #define PRINT_BYTE 0
 
-#undef IS_LOCATION_SERVER
-#define IS_LOCATION_SERVER 1
-
 
 #undef PRINTF
 #if !PRINT_BYTE
@@ -55,9 +52,11 @@
 #endif
 
 
-#define ROOT_ID  0X07
 
-#define UDP_PORT 5678
+
+#define UDP_CLIENT_PORT	8765
+#define UDP_SERVER_PORT	5678
+
 #define MAX_PAYLOAD_LEN   30
 
 
@@ -68,11 +67,39 @@
 // <<<<<<< End timer config
 
 static struct uip_udp_conn *client_conn;
+static struct uip_udp_conn *server_conn;
+
+
 
 
 /*---------------------------------------------------------------------------*/
+PROCESS(TSCH_PROP_PROCESS, "TSCH propagation time process");
 PROCESS(udp_server_process, "UDP Server");
 AUTOSTART_PROCESSES(&udp_server_process);
+/*---------------------------------------------------------------------------*/
+
+
+/*---------------------------------------------------------------------------*/
+/* Protothread for localisation slot operation, called by update_neighbor_prop_time() 
+ * function. "data" is a struct tsch_neighbor pointer.
+
+ After a localisation we will create a message and send it to the sink.*/
+PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
+{
+  PROCESS_BEGIN();
+
+  // PROCESS_PAUSE();
+
+  while(1) {
+    PROCESS_YIELD();
+    // PROCESS_WAIT_EVENT();
+    if(ev == PROCESS_EVENT_MSG){
+      handle_propagation(data);
+    }
+  }
+
+  PROCESS_END();
+}
 /*---------------------------------------------------------------------------*/
 
 int
@@ -82,7 +109,9 @@ debug_uart_receive_byte(unsigned char c) {
     case 'S':   tsch_slotframe = tsch_schedule_create_initial();                                            break;
     case 'p':   PRINT6ADDR(query_best_anchor());                                                            break;
     case 'n':   rpl_print_neighbor_list();                                                                  break;
-    case 'd':   uart_write_byte(UART_DEBUG, '0' + NODEID);                                                  break;
+    case 'e':   tsch_set_prop_measurement(1);                                                               break;
+    case 'd':   tsch_set_prop_measurement(0);                                                               break;
+    case 'D':   uart_write_byte(UART_DEBUG, '0' + NODEID);                                                  break;
     case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip);      break;
     case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
     case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
@@ -97,6 +126,7 @@ tcpip_handler(void)
   if(uip_newdata()) {
     // This is an anchor. UDP messages are coming from a mobile node and should be
     // forwared to the central authority.
+    printf("Packet received.\n");
     send_to_central_authority(uip_appdata, uip_datalen()); 
   }
 }
@@ -151,6 +181,19 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uart_set_input(1, uart_receive_byte);
 
   NETSTACK_MAC.on();
+
+  /* Enable receiving UDP packets */
+  server_conn = udp_new(NULL, UIP_HTONS(UDP_CLIENT_PORT), NULL);
+  if(server_conn == NULL) {
+    PRINTF("No UDP connection available, exiting the process!\n");
+    PROCESS_EXIT();
+  }
+  udp_bind(server_conn, UIP_HTONS(UDP_SERVER_PORT));
+
+  PRINTF("Created a server connection with remote address ");
+  PRINT6ADDR(&server_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
+         UIP_HTONS(server_conn->rport));
 
 
   //ctimer_set(&retry_timer, 5 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);

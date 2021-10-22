@@ -2,6 +2,7 @@
 
 #include "net/mac/tsch/tsch.h"
 #include "net/mac/tsch/tsch-schedule.h"
+#include "net/mac/tsch/tsch-queue.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/rpl/rpl.h"
 
@@ -18,13 +19,13 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule.h"
 
 
-static const uip_ipaddr_t null_attached_anchor;
-static uip_ipaddr_t current_attached_anchor;
+// static const uip_ipaddr_t null_attached_anchor;
+// static uip_ipaddr_t current_attached_anchor;
 
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 
-#define IS_LOCATION_SERVER 1
+
 
 #define MAX_SERIAL_LEN    100
 
@@ -42,6 +43,15 @@ static uint8_t *receive_ptr = receive_buffer;
 #endif
 */
 
+void
+uart_write_string(int output, char text[], int size)
+{
+  for (int i=0; i<size; i++) {
+    uart_write_byte(output, text[i]);
+  }
+}
+
+
 #define UART_WRITE_STRING(output, text) uart_write_string(output, text, sizeof(text))
 
 //#define SEND_TO_CENTRAL_AUTHORITY(data) send_to_central_authority(&(data), sizeof(data))
@@ -56,13 +66,32 @@ query_best_anchor()
 }
 
 
-void
-uart_write_string(int output, char text[], int size)
+linkaddr_t
+get_linkaddr_from_ipaddr(uip_ip6addr_t *ipaddr)
 {
-  for (int i=0; i<size; i++) {
-    uart_write_byte(output, text[i]);
+  // linkaddr_copy
+  linkaddr_t *from_ip = (linkaddr_t *) uip_ds6_nbr_lladdr_from_ipaddr(ipaddr);
+  
+  if (!from_ip) {
+    // Failed to fetch address
+    UART_WRITE_STRING(UART_DEBUG, "Failed to fetch linkaddr_t.\n");
+
+    uip_ds6_nbr_t *nbr = uip_ds6_nbr_lookup(ipaddr);
+    if (!nbr) {
+      UART_WRITE_STRING(UART_DEBUG, "Failed to get nbr. \n");
+    }
+
+    // Hack some other way to get the address
+    int last_digits = ipaddr->u8[15];
+    linkaddr_t link_address  = { { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0X00, last_digits } };
+    return link_address;
   }
+  // PRINTLLADDR(link_address);
+  linkaddr_t link_address;
+  linkaddr_copy(&link_address, from_ip);
+  return link_address;
 }
+
 
 
 
@@ -86,8 +115,8 @@ allocation_request get_allocation_request() {
       ALLOCATION_REQUEST,
       255,  // signal power
       0,
-      rpl_parent,
-      our_ip
+      our_ip,
+      rpl_parent
   };
 
   UART_WRITE_STRING(UART_DEBUG, "parent, our_ip: \n");
@@ -137,7 +166,8 @@ void
 send_to_central_authority(void *data_to_transmit, int length)
 {
 
-#if IS_LOCATION_SERVER
+// #if IS_LOCATION_SERVER //TODO
+#if 1
 
   // An anchor has direct UART connection to the central authority.
   
@@ -295,17 +325,19 @@ act_on_message(uint8_t *msg, int length)
       send_to_central_authority(&clearack, sizeof(clearack));
       //SEND_TO_CENTRAL_AUTHORITY(clear_ack);
 
+      //uart_write_byte(UART_DEBUG, '0' + ISMOBILE);
+
       /*
        * After a Clear slotframe, try to join the network via an ACK if the node is a mobile
        */
 
-#if NODEID != 0x07    // TODO if !IS_LOCATION_SERVER
+#if NODEID != 0x7 // TODO #if ISMOBILE
 
       allocation_request rqst = get_allocation_request();
       send_to_central_authority(&rqst, sizeof(rqst));
       //SEND_TO_CENTRAL_AUTHORITY(rqst);
 
-#endif /* NODEID != 0X7 */
+#endif /* ISMOBILE */
 
       break;
 
@@ -323,13 +355,14 @@ act_on_message(uint8_t *msg, int length)
 
 #if IS_LOCATION_SERVER
 
-      linkaddr_t *mobile_addr = (linkaddr_t *) uip_ds6_nbr_lladdr_from_ipaddr(&(packet.mobile_addr));
-      tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_NORMAL, mobile_addr, packet.timeslot, packet.channel);
+      linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
+    
+      tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_PROP, &mobile_addr, packet.timeslot, packet.channel);
 
 #else /* IS_LOCATION_SERVER */
     
-      linkaddr_t *anchor_addr = (linkaddr_t *) uip_ds6_nbr_lladdr_from_ipaddr(&(packet.anchor_addr));
-      tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_NORMAL, anchor_addr, packet.timeslot, packet.channel);
+      linkaddr_t anchor_addr = get_linkaddr_from_ipaddr(&packet.anchor_addr);
+      tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_RX, LINK_TYPE_PROP, &anchor_addr, packet.timeslot, packet.channel);
 
 #endif /* IS_LOCATION_SERVER */
 
@@ -375,5 +408,38 @@ act_on_message(uint8_t *msg, int length)
 
       break;
   }
+
+}
+
+void
+handle_propagation(struct tsch_neighbor *data)
+{
+  // Instead of printing the prop time, send it to the CA
+  
+  // printf("New prop time %ld %u %lu %u\n", 
+  //   data->last_prop_time.prop_time, 
+  //   data->last_prop_time.asn.ms1b, /* most significant 1 byte */
+  //   data->last_prop_time.asn.ls4b, /* least significant 4 bytes */
+  //   data->last_prop_time.tsch_channel); 
+
+  // UART_WRITE_STRING(UART_DEBUG, "handle_propagation called.\n");
+  
+
+  // Only anchors will initiate two-way ranging (see schedule)
+  uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
+
+
+  propagation_time prop_time = {
+    PROPAGATION_TIME,
+    0,  // padding1
+    0,  // padding2
+    data->last_prop_time.tsch_channel,
+    our_ip,   // Change to mobile IP
+    our_ip,
+    data->last_prop_time.prop_time,
+    data->last_prop_time.asn
+  };
+
+  send_to_central_authority(&prop_time, sizeof(propagation_time));
 
 }

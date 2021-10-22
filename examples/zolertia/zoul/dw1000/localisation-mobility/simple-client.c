@@ -55,11 +55,6 @@
 #endif
 
 
-#define ROOT_ID  0X07
-
-#undef RPL_LEAF_ONLY
-#define RPL_LEAF_ONLY 1
-
 #define UDP_PORT 5678
 #define MAX_PAYLOAD_LEN   30
 
@@ -71,10 +66,40 @@
 
 
 
+
+
 /*---------------------------------------------------------------------------*/
+
+
+
+
+/*---------------------------------------------------------------------------*/
+PROCESS(TSCH_PROP_PROCESS, "TSCH propagation time process");
 PROCESS(udp_client_process, "UDP Client");
 AUTOSTART_PROCESSES(&udp_client_process);
 /*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+/* Protothread for localisation slot operation, called by update_neighbor_prop_time() 
+ * function. "data" is a struct tsch_neighbor pointer.
+
+ After a localisation we will create a message and send it to the sink.*/
+PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
+{
+  PROCESS_BEGIN();
+
+  // PROCESS_PAUSE();
+
+  while(1) {
+    PROCESS_YIELD();
+    // PROCESS_WAIT_EVENT();
+    if(ev == PROCESS_EVENT_MSG){
+      handle_propagation(data);
+    }
+  }
+
+  PROCESS_END();
+}
 
 int
 debug_uart_receive_byte(unsigned char c) {
@@ -83,7 +108,9 @@ debug_uart_receive_byte(unsigned char c) {
     case 'S':   tsch_slotframe = tsch_schedule_create_initial();                                            break;
     case 'p':   PRINT6ADDR(query_best_anchor());                                                            break;
     case 'n':   rpl_print_neighbor_list();                                                                  break;
-    case 'd':   uart_write_byte(UART_DEBUG, '0' + NODEID);                                                  break;
+    case 'e':   tsch_set_prop_measurement(1);                                                               break;
+    case 'd':   tsch_set_prop_measurement(0);                                                               break;
+    case 'D':   uart_write_byte(UART_DEBUG, '0' + NODEID);                                                  break;
     case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip);      break;
     case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
     case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;

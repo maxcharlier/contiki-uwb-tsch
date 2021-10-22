@@ -10,6 +10,7 @@ typedef enum message_type {
   DEALLOCATION_ACK,
   CLEAR_SLOTFRAME,
   CLEAR_ACK,
+  PROPAGATION_TIME,
   DEBUGGING = 255
 } message_type;
 
@@ -76,6 +77,17 @@ typedef struct clear_ack_t {
   message_type message_type : 8;
   uip_ipaddr_t from_addr;
 } clear_ack;
+
+typedef struct propagation_time_t {
+  message_type message_type: 8;
+  uint8_t padding1;
+  uint8_t padding2;
+  uint8_t tsch_channel;
+  uip_ipaddr_t mobile_addr;
+  uip_ipaddr_t anchor_addr;
+  int32_t prop_time;
+  struct tsch_asn_t asn;  /* ASN of the slot used for the propagation time measurement */
+} propagation_time;
 
 typedef struct debug_packet_t {
   message_type message_type : 8;

@@ -29,3 +29,7 @@ uart_receive_byte(unsigned char c);
 
 void
 uart_send_bytes(void *data_to_transmit, int length);
+
+
+void
+handle_propagation(struct tsch_neighbor *data);

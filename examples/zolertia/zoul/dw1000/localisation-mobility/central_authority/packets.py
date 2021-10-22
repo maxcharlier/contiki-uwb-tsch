@@ -22,6 +22,7 @@ DEALLOCATION_SLOT    = 4
 DEALLOCATION_ACK     = 5
 CLEAR_SLOTFRAME      = 6
 CLEAR_ACK            = 7
+PROPAGATION_TIME     = 8
 
 @dataclass
 class IPv6Address:
@@ -84,7 +85,7 @@ class Anchor:
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _read_anchors(cls, sourcefile="nodes.csv") -> Dict[str, Anchor]:
+    def _read_anchors(cls, sourcefile="home.csv") -> Dict[str, Anchor]:
         neighbours: Dict = {}
         with open(sourcefile, 'r') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -105,6 +106,7 @@ class Packet(ABC, Sized):
         DEALLOCATION_ACK:       PacketParameter(5, 16, None),
         CLEAR_SLOTFRAME:        PacketParameter(6, 8, 'ClearSlotframePacket'),
         CLEAR_ACK:              PacketParameter(7, 8, 'ClearAckPacket'),
+        PROPAGATION_TIME:       PacketParameter(8, 28, 'PropagationTimePacket'),
     }
 
     @abstractmethod
@@ -266,3 +268,18 @@ class ClearAckPacket(IncomingPacket):
     
     def __str__(self):
         return f'ClearAckPacket({self.type}, {self.from_addr})'
+
+class PropagationTimePacket(IncomingPacket):
+
+    def __init__(self, frame: bytearray):
+        self.type = frame[0]
+        self.channel = frame[3]
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+        self.prop_time: int = int.from_bytes(frame[36:40], byteorder='little', signed=True)
+    
+    def __len__(self) -> int:
+        return self.PACKET_ID_SIZE[PROPAGATION_TIME].size
+
+    def __str__(self) -> str:
+        return f'PropagationTimePacket({self.type}, {self.mobile_addr} -> {self.anchor_addr} = {self.prop_time})'

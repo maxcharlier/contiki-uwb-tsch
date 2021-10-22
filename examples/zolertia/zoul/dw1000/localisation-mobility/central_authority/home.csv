@@ -1,0 +1,3 @@
+node_id,ipv6,x_pos,y_pos,z_pos,USB_port,zolertia_serial, raspberry_pi
+0x07,fe80000000000000fdffffffffff0007,2.36,7.21,2.37,/dev/anchor7,ZOL-B001-A200001897,laptop
+

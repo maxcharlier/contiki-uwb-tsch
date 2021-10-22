@@ -45,7 +45,7 @@ class GreedyScheduler:
             # anchors to the parent of the mobile.
             main_parent = Anchor.from_IPv6(in_pkt.anchor_addr)
             for a in main_parent.nearest_anchors(3):
-                # logging.info(f"Additional parent chosen: {a}")
+                logging.info(f"Additional parent chosen: {a} for {in_pkt.mobile_addr} around {in_pkt.anchor_addr}")
                 
                 # Adding a slot for that parent
             
@@ -99,14 +99,14 @@ class GreedyScheduler:
             virtual_free_timeslot = self.holes_in_slotframe.pop()
             free_timeslot = virtual_free_timeslot + self.offset
             self.slotframe[virtual_free_timeslot] = (source, destination)
-            return free_timeslot, 1
+            return free_timeslot, 0
         else:
             # Add the communivation slot at the end of the schedule
             assert len(self.slotframe) < self.max_length - 1
             self.slotframe.append((source, destination))
             virtual_timeslot = len(self.slotframe)-1
             timeslot = virtual_timeslot + self.offset
-            return timeslot, 1
+            return timeslot, 0
         
 
     def _delete_cell(self, source: IPv6Address, destination: IPv6Address, timeslot, channel):

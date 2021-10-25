@@ -5,7 +5,6 @@
 #include "net/ip/uipopt.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-udp-packet.h"
-#include "net/rpl/rpl.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,17 +23,18 @@
 /* containt def of tsch_schedule_get_slotframe_duration */
 #include "net/mac/tsch/tsch-schedule.h" 
 
+#include "net/rpl/rpl.h"
+
 
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule.h"
 
-
 #include "dev/uart.h"
+#include "dev/serial-line.h"
 
 #include "cpu/cc2538/lpm.h"
-
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
@@ -52,6 +52,8 @@
 #endif
 
 
+#undef IS_LOCATION_SERVER
+#define IS_LOCATION_SERVER 1
 
 
 #define UDP_CLIENT_PORT	8765
@@ -60,11 +62,11 @@
 #define MAX_PAYLOAD_LEN   30
 
 
+
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 #define BUF_LEN 6
 
-// <<<<<<< End timer config
 
 static struct uip_udp_conn *client_conn;
 static struct uip_udp_conn *server_conn;
@@ -73,11 +75,15 @@ static struct uip_udp_conn *server_conn;
 
 
 /*---------------------------------------------------------------------------*/
-PROCESS(TSCH_PROP_PROCESS, "TSCH propagation time process");
-PROCESS(udp_server_process, "UDP Server");
-AUTOSTART_PROCESSES(&udp_server_process);
-/*---------------------------------------------------------------------------*/
 
+
+
+
+/*---------------------------------------------------------------------------*/
+PROCESS(TSCH_PROP_PROCESS, "TSCH propagation time process");
+PROCESS(udp_client_process, "UDP Client");
+AUTOSTART_PROCESSES(&udp_client_process);
+/*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
 /* Protothread for localisation slot operation, called by update_neighbor_prop_time() 
@@ -100,7 +106,6 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
 
   PROCESS_END();
 }
-/*---------------------------------------------------------------------------*/
 
 int
 debug_uart_receive_byte(unsigned char c) {
@@ -120,26 +125,33 @@ debug_uart_receive_byte(unsigned char c) {
   return 1;
 }
 
+
 static void
 tcpip_handler(void)
 {
   if(uip_newdata()) {
-    // This is an anchor. UDP messages are coming from a mobile node and should be
-    // forwared to the central authority.
+
+#if NODEID == 0x7 // TODO IS_MOBILE
+    
     printf("Packet received.\n");
     send_to_central_authority(uip_appdata, uip_datalen()); 
-  }
+
+#else
+
+    // This is a mobile node, messages coming from a UDP packet are just forwarded
+    // through the nearest anchor.
+    act_on_message(uip_appdata, uip_datalen());
+
+#endif /* IS_MOBILE */
+  }  
 }
 
-
-/*---------------------------------------------------------------------------*/
 static void
 set_global_address(void)
 {
   uip_ipaddr_t ipaddr;
 
   #if NODEID == ROOT_ID
-  /* Set this node as the RPL root */
   struct uip_ds6_addr *root_if;
 
   uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
@@ -163,7 +175,7 @@ set_global_address(void)
 
 }
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(udp_server_process, ev, data)
+PROCESS_THREAD(udp_client_process, ev, data)
 {
   PROCESS_BEGIN();
   PROCESS_PAUSE();
@@ -172,7 +184,6 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
   set_global_address();
 
-  
   // Define the schedule
   tsch_slotframe = tsch_schedule_create_initial();
 
@@ -180,7 +191,10 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uart_set_input(0, debug_uart_receive_byte);
   uart_set_input(1, uart_receive_byte);
 
+
   NETSTACK_MAC.on();
+
+
 
   /* Enable receiving UDP packets */
   server_conn = udp_new(NULL, UIP_HTONS(UDP_CLIENT_PORT), NULL);
@@ -194,13 +208,13 @@ PROCESS_THREAD(udp_server_process, ev, data)
   PRINT6ADDR(&server_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
          UIP_HTONS(server_conn->rport));
+  /* Finished enabling receiving UDP packets */
 
-
-  //ctimer_set(&retry_timer, 5 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
+  // ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();
-
+    
     if(ev == tcpip_event) {
       tcpip_handler();
     }

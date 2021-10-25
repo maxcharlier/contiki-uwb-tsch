@@ -166,14 +166,14 @@ void
 send_to_central_authority(void *data_to_transmit, int length)
 {
 
-// #if IS_LOCATION_SERVER //TODO
-#if 1
+// #if IS_MOBILE//TODO
+#if NODEID == 0x7
 
   // An anchor has direct UART connection to the central authority.
   
   uart_send_bytes(data_to_transmit, length);
 
-#else /* IS_LOCATION_SERVER */
+#else /* IS_MOBILE */
 
   // A mobile needs to send packets wirelessly to an (ideally the nearest) anchor,
   // which will forward it to the central autority.

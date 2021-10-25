@@ -20,7 +20,7 @@ class Handler:
     def handle(self, sa: SerialAdapter):
         while True:
             packet = sa.receive()
-            logging.info(f'Incoming packet: {packet}.')
+            logging.info(f'Incoming packet from {sa.device}: {packet}.')
 
             self.eventQueue.put((packet, sa.device))
             self.eventQueue.task_done()

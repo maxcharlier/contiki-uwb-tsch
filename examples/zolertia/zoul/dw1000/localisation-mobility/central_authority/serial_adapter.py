@@ -6,6 +6,13 @@ from packets import IncomingPacket, OutgoingPacket, IPv6Address, ClearSlotframeP
 
 ADPATERS = {}
 
+PORTS = {
+    IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
+    IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
+    IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB2',
+    IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB2'
+}
+
 
 SERIAL_BAUDRATE = 115200
 
@@ -46,16 +53,6 @@ class SerialAdapter:
         '''
         Sends a packet to the correct serial port
         '''
-        PORTS = {       # TODO store at runtime
-            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
-            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x01')): '/dev/anchor1',
-            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2',
-            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x02')): '/dev/anchor2',
-            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
-            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
-            IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB2',
-            IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB2'
-        }
 
         for dst in pkt.destinations():
             if PORTS[dst] == self.device:
@@ -91,6 +88,12 @@ class SerialAdapter:
                 if recv_byte == BS_EFD:
                     # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
                     pkt = IncomingPacket.packet_from_bytearray(IncomingPacket, self.frame)
+                    
+                    # Update PORTS to reflect to received packet
+                    for p in pkt.origin_addresses():
+                        # logging.info(f'Adding {(p, self.device)} to PORTS.')
+                        PORTS[p] = self.device
+                    
                     # reset state for future use
                     self.state = STATE_WAIT_SFD
                     self.frame = bytearray()

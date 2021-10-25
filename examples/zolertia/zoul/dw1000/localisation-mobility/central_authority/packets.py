@@ -127,8 +127,15 @@ class IncomingPacket(Packet):
     def __init__(self, frame: bytearray):
         pass
 
+    @abstractmethod
+    def origin_addresses(self) -> list[IPv6Address]:
+        """
+        Returns the IPv6 Address of the nodes accessible via this anchor.
+        """
+        pass
+
     @staticmethod
-    def packet_from_bytearray(cls, frame: bytearray):       # -> IncomingPacket
+    def packet_from_bytearray(cls, frame: bytearray) -> IncomingPacket:
         type = frame[0]
         # type = next(filter(lambda k: PACKET_ID_SIZE[k][0] == size, PACKET_ID_SIZE.keys()))
         type_class = cls.PACKET_ID_SIZE[type].associated_class
@@ -163,6 +170,9 @@ class AllocationRequestPacket(IncomingPacket):
         self.signal_power = frame[1]
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+    
+    def origin_address(self) -> Collection[IPv6Address]:
+        return [self.mobile_addr, self.anchor_addr]
     
     def __len__(self):
         return self.PACKET_ID_SIZE[ALLOCATION_REQUEST].size
@@ -213,6 +223,8 @@ class AllocationAckPacket(IncomingPacket):
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
 
+    def origin_addresses(self) -> Collection[IPv6Address]:
+        return [self.mobile_addr, self.anchor_addr]
 
     def __len__(self):
         return self.PACKET_ID_SIZE[ALLOCATION_ACK].size
@@ -230,6 +242,9 @@ class DeallocationResquestPacket(IncomingPacket):
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
     
+    def origin_addresses(self) -> Collection[IPv6Address]:
+        return [self.mobile_addr, self.anchor_addr]
+
     def __len__(self):
         return self.PACKET_ID_SIZE[DEALLOCATION_REQUEST].size
 
@@ -262,6 +277,9 @@ class ClearAckPacket(IncomingPacket):
     def __init__(self, frame: bytearray):
         self.type = frame[0]
         self.from_addr: IPv6Address = self._parse_ipv6_address(self, frame[2:18])
+    
+    def origin_addresses(self) -> Collection[IPv6Address]:
+        return [self.from_addr]
 
     def __len__(self):
         return self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].size
@@ -277,6 +295,9 @@ class PropagationTimePacket(IncomingPacket):
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
         self.prop_time: int = int.from_bytes(frame[36:40], byteorder='little', signed=True)
+    
+    def origin_addresses(self) -> Collection[IPv6Address]:
+        return [self.mobile_addr, self.anchor_addr]
     
     def __len__(self) -> int:
         return self.PACKET_ID_SIZE[PROPAGATION_TIME].size

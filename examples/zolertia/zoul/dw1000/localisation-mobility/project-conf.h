@@ -34,6 +34,8 @@
 #define WITH_NON_STORING 0 /* Set this to run with non-storing mode */
 #endif /* WITH_NON_STORING */
 
+#define WITH_CONF_STORING 1
+
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
 
@@ -213,11 +215,11 @@
 
 #endif /* NODEID == ROOT_ID */
 
-#ifdef IS_MOBILE
-#define IS_ANCHOR 0
+#ifdef ISMOBILE
+#define ISANCHOR 0
 #else
-#define IS_ANCHOR 1
-//#define IS_MOBILE 0
+#define ISANCHOR 1
+//#define ISMOBILE 0
 #endif
 
 #undef RPL_LEAF_ONLY

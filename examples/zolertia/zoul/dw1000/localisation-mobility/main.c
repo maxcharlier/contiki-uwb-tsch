@@ -107,6 +107,32 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
   PROCESS_END();
 }
 
+static void
+iterate_children(void)
+{
+  uip_ds6_route_t *route;
+  printf("Start listing childen:\n");
+
+  /* Loop over routing entries */
+  route = uip_ds6_route_head();
+  while(route != NULL) {
+    const uip_ipaddr_t *address = &route->ipaddr;
+    const uip_ipaddr_t *nexthop = uip_ds6_route_nexthop(route);
+
+    PRINT6ADDR(address);
+    PRINT6ADDR(nexthop);
+    printf("\n");
+    
+    if(uip_ipaddr_cmp(&address, &nexthop)) {
+       /* direct child: do somehting */
+       
+    }
+
+    route = uip_ds6_route_next(route);
+  }
+  printf("End listing childen.\n");
+}
+
 int
 debug_uart_receive_byte(unsigned char c) {
   switch (c) {
@@ -120,6 +146,7 @@ debug_uart_receive_byte(unsigned char c) {
     case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip);      break;
     case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
     case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
+    case 'c':   iterate_children();                                                                         break;
     default :   uart_write_byte(UART_DEBUG, c);                                                             break;
   }
   return 1;

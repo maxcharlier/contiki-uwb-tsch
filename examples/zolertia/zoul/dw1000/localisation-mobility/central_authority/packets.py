@@ -171,7 +171,7 @@ class AllocationRequestPacket(IncomingPacket):
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
     
-    def origin_address(self) -> Collection[IPv6Address]:
+    def origin_addresses(self) -> Collection[IPv6Address]:
         return [self.mobile_addr, self.anchor_addr]
     
     def __len__(self):

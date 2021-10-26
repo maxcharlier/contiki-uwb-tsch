@@ -163,6 +163,48 @@ send_allocation_probe_request()
 }
 
 void
+send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
+{
+  uip_ipaddr_t *nearest_anchor_ip = mobile_ip;
+  struct uip_udp_conn *mobile_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  
+  if (mobile_conn == NULL) {
+    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process!\n");
+    return;
+  }
+
+  udp_bind(mobile_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+
+  // For debugging purposes
+  PRINTF("Created a connection with the server ");
+  PRINT6ADDR(&mobile_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n",
+	UIP_HTONS(mobile_conn->lport), UIP_HTONS(mobile_conn->rport));
+
+
+  PRINTF("Data Sent to the remote server\n");
+  uip_udp_packet_sendto(mobile_conn, data_to_transmit, length,
+                        nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
+}
+
+
+void send_to_all_mobiles(void *data_to_transmit, int length)
+{
+  uip_ds6_route_t *route;
+
+  /* Loop over routing entries */
+  route = uip_ds6_route_head();
+  while(route != NULL) {
+    const uip_ipaddr_t *address = &route->ipaddr;
+    const uip_ipaddr_t *nexthop = uip_ds6_route_nexthop(route);
+
+    send_to_mobile(nexthop, data_to_transmit, length);
+
+    route = uip_ds6_route_next(route);
+  }
+}
+
+void
 send_to_central_authority(void *data_to_transmit, int length)
 {
 
@@ -322,6 +364,13 @@ act_on_message(uint8_t *msg, int length)
         our_ip
       };
 
+#if NODEID == 0x7 // TODO IS_ANCHOR
+      
+      // Anchors forward the clear_ack frames by flooding to all RPL children.
+      send_to_all_mobiles(msg, length);    // Forward the received CLEAR_SLOTFRAME frame.
+
+#endif
+
       send_to_central_authority(&clearack, sizeof(clearack));
       //SEND_TO_CENTRAL_AUTHORITY(clear_ack);
 
@@ -358,6 +407,9 @@ act_on_message(uint8_t *msg, int length)
       linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
     
       tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_PROP, &mobile_addr, packet.timeslot, packet.channel);
+
+      // The frame also has to be forwarded to the anchor
+      send_to_mobile(&packet.mobile_addr, msg, length);    // Forward the received ALLOCATION_SLOT frame.
 
 #else /* IS_LOCATION_SERVER */
     

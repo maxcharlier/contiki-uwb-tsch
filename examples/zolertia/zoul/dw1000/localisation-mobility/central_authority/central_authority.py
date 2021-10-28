@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 
-from struct import pack
 import argh
 import logging
 import threading
@@ -10,6 +9,7 @@ from queue import Queue
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
+from packets import PropagationTimePacket
 
 
 class Handler:
@@ -40,6 +40,12 @@ def main(*devices: Tuple[str]):
     while True:
         pkt, device = eventQueue.get(block=True)
         # logging.info(f'Handling packet: {pkt} from the queue.')
+
+        if isinstance(pkt, PropagationTimePacket):
+            # A propagation packet is received, handle it.
+            print(pkt)
+            continue
+
         actions = scheduler.schedule(pkt, device)
 
         for act in actions:

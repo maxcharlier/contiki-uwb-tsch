@@ -52,9 +52,6 @@
 #endif
 
 
-#undef IS_LOCATION_SERVER
-#define IS_LOCATION_SERVER 1
-
 
 #define UDP_CLIENT_PORT	8765
 #define UDP_SERVER_PORT	5678
@@ -107,6 +104,11 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
   PROCESS_END();
 }
 
+void debug_precompiler() {
+  uart_write_byte(UART_DEBUG, '0' + IS_MOBILE); 
+  printf("\n");
+}
+
 static void
 iterate_children(void)
 {
@@ -147,6 +149,7 @@ debug_uart_receive_byte(unsigned char c) {
     case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
     case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
     case 'c':   iterate_children();                                                                         break;
+    case 'b':   debug_precompiler();
     default :   uart_write_byte(UART_DEBUG, c);                                                             break;
   }
   return 1;
@@ -158,18 +161,19 @@ tcpip_handler(void)
 {
   if(uip_newdata()) {
 
-#if NODEID == 0x7 // TODO IS_MOBILE
+#if IS_ANCHOR
     
     printf("Packet received.\n");
     send_to_central_authority(uip_appdata, uip_datalen()); 
 
-#else
+#else /* IS_ANCHOR */
 
     // This is a mobile node, messages coming from a UDP packet are just forwarded
     // through the nearest anchor.
     act_on_message(uip_appdata, uip_datalen());
 
-#endif /* IS_MOBILE */
+#endif /* IS_ANCHOR */
+
   }  
 }
 

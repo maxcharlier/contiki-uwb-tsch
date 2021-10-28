@@ -209,18 +209,12 @@
 
 #define ROOT_ID  0X07
 
-#if NODEID == ROOT_ID
 
-#define IS_LOCATION_SERVER 1 // The root is connected via UART to the central authority
+#ifdef IS_MOBILE
+#define IS_ANCHOR 0
+#define RPL_CONF_LEAF_ONLY 1    // Mobiles tags don't act as a RPL relay.
+#else /* IS_MOBILE */
+#define IS_ANCHOR 1
+#define IS_MOBILE 0
+#endif /* IS_MOBILE */
 
-#endif /* NODEID == ROOT_ID */
-
-#ifdef ISMOBILE
-#define ISANCHOR 0
-#else
-#define ISANCHOR 1
-//#define ISMOBILE 0
-#endif
-
-#undef RPL_LEAF_ONLY
-#define RPL_LEAF_ONLY 0

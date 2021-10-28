@@ -289,6 +289,9 @@ class ClearAckPacket(IncomingPacket):
 
 class PropagationTimePacket(IncomingPacket):
 
+    DWTIME_TO_METRE = 0.0046917639786159
+    METRE_TO_DWTIME = 213.139451293
+
     def __init__(self, frame: bytearray):
         self.type = frame[0]
         self.channel = frame[3]
@@ -299,8 +302,12 @@ class PropagationTimePacket(IncomingPacket):
     def origin_addresses(self) -> Collection[IPv6Address]:
         return [self.mobile_addr, self.anchor_addr]
     
+    def distance(self) -> float:
+        
+        return self.prop_time * self.DWTIME_TO_METRE
+    
     def __len__(self) -> int:
         return self.PACKET_ID_SIZE[PROPAGATION_TIME].size
 
     def __str__(self) -> str:
-        return f'PropagationTimePacket({self.type}, {self.mobile_addr} -> {self.anchor_addr} = {self.prop_time})'
+        return f'PropagationTimePacket({self.type}, {self.mobile_addr} -> {self.anchor_addr},  {self.distance()}m)'

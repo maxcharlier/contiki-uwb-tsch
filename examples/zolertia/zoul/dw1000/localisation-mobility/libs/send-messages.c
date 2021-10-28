@@ -208,14 +208,14 @@ void
 send_to_central_authority(void *data_to_transmit, int length)
 {
 
-// #if IS_MOBILE//TODO
-#if NODEID == 0x7
+
+#if IS_ANCHOR
 
   // An anchor has direct UART connection to the central authority.
   
   uart_send_bytes(data_to_transmit, length);
 
-#else /* IS_MOBILE */
+#else /* IS_ANCHOR */
 
   // A mobile needs to send packets wirelessly to an (ideally the nearest) anchor,
   // which will forward it to the central autority.
@@ -364,7 +364,7 @@ act_on_message(uint8_t *msg, int length)
         our_ip
       };
 
-#if NODEID == 0x7 // TODO IS_ANCHOR
+#if IS_ANCHOR
       
       // Anchors forward the clear_ack frames by flooding to all RPL children.
       send_to_all_mobiles(msg, length);    // Forward the received CLEAR_SLOTFRAME frame.
@@ -374,19 +374,19 @@ act_on_message(uint8_t *msg, int length)
       send_to_central_authority(&clearack, sizeof(clearack));
       //SEND_TO_CENTRAL_AUTHORITY(clear_ack);
 
-      //uart_write_byte(UART_DEBUG, '0' + ISMOBILE);
+      //uart_write_byte(UART_DEBUG, '0' + IS_MOBILE);
 
       /*
        * After a Clear slotframe, try to join the network via an ACK if the node is a mobile
        */
 
-#if NODEID != 0x7 // TODO #if ISMOBILE
+#if IS_MOBILE
 
       allocation_request rqst = get_allocation_request();
       send_to_central_authority(&rqst, sizeof(rqst));
       //SEND_TO_CENTRAL_AUTHORITY(rqst);
 
-#endif /* ISMOBILE */
+#endif /* IS_MOBILE */
 
       break;
 
@@ -402,7 +402,7 @@ act_on_message(uint8_t *msg, int length)
       UART_WRITE_STRING(UART_DEBUG, "\n");
 
 
-#if IS_LOCATION_SERVER
+#if IS_ANCHOR
 
       linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
     
@@ -411,12 +411,12 @@ act_on_message(uint8_t *msg, int length)
       // The frame also has to be forwarded to the anchor
       send_to_mobile(&packet.mobile_addr, msg, length);    // Forward the received ALLOCATION_SLOT frame.
 
-#else /* IS_LOCATION_SERVER */
+#else /* IS_ANCHOR */
     
       linkaddr_t anchor_addr = get_linkaddr_from_ipaddr(&packet.anchor_addr);
       tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_RX, LINK_TYPE_PROP, &anchor_addr, packet.timeslot, packet.channel);
 
-#endif /* IS_LOCATION_SERVER */
+#endif /* IS_ANCHOR */
 
       // Successfully added slot, send ack
       allocation_ack ack = {

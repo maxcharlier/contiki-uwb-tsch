@@ -206,6 +206,8 @@
 #define RPL_CONF_DIO_INTERVAL_MIN 13
 #define RPL_CONF_DIO_INTERVAL_DOUBLINGS 1
 
+#define RPL_CALLBACK_ADDITIONAL_TSCH_PARENT_SWITCH rpl_callback_additional_tsch_parent_switch
+
 
 #define ROOT_ID  0X07
 

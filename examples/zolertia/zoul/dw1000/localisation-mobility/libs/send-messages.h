@@ -4,7 +4,6 @@
 #define UART_DEBUG      0
 
 static struct tsch_slotframe *tsch_slotframe;
-static struct ctimer retry_timer;
 
 void
 debug_send_allocation_probe_request();

@@ -130,36 +130,17 @@ allocation_request get_allocation_request() {
 }
 
 void
-send_allocation_probe_request()
+rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 {
-  
-  
-  //if (!rpl_parent) {
-    // No parent to send a probe request to.
-    // Wait for RPL to find a parent.
-    //PRINTF("APP: No parent, retrying in 1s\n");
 
-    //goto retry;
-  //}
+  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
+  PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
 
-  if (0) {
-    /*
-     *  Either there is a new parent, or the RPL parent changed.
-     *  Send a request to receive a new cell, then unsubscribe from the current cell
-     * 
-     *  || !memcmp(&current_attached_anchor, &null_attached_anchor, sizeof(uip_ipaddr_t))     // TODO remove true
-     *  || !memcmp(rpl_parent_ip, &current_attached_anchor, sizeof(uip_ipaddr_t))
-     */
-    PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
-    PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
+  // UART_WRITE_STRING(UART_DEBUG, "mobile_addr ->"); PRINT6ADDR(rpl_parent); UART_WRITE_STRING(UART_DEBUG, "\n");
+  allocation_request rqst = get_allocation_request();
+  send_to_central_authority(&rqst, sizeof(rqst));
 
-    // UART_WRITE_STRING(UART_DEBUG, "mobile_addr ->"); PRINT6ADDR(rpl_parent); UART_WRITE_STRING(UART_DEBUG, "\n");
-    allocation_request rqst = get_allocation_request();
-    send_to_central_authority(&rqst, sizeof(rqst));
 
-  }
-
-  ctimer_set(&retry_timer, 1*(CLOCK_SECOND), send_allocation_probe_request, &retry_timer);    
 }
 
 void

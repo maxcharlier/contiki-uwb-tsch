@@ -88,6 +88,7 @@ update_neighbor_prop_time(struct tsch_neighbor *n, int32_t prop_time,
 {
   struct tsch_prop_time n_prop_time;
   n_prop_time.prop_time = prop_time;
+  n_prop_time.neighbor_addr = n->addr;
   n_prop_time.asn = * asn; /* Copy the 5 bytes pointed by the pointer * asn 
   to the n_prop_time.asn struct */
   n_prop_time.tsch_channel = tsch_channel;

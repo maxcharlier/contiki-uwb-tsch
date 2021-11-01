@@ -117,6 +117,7 @@ void TSCH_CALLBACK_PACKET_READY(void);
 struct tsch_prop_time
 {
   int32_t prop_time;
+  linkaddr_t neighbor_addr;
   struct tsch_asn_t asn;  /* ASN of the slot used for the propagation time measurement */
   uint8_t tsch_channel;
 };

@@ -33,15 +33,15 @@ static int state = STATE_WAIT_SFD;
 static uint8_t receive_buffer[MAX_SERIAL_LEN];
 static uint8_t *receive_ptr = receive_buffer;
 
-/*
-#define PRINT_BYTE 0
+
+#define PRINT_BYTE 1
 #undef PRINTF
 #if !PRINT_BYTE
   #define PRINTF(...) printf(__VA_ARGS__)
 #else
   #define PRINTF(...) do {} while(0)
 #endif
-*/
+
 
 void
 uart_write_string(int output, char text[], int size)
@@ -93,6 +93,18 @@ get_linkaddr_from_ipaddr(uip_ip6addr_t *ipaddr)
 }
 
 
+uip_ipaddr_t
+get_ipaddr_from_linkaddr(linkaddr_t *linkaddress)
+{
+  uip_lladdr_t *lladdr = (uip_lladdr_t *) linkaddress; 
+  // PRINTLLADDR(lladdr);
+  uip_ipaddr_t *from_addr = uip_ds6_nbr_ipaddr_from_lladdr(lladdr);
+  // PRINT6ADDR(from_addr);
+  uip_ipaddr_t ip_address;
+  uip_ipaddr_copy(&ip_address, from_addr);
+  return ip_address;
+}
+
 
 
 
@@ -133,10 +145,8 @@ void
 rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 {
 
-  PRINTF("APP: Leaf-only: %i\n", RPL_LEAF_ONLY);
-  PRINTF("APP: RPL Parent changed, requesting a change of geolocation cell\n");
+  UART_WRITE_STRING(UART_DEBUG, "APP: RPL Parent changed, requesting a change of geolocation cell\n");
 
-  // UART_WRITE_STRING(UART_DEBUG, "mobile_addr ->"); PRINT6ADDR(rpl_parent); UART_WRITE_STRING(UART_DEBUG, "\n");
   allocation_request rqst = get_allocation_request();
   send_to_central_authority(&rqst, sizeof(rqst));
 
@@ -157,13 +167,13 @@ send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
   udp_bind(mobile_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
   // For debugging purposes
-  PRINTF("Created a connection with the server ");
+  UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
   PRINT6ADDR(&mobile_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n",
 	UIP_HTONS(mobile_conn->lport), UIP_HTONS(mobile_conn->rport));
 
 
-  PRINTF("Data Sent to the remote server\n");
+  UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
   uip_udp_packet_sendto(mobile_conn, data_to_transmit, length,
                         nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 }
@@ -214,13 +224,13 @@ send_to_central_authority(void *data_to_transmit, int length)
   udp_bind(server_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
   // For debugging purposes
-  PRINTF("Created a connection with the server ");
+  UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
   PRINT6ADDR(&server_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n",
 	UIP_HTONS(server_conn->lport), UIP_HTONS(server_conn->rport));
 
 
-  PRINTF("Data Sent to the remote server\n");
+  UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
   uip_udp_packet_sendto(server_conn, data_to_transmit, length,
                         nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 
@@ -461,13 +471,14 @@ handle_propagation(struct tsch_neighbor *data)
   // Only anchors will initiate two-way ranging (see schedule)
   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
 
+  uip_ipaddr_t mobile_ip = get_ipaddr_from_linkaddr(&data->last_prop_time.neighbor_addr);
 
   propagation_time prop_time = {
     PROPAGATION_TIME,
     0,  // padding1
     0,  // padding2
     data->last_prop_time.tsch_channel,
-    our_ip,   // Change to mobile IP
+    mobile_ip,   // Change to mobile IP
     our_ip,
     data->last_prop_time.prop_time,
     data->last_prop_time.asn

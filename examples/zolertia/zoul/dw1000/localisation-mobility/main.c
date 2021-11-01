@@ -41,7 +41,7 @@
 
 #define write_byte(b) uart_write_byte(DBG_CONF_UART, b)
 
-#define PRINT_BYTE 0
+#define PRINT_BYTE 1
 
 
 #undef PRINTF
@@ -219,8 +219,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
   tsch_slotframe = tsch_schedule_create_initial();
 
 
-  uart_set_input(0, debug_uart_receive_byte);
-  uart_set_input(1, uart_receive_byte);
+  uart_set_input(UART_DEBUG, debug_uart_receive_byte);
+  uart_set_input(UART_OUTPUT, uart_receive_byte);
 
 
   NETSTACK_MAC.on();
@@ -241,7 +241,6 @@ PROCESS_THREAD(udp_client_process, ev, data)
          UIP_HTONS(server_conn->rport));
   /* Finished enabling receiving UDP packets */
 
-  // ctimer_set(&retry_timer, 15 * CLOCK_SECOND, send_allocation_probe_request, &retry_timer);
 
   while(1) {
     PROCESS_YIELD();

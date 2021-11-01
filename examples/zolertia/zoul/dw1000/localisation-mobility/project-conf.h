@@ -209,7 +209,7 @@
 #define RPL_CALLBACK_ADDITIONAL_TSCH_PARENT_SWITCH rpl_callback_additional_tsch_parent_switch
 
 
-#define ROOT_ID  0X07
+#define ROOT_ID  0X01
 
 
 #ifdef IS_MOBILE

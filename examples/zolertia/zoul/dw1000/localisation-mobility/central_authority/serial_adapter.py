@@ -85,7 +85,7 @@ class SerialAdapter:
             elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
                     # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
-                    pkt = IncomingPacket.packet_from_bytearray(IncomingPacket, self.frame)
+                    pkt = IncomingPacket.packet_from_bytearray(self.frame)
                     
                     # Update PORTS to reflect to received packet
                     for p in pkt.origin_addresses():

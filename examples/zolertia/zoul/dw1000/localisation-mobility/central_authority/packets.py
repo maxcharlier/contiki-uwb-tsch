@@ -283,7 +283,7 @@ class ClearAckPacket(IncomingPacket):
 
     def __init__(self, frame: bytearray):
         self.type = frame[0]
-        self.from_addr: IPv6Address = self._parse_ipv6_address(self, frame[2:18])
+        self.from_addr: IPv6Address = self._parse_ipv6_address(frame[2:18])
     
     def origin_addresses(self) -> Collection[IPv6Address]:
         return [self.from_addr]

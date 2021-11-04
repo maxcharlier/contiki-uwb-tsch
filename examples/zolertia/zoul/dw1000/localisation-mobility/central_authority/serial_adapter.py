@@ -1,18 +1,13 @@
+from typing import Dict
 import serial
 import logging
 from time import sleep
 from enum import Enum
-from packets import IncomingPacket, OutgoingPacket, IPv6Address, ClearSlotframePacket
+from packets import Anchor, IncomingPacket, OutgoingPacket, IPv6Address, ClearSlotframePacket
 
 ADPATERS = {}
 
-PORTS = {
-    IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
-    IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x05')): '/dev/ttyUSB3',
-    IPv6Address(bytearray(b'\xfd\x00\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB2',
-    IPv6Address(bytearray(b'\xfe\x80\x00\x00\x00\x00\x00\x00\xfd\xff\xff\xff\xff\xff\x00\x07')): '/dev/ttyUSB2'
-}
-
+PORTS: dict[IPv6Address, str] = {}
 
 SERIAL_BAUDRATE = 115200
 
@@ -58,8 +53,10 @@ class SerialAdapter:
             if PORTS[dst] == self.device:
                 self.send(pkt)
             else:
-                # sa = SerialAdapter(PORTS[dst])
-                sa = ADPATERS[PORTS[dst]]
+                if dst in PORTS:
+                    sa = ADPATERS[PORTS[dst]]
+                else:
+                    sa = ADPATERS[Anchor.from_IPv6(dst).USB_port]
                 sa.send(pkt)
         
 

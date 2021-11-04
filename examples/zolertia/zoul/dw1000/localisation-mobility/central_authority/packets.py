@@ -59,6 +59,7 @@ class Anchor:
     x_pos: float = 0.
     y_pos: float = 0.
     z_pos: float = 0.
+    USB_port: str = ""
 
     def distance(self, other_anchor: Anchor) -> float:
         return math.sqrt(
@@ -90,7 +91,13 @@ class Anchor:
         with open(sourcefile, 'r') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                neighbours[row['node_id']] = Anchor(IPv6Address(row['ipv6']), float(row['x_pos']), float(row['y_pos']), float(row['z_pos']))
+                neighbours[row['node_id']] = Anchor(
+                    IPv6Address(row['ipv6']), 
+                    float(row['x_pos']), 
+                    float(row['y_pos']), 
+                    float(row['z_pos']),
+                    row['USB_port']
+                )
         return neighbours
 
 class Packet(ABC, Sized):

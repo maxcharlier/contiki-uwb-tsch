@@ -206,8 +206,13 @@ send_to_central_authority(void *data_to_transmit, int length)
 #if IS_ANCHOR
 
   // An anchor has direct UART connection to the central authority.
+
+  if data_to_transmit != CLEAR_SLOTFRAME {
+    // Anchors should ignore CLEAR_SLOTFRAME frames (and not forward them to the central authority).
+    uart_send_bytes(data_to_transmit, length);
+  }
   
-  uart_send_bytes(data_to_transmit, length);
+
 
 #else /* IS_ANCHOR */
 

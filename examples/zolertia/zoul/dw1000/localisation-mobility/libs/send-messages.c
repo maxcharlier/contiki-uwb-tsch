@@ -16,7 +16,7 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule-onecell3A1T.h"
 
 
 // static const uip_ipaddr_t null_attached_anchor;
@@ -147,9 +147,12 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 
   UART_WRITE_STRING(UART_DEBUG, "APP: RPL Parent changed, requesting a change of geolocation cell\n");
 
+#if IS_MOBILE
+
   allocation_request rqst = get_allocation_request();
   send_to_central_authority(&rqst, sizeof(rqst));
 
+#endif
 
 }
 

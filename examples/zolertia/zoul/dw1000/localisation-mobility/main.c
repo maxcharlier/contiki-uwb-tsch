@@ -29,7 +29,7 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule-onecell3A1T.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -145,9 +145,9 @@ debug_uart_receive_byte(unsigned char c) {
     case 'e':   tsch_set_prop_measurement(1);                                                               break;
     case 'd':   tsch_set_prop_measurement(0);                                                               break;
     case 'D':   uart_write_byte(UART_DEBUG, '0' + NODEID);                                                  break;
-    case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip);      break;
+//  case 'i':   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; PRINT6ADDR(&our_ip);      break;
     case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
-    case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
+//  case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
     case 'c':   iterate_children();                                                                         break;
     case 'b':   debug_precompiler();
     default :   uart_write_byte(UART_DEBUG, c);                                                             break;

@@ -1,0 +1,5 @@
+node_id,ipv6,x_pos,y_pos,z_pos,USB_port,zolertia_serial, raspberry_pi
+0x01,fe80000000000000fdffffffffff0001,11.55,13.26,2.45,/dev/anchor1,ZOL-B001-A200002005,testbed1
+0x02,fe80000000000000fdffffffffff0002,7.52,13.24,2.45,/dev/anchor2,ZOL-B001-A200001919,testbed1
+0x03,fe80000000000000fdffffffffff0003,7.52,9.08,2.45,/dev/anchor3,ZOL-B001-A200001968,testbed1
+

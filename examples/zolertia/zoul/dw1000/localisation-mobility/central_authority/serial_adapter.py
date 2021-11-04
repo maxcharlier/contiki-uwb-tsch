@@ -25,7 +25,7 @@ BS_SFD = 0xBB
 BS_EFD = 0xEE
 BS_ESC = 0x33
 
-DEBUG = True
+DEBUG = False
 
 class SerialAdapter:
 
@@ -82,8 +82,7 @@ class SerialAdapter:
                     self.state = STATE_READ_DATA
                 else:
                     if DEBUG:
-                        logging.warn(f'{self.device}: {recv_byte}')
-                        # logging.info(f'{self.device}: Skipped reading byte: {recv_byte} / {chr(recv_byte)}')
+                        logging.debug(f'{self.device}: {recv_byte}')
             elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
                     # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')

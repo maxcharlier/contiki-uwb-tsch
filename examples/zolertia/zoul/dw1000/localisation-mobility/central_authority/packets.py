@@ -141,16 +141,16 @@ class IncomingPacket(Packet):
         """
         pass
 
-    @staticmethod
+    @classmethod
     def packet_from_bytearray(cls, frame: bytearray) -> IncomingPacket:
         type = frame[0]
         # type = next(filter(lambda k: PACKET_ID_SIZE[k][0] == size, PACKET_ID_SIZE.keys()))
         type_class = cls.PACKET_ID_SIZE[type].associated_class
         type_class = cls.str_to_class(type_class)
-        # logging.info(f"type_class: {type_class}")
+        logging.info(f"type_class: {type_class}")
         return type_class(frame)
     
-    @staticmethod
+    @classmethod
     def _parse_ipv6_address(cls, address: bytearray) -> IPv6Address:
         assert len(address) == 16
         return IPv6Address(address)
@@ -175,8 +175,8 @@ class AllocationRequestPacket(IncomingPacket):
     def __init__(self, frame: bytearray):
         self.type = frame[0]
         self.signal_power = frame[1]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(frame[20:36])
     
     def origin_addresses(self) -> Collection[IPv6Address]:
         return [self.mobile_addr, self.anchor_addr]
@@ -227,8 +227,8 @@ class AllocationAckPacket(IncomingPacket):
         self.type = frame[0]
         self.timeslot = frame[2]
         self.channel = frame[3]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(frame[20:36])
 
     def origin_addresses(self) -> Collection[IPv6Address]:
         return [self.mobile_addr, self.anchor_addr]
@@ -246,8 +246,8 @@ class DeallocationResquestPacket(IncomingPacket):
         self.type = frame[0]
         self.timeslot = frame[2]
         self.channel = frame[3]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(frame[20:36])
     
     def origin_addresses(self) -> Collection[IPv6Address]:
         return [self.mobile_addr, self.anchor_addr]
@@ -302,8 +302,8 @@ class PropagationTimePacket(IncomingPacket):
     def __init__(self, frame: bytearray):
         self.type = frame[0]
         self.channel = frame[3]
-        self.mobile_addr: IPv6Address = self._parse_ipv6_address(self, frame[4:20])
-        self.anchor_addr: IPv6Address = self._parse_ipv6_address(self, frame[20:36])
+        self.mobile_addr: IPv6Address = self._parse_ipv6_address(frame[4:20])
+        self.anchor_addr: IPv6Address = self._parse_ipv6_address(frame[20:36])
         self.prop_time: int = int.from_bytes(frame[36:40], byteorder='little', signed=True)
     
     def origin_addresses(self) -> Collection[IPv6Address]:

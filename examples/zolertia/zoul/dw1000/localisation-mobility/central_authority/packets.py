@@ -85,7 +85,7 @@ class Anchor:
 
     @classmethod
     @lru_cache(maxsize=1)
-    def _read_anchors(cls, sourcefile="home.csv") -> Dict[str, Anchor]:
+    def _read_anchors(cls, sourcefile="nodes.csv") -> Dict[str, Anchor]:
         neighbours: Dict = {}
         with open(sourcefile, 'r') as csvfile:
             reader = csv.DictReader(csvfile)

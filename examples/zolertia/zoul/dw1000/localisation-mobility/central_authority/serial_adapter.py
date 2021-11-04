@@ -7,7 +7,7 @@ from packets import Anchor, IncomingPacket, OutgoingPacket, IPv6Address, ClearSl
 
 ADPATERS = {}
 
-PORTS: dict[IPv6Address, str] = {}
+PORTS: Dict[IPv6Address, str] = {}
 
 SERIAL_BAUDRATE = 115200
 
@@ -50,13 +50,15 @@ class SerialAdapter:
         '''
 
         for dst in pkt.destinations():
-            if PORTS[dst] == self.device:
+            if dst in PORTS:
+                port = PORTS[dst]
+            else:
+                port = Anchor.from_IPv6(dst).USB_port
+            
+            if port == self.device:
                 self.send(pkt)
             else:
-                if dst in PORTS:
-                    sa = ADPATERS[PORTS[dst]]
-                else:
-                    sa = ADPATERS[Anchor.from_IPv6(dst).USB_port]
+                sa = ADPATERS[port]
                 sa.send(pkt)
         
 

@@ -106,6 +106,9 @@ get_ipaddr_from_linkaddr(linkaddr_t *linkaddress)
 }
 
 
+#define uip_ip6addr_cmp_ed(addr1, addr2) (memcmp((addr1)+1, (addr2)+1, sizeof(uip_ip6addr_t)-1) == 0)  // GCC Only : using sizeof(void) == 1
+
+
 
 
 allocation_request get_allocation_request() {
@@ -263,40 +266,41 @@ uart_send_bytes(void *data_to_transmit, int length)
 int
 uart_receive_byte(unsigned char c)
 {
-    uint8_t byte = c;
+  uint8_t byte = c;
 
-    uart_write_byte(UART_DEBUG, byte);
+  uart_write_byte(UART_DEBUG, byte);
 
-    switch (state){
+  switch (state){
 
-    case STATE_WAIT_SFD:
-      if (byte == BS_SFD) {
-        state = STATE_READ_DATA;
-      }
-      break;
-    
-    case STATE_READ_DATA:
-      if (byte == BS_EFD) {
-        act_on_message(receive_buffer, receive_ptr - receive_buffer);
-        // Reset buffer for future use
-        receive_ptr = receive_buffer;
-        state = STATE_WAIT_SFD;
-      } else if (byte == BS_ESC) {
-        state = STATE_READ_ESC_DATA;
-      } else {
-        *receive_ptr++ = byte;
-      }
-      break;
-    
-    case STATE_READ_ESC_DATA:
-        *receive_ptr++ = byte;
-        state = STATE_READ_DATA;
-      break;
-    
-    default:
-      break;
+  case STATE_WAIT_SFD:
+    if (byte == BS_SFD) {
+      state = STATE_READ_DATA;
     }
-
+    break;
+  
+  case STATE_READ_DATA:
+    if (byte == BS_EFD) {
+      act_on_message(receive_buffer, receive_ptr - receive_buffer);
+      // Reset buffer for future use
+      receive_ptr = receive_buffer;
+      state = STATE_WAIT_SFD;
+    } else if (byte == BS_ESC) {
+      state = STATE_READ_ESC_DATA;
+    } else {
+      *receive_ptr++ = byte;
+    }
+    break;
+  
+  case STATE_READ_ESC_DATA:
+      *receive_ptr++ = byte;
+      state = STATE_READ_DATA;
+    break;
+  
+  default:
+    break;
+  }
+  
+  return 1;
 }
 
 void
@@ -403,9 +407,13 @@ act_on_message(uint8_t *msg, int length)
 
 #if IS_ANCHOR
 
-      linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
-    
-      tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_PROP, &mobile_addr, packet.timeslot, packet.channel);
+      uip_ipaddr_t our_ip_ = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
+
+      if (uip_ip6addr_cmp_ed(&our_ip_, &packet.anchor_addr)) {
+        // Only add the link to our schedule if the ALLOCATION_SLOT frame was intended for us.
+        linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
+        tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_PROP, &mobile_addr, packet.timeslot, packet.channel);
+      }
 
       // The frame also has to be forwarded to the anchor
       send_to_mobile(&packet.mobile_addr, msg, length);    // Forward the received ALLOCATION_SLOT frame.

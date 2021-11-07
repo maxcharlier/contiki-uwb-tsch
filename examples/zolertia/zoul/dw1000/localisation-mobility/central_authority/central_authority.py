@@ -9,7 +9,8 @@ from queue import Queue
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
-from packets import PropagationTimePacket
+from packets import PropagationTimePacket, Anchor
+from multilateration import MultilaterationAlgorithm
 
 
 class Handler:
@@ -33,17 +34,21 @@ def main(*devices: Tuple[str]):
     eventQueue: Queue = Queue()
     handler = Handler(eventQueue)
 
+    mla = MultilaterationAlgorithm()        # TODO: Use one multilateration algorithm per tag.
+
     for i in range(len(adapters)):
         t = threading.Thread(target=handler.handle, args=(adapters[i],))
         t.start()
 
     while True:
         pkt, device = eventQueue.get(block=True)
-        # logging.info(f'Handling packet: {pkt} from the queue.')
+        # logging.debug(f'Handling packet: {pkt} from the queue.')
 
         if isinstance(pkt, PropagationTimePacket):
             # A propagation packet is received, handle it.
-            print(pkt)
+            coord = mla.gps_solve_on_result(pkt.distance(), Anchor.from_IPv6(pkt.anchor_addr))
+            if coord is not None:
+                logging.info(f"{pkt.mobile_addr} is at {coord}")
             continue
 
         actions = scheduler.schedule(pkt, device)

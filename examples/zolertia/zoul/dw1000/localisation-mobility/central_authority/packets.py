@@ -75,6 +75,9 @@ class Anchor:
         if type(o) is not Anchor:
             return False
         return self.address == o.address
+    
+    def __hash__(self) -> int:
+        return self.address.__hash__()
 
     @classmethod
     def from_IPv6(cls, ipv6: IPv6Address) -> Anchor:

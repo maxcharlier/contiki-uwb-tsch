@@ -11,6 +11,7 @@ from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
 from packets import PropagationTimePacket, Anchor
 from multilateration import MultilaterationAlgorithm
+from plotter import PropagationTimePlotter, GeolocationPlotter
 
 
 class Handler:
@@ -25,9 +26,24 @@ class Handler:
 
             self.eventQueue.put((packet, sa.device))
             self.eventQueue.task_done()
-        
 
-def main(*devices: Tuple[str]):
+def plot(*csv_files: str):
+    """
+    Plot histograms of received progagation times.
+    """
+    assert len(csv_files) == 2, "Expected two CSV files: propagation and geolocation."
+    propagation_csv, geolocation_csv = csv_files
+
+    propagation_plotter = PropagationTimePlotter(propagation_csv, False)
+    propagation_plotter.plot(Anchor.from_IPv6("fe80000000000000fdffffffffff0001"))
+    geolocation_plotter = GeolocationPlotter(geolocation_csv, False)
+    geolocation_plotter.plot(Anchor.from_IPv6("fe80000000000000fdffffffffff0001"))
+
+
+def watch(*devices: str):
+    """
+    Act as the Central Authority for the specifided devices.
+    """
 
     adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
     scheduler = GreedyScheduler(max_length=100, offset = 6, serial=adapters[0])  # offset 6 for 2 devices
@@ -64,4 +80,4 @@ if __name__ == "__main__":
         datefmt='%Y.%m.%d-%H:%M:%S',
         level=logging.DEBUG
     )
-    argh.dispatch_command(main)
+    argh.dispatch_commands([watch, plot])

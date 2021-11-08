@@ -1,5 +1,5 @@
 
-from packets import Anchor, IPv6Address
+from packets import IPv6Address
 from multilateration import Coordinates
 import csv
 from abc import ABC, abstractmethod
@@ -32,7 +32,7 @@ class Plotter(ABC):
         self.f.close()
 
     @abstractmethod
-    def plot(self, anchor_to_plot: Anchor, expected_mean = None):
+    def plot(self, anchor_to_plot: IPv6Address, expected_mean = None):
         pass
 
 class PropagationTimePlotter(Plotter):
@@ -40,18 +40,18 @@ class PropagationTimePlotter(Plotter):
     def __init__(self, datafile: str, _write: bool = True):
         super().__init__(datafile, ['anchor', 'propagation_time'], _write)
 
-    def write(self, anchor: Anchor, propagation_time: float):
-        return super().write([anchor.address, propagation_time])
+    def write(self, anchor: IPv6Address, propagation_time: float):
+        return super().write([anchor, propagation_time])
 
     
-    def plot(self, anchor_to_plot: Anchor, expected_mean: int = None):
+    def plot(self, anchor_to_plot: IPv6Address, expected_mean: int = None):
         # plot a hist graph
         x = []
 
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['anchor'] == str(anchor_to_plot.address):
+                if row['anchor'] == str(anchor_to_plot):
                     x.append(float(row['propagation_time']))
 
         # the histogram of the data
@@ -59,7 +59,7 @@ class PropagationTimePlotter(Plotter):
 
         plt.xlabel('Propagation Time')
         # plt.ylabel('Probability')
-        plt.title(f'Propagation Times of {anchor_to_plot.address}')
+        plt.title(f'Propagation Times of {anchor_to_plot}')
         plt.grid(True)
         if expected_mean is not None:
             plt.axvline(expected_mean, color='k', linestyle='dashed', linewidth=1)
@@ -74,11 +74,11 @@ class GeolocationPlotter(Plotter):
     def __init__(self, datafile: str, _write: bool = True):
         super().__init__(datafile, ['tag', 'x', 'y'], _write)
 
-    def write(self, anchor: Anchor, coordinates: Coordinates):
-        return super().write([anchor.address, coordinates.x, coordinates.y])
+    def write(self, anchor: IPv6Address, coordinates: Coordinates):
+        return super().write([anchor, coordinates.x, coordinates.y])
     
     
-    def plot(self, anchor_to_plot: Anchor, expected_mean: Coordinates = None):
+    def plot(self, anchor_to_plot: IPv6Address, expected_mean: Coordinates = None):
         # plot two histograms side by side
         x = []
         y = []
@@ -86,21 +86,21 @@ class GeolocationPlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['tag'] == str(anchor_to_plot.address):
+                if row['tag'] == str(anchor_to_plot):
                     x.append(float(row['x']))
                     y.append(float(row['y']))
         
         # side by side histograms
         fig, axs = plt.subplots(1, 2)
         axs[0].hist(x, self.NUM_BINS, density=True, facecolor='g', alpha=0.75)
-        axs[0].set_title(f'X Coordinates of {anchor_to_plot.address}')
+        axs[0].set_title(f'X Coordinates of {anchor_to_plot}')
         axs[0].set_xlabel('x')
         if expected_mean is not None:
             axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1)
 
 
         axs[1].hist(y, self.NUM_BINS, density=True, facecolor='r', alpha=0.75)
-        axs[1].set_title(f'Y Coordinates of {anchor_to_plot.address}')
+        axs[1].set_title(f'Y Coordinates of {anchor_to_plot}')
         axs[1].set_xlabel('y')
         if expected_mean is not None:
             axs[1].axvline(expected_mean.y, color='k', linestyle='dashed', linewidth=1)
@@ -110,7 +110,7 @@ class GeolocationPlotter(Plotter):
 
 
 if __name__ == "__main__":
-    a = Anchor.from_IPv6(IPv6Address("fe80000000000000fdffffffffff0001"))
+    a = IPv6Address("fe80000000000000fdffffffffff0001")
     
     
     plotter = PropagationTimePlotter("test.csv")

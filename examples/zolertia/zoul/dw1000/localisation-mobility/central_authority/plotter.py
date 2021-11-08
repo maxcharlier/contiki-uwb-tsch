@@ -1,9 +1,11 @@
 
+from typing import Counter
 from packets import IPv6Address
 from multilateration import Coordinates
 import csv
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 
 class Plotter(ABC):
@@ -43,7 +45,7 @@ class PropagationTimePlotter(Plotter):
         super().__init__(datafile, ['anchor', 'propagation_time'], _write)
 
     def write(self, anchor: IPv6Address, propagation_time: float):
-        return super().write([anchor, propagation_time])
+        return super().write(["".join(str(anchor).split(":")[-2:]), propagation_time])
 
     
     def plot(self, anchor_to_plot: IPv6Address, expected_mean: int = None):
@@ -53,14 +55,17 @@ class PropagationTimePlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['anchor'] == str(anchor_to_plot):
+                if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
                     x.append(int(row['propagation_time']))
+        
+        c = Counter(x)
+        numbers = sorted(c.keys())
 
         # the histogram of the data
-        n, bins, patches = plt.hist(x, self.NUM_BINS, density=True, facecolor='g', alpha=0.75)
+        plt.bar(numbers, [c[n] for n in numbers], facecolor='b', alpha=0.75)
 
         plt.xlabel('Propagation Time')
-        # plt.ylabel('Probability')
+        plt.ylabel('Frequency')
         plt.title(f'Propagation Times of {anchor_to_plot}')
         plt.grid(True)
         if expected_mean is not None:
@@ -77,7 +82,7 @@ class GeolocationPlotter(Plotter):
         super().__init__(datafile, ['anchor', 'x', 'y'], _write)
 
     def write(self, anchor: IPv6Address, coordinates: Coordinates):
-        return super().write([anchor, coordinates.x, coordinates.y])
+        return super().write(["".join(str(anchor).split(":")[-2:]), coordinates.x, coordinates.y])
     
     
     def plot(self, anchor_to_plot: IPv6Address, expected_mean: Coordinates = None):
@@ -88,22 +93,24 @@ class GeolocationPlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['anchor'] == str(anchor_to_plot):
+                if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
                     x.append(float(row['x']))
                     y.append(float(row['y']))
         
         # side by side histograms
         fig, axs = plt.subplots(1, 2)
-        axs[0].hist(x, self.NUM_BINS, density=True, facecolor='g', alpha=0.75)
+        axs[0].hist(x, self.NUM_BINS, density=True, facecolor='b', alpha=0.75)
         axs[0].set_title(f'X Coordinates of {anchor_to_plot}')
-        axs[0].set_xlabel('x')
+        axs[0].set_xlabel('x coordinate')
+        axs[0].set_ylabel('Frequency')
         if expected_mean is not None:
             axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1)
 
 
-        axs[1].hist(y, self.NUM_BINS, density=True, facecolor='r', alpha=0.75)
+        axs[1].hist(y, self.NUM_BINS, density=True, facecolor='b', alpha=0.75)
         axs[1].set_title(f'Y Coordinates of {anchor_to_plot}')
-        axs[1].set_xlabel('y')
+        axs[0].set_xlabel('y coordinate')
+        axs[1].set_ylabel('Frequency')
         if expected_mean is not None:
             axs[1].axvline(expected_mean.y, color='k', linestyle='dashed', linewidth=1)
 
@@ -116,15 +123,15 @@ if __name__ == "__main__":
     
     
     plotter = PropagationTimePlotter("test.csv")
-    plotter.write(a, 5.2)
-    plotter.write(a, 5.3)
-    plotter.write(a, 5.1)
-    plotter.write(a, 5.3)
-    plotter.write(a, 5.3)
+    plotter.write(a, 5)
+    plotter.write(a, 5)
+    plotter.write(a, 6)
+    plotter.write(a, 7)
+    plotter.write(a, 6)
     plotter.close()
 
     plotter = PropagationTimePlotter("test.csv", False)
-    plotter.plot(a, expected_mean=5.2)
+    plotter.plot(a, expected_mean=6)
 
     plotter = GeolocationPlotter("test.csv")
     plotter.write(a, Coordinates(4.1, 5.1))

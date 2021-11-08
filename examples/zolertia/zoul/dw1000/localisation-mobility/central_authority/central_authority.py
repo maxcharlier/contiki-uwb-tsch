@@ -9,8 +9,8 @@ from queue import Queue
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
-from packets import PropagationTimePacket, Anchor
-from multilateration import MultilaterationAlgorithm
+from packets import IPv6Address, PropagationTimePacket, Anchor
+from multilateration import Coordinates, MultilaterationAlgorithm
 from plotter import PropagationTimePlotter, GeolocationPlotter
 
 
@@ -35,9 +35,9 @@ def plot(*csv_files: str):
     propagation_csv, geolocation_csv = csv_files
 
     propagation_plotter = PropagationTimePlotter(propagation_csv, False)
-    propagation_plotter.plot(Anchor.from_IPv6("fe80000000000000fdffffffffff0001"))
+    propagation_plotter.plot(IPv6Address("fe80000000000000fdffffffffff0001"))
     geolocation_plotter = GeolocationPlotter(geolocation_csv, False)
-    geolocation_plotter.plot(Anchor.from_IPv6("fe80000000000000fdffffffffff0001"))
+    geolocation_plotter.plot(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
 
 
 def watch(*devices: str):
@@ -67,10 +67,15 @@ def watch(*devices: str):
             # A propagation packet is received, handle it.
             if PLOT: propagation_plotter.write(pkt.anchor_addr, pkt.prop_time)
 
+            if pkt.prop_time < 0:
+                # issues at the transceiver -> ignore packets with negative propagation time.
+                continue
+
             coord = mla.gps_solve_on_result(pkt.distance(), Anchor.from_IPv6(pkt.anchor_addr))
             if coord is not None:
                 logging.info(f"{pkt.mobile_addr} is at {coord}")
                 if PLOT: geolocation_plotter.write(pkt.anchor_addr, coord)
+            
             continue
 
         actions = scheduler.schedule(pkt, device)

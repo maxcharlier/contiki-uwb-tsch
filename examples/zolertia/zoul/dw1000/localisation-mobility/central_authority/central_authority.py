@@ -51,6 +51,9 @@ def watch(*devices: str):
     handler = Handler(eventQueue)
 
     mla = MultilaterationAlgorithm()        # TODO: Use one multilateration algorithm per tag.
+    if PLOT:
+        propagation_plotter = PropagationTimePlotter('propagation.csv')
+        geolocation_plotter = GeolocationPlotter('geolocation.csv')
 
     for i in range(len(adapters)):
         t = threading.Thread(target=handler.handle, args=(adapters[i],))
@@ -62,9 +65,12 @@ def watch(*devices: str):
 
         if isinstance(pkt, PropagationTimePacket):
             # A propagation packet is received, handle it.
+            if PLOT: propagation_plotter.write(pkt.anchor_addr, pkt.prop_time)
+
             coord = mla.gps_solve_on_result(pkt.distance(), Anchor.from_IPv6(pkt.anchor_addr))
             if coord is not None:
                 logging.info(f"{pkt.mobile_addr} is at {coord}")
+                if PLOT: geolocation_plotter.write(pkt.anchor_addr, coord)
             continue
 
         actions = scheduler.schedule(pkt, device)
@@ -72,7 +78,7 @@ def watch(*devices: str):
         for act in actions:
             adapters[0].send_to(act)
             
-
+PLOT = True
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -80,4 +86,5 @@ if __name__ == "__main__":
         datefmt='%Y.%m.%d-%H:%M:%S',
         level=logging.DEBUG
     )
+    
     argh.dispatch_commands([watch, plot])

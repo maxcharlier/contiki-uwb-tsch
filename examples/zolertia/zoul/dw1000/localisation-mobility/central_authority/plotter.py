@@ -53,7 +53,7 @@ class PropagationTimePlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if True or row['anchor'] == str(anchor_to_plot):
+                if row['anchor'] == str(anchor_to_plot):
                     x.append(int(row['propagation_time']))
 
         # the histogram of the data
@@ -74,7 +74,7 @@ class PropagationTimePlotter(Plotter):
 class GeolocationPlotter(Plotter):
 
     def __init__(self, datafile: str, _write: bool = True):
-        super().__init__(datafile, ['tag', 'x', 'y'], _write)
+        super().__init__(datafile, ['anchor', 'x', 'y'], _write)
 
     def write(self, anchor: IPv6Address, coordinates: Coordinates):
         return super().write([anchor, coordinates.x, coordinates.y])
@@ -88,7 +88,7 @@ class GeolocationPlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if True or row['tag'] == str(anchor_to_plot):
+                if row['anchor'] == str(anchor_to_plot):
                     x.append(float(row['x']))
                     y.append(float(row['y']))
         

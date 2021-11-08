@@ -44,7 +44,7 @@ class PropagationTimePlotter(Plotter):
         return super().write([anchor.address, propagation_time])
 
     
-    def plot(self, anchor_to_plot: Anchor, expected_mean: int = 0):
+    def plot(self, anchor_to_plot: Anchor, expected_mean: int = None):
         # plot a hist graph
         x = []
 
@@ -61,7 +61,8 @@ class PropagationTimePlotter(Plotter):
         # plt.ylabel('Probability')
         plt.title(f'Propagation Times of {anchor_to_plot.address}')
         plt.grid(True)
-        plt.axvline(expected_mean, color='k', linestyle='dashed', linewidth=1)
+        if expected_mean is not None:
+            plt.axvline(expected_mean, color='k', linestyle='dashed', linewidth=1)
         plt.show()
 
         
@@ -77,7 +78,7 @@ class GeolocationPlotter(Plotter):
         return super().write([anchor.address, coordinates.x, coordinates.y])
     
     
-    def plot(self, anchor_to_plot: Anchor, expected_mean: Coordinates = Coordinates(0,0)):
+    def plot(self, anchor_to_plot: Anchor, expected_mean: Coordinates = None):
         # plot two histograms side by side
         x = []
         y = []
@@ -94,13 +95,15 @@ class GeolocationPlotter(Plotter):
         axs[0].hist(x, self.NUM_BINS, density=True, facecolor='g', alpha=0.75)
         axs[0].set_title(f'X Coordinates of {anchor_to_plot.address}')
         axs[0].set_xlabel('x')
-        axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1)
+        if expected_mean is not None:
+            axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1)
 
 
         axs[1].hist(y, self.NUM_BINS, density=True, facecolor='r', alpha=0.75)
         axs[1].set_title(f'Y Coordinates of {anchor_to_plot.address}')
         axs[1].set_xlabel('y')
-        axs[1].axvline(expected_mean.y, color='k', linestyle='dashed', linewidth=1)
+        if expected_mean is not None:
+            axs[1].axvline(expected_mean.y, color='k', linestyle='dashed', linewidth=1)
 
 
         plt.show()

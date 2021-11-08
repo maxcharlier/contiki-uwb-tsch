@@ -12,7 +12,7 @@ class Plotter(ABC):
         self.datafile = datafile
         self._write = _write
 
-        self.NUM_BINS = 50
+        self.NUM_BINS = 500
 
         if _write:
             # open the datafile file as a CSV file
@@ -24,8 +24,10 @@ class Plotter(ABC):
     def write(self, line: list):
         assert self._write
         # save the new row in the csv file
-        self.writer.writerow(line)
-        self.f.flush()
+        if self.f.tell() < 2**31:
+            # stop writing when the file exceeds 2GB
+            self.writer.writerow(line)
+            self.f.flush()
     
     def close(self):
         assert self._write
@@ -51,8 +53,8 @@ class PropagationTimePlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['anchor'] == str(anchor_to_plot):
-                    x.append(float(row['propagation_time']))
+                if True or row['anchor'] == str(anchor_to_plot):
+                    x.append(int(row['propagation_time']))
 
         # the histogram of the data
         n, bins, patches = plt.hist(x, self.NUM_BINS, density=True, facecolor='g', alpha=0.75)
@@ -86,7 +88,7 @@ class GeolocationPlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['tag'] == str(anchor_to_plot):
+                if True or row['tag'] == str(anchor_to_plot):
                     x.append(float(row['x']))
                     y.append(float(row['y']))
         

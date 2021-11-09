@@ -123,7 +123,7 @@ allocation_request get_allocation_request() {
     // For now, only send our own IP as a parent.
     rpl_parent = our_ip; 
   } else {
-    rpl_parent = *rpl_parent_ptr;
+    memcpy(&rpl_parent, rpl_parent_ptr, sizeof(uip_ipaddr_t));
   }
 
   allocation_request rqst = { 
@@ -407,13 +407,13 @@ act_on_message(uint8_t *msg, int length)
 
 #if IS_ANCHOR
 
-      uip_ipaddr_t our_ip_ = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
+      //uip_ipaddr_t our_ip_ = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr;
 
-      if (uip_ip6addr_cmp_ed(&our_ip_, &packet.anchor_addr)) {
+      //if (uip_ip6addr_cmp_ed(&our_ip_, &packet.anchor_addr)) {
         // Only add the link to our schedule if the ALLOCATION_SLOT frame was intended for us.
         linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
         tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_PROP, &mobile_addr, packet.timeslot, packet.channel);
-      }
+      //}
 
       // The frame also has to be forwarded to the anchor
       send_to_mobile(&packet.mobile_addr, msg, length);    // Forward the received ALLOCATION_SLOT frame.

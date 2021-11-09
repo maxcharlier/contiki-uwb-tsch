@@ -4,7 +4,7 @@
 import argh
 import logging
 import threading
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from queue import Queue
 
 from scheduler import GreedyScheduler
@@ -50,7 +50,8 @@ def watch(*devices: str):
     eventQueue: Queue = Queue()
     handler = Handler(eventQueue)
 
-    mla = MultilaterationAlgorithm()        # TODO: Use one multilateration algorithm per tag.
+    mlas: Dict[IPv6Address, MultilaterationAlgorithm] = {} # Dict of MultilaterationAlgorithms, one per tag
+
     if PLOT:
         propagation_plotter = PropagationTimePlotter('propagation.csv')
         geolocation_plotter = GeolocationPlotter('geolocation.csv')
@@ -70,8 +71,12 @@ def watch(*devices: str):
             if pkt.prop_time < 0:
                 # issues at the transceiver -> ignore packets with negative propagation time.
                 continue
-
-            coord = mla.gps_solve_on_result(pkt.distance(), Anchor.from_IPv6(pkt.anchor_addr))
+                
+            if pkt.mobile_addr not in mlas:
+                mlas[pkt.mobile_addr] = MultilaterationAlgorithm()
+            mla = mlas[pkt.mobile_addr]       
+            
+            coord = mla.gps_solve_on_result(pkt.distance(), Anchor.from_IPv6(pkt.anchor_addr, sourcefile='nodes.csv'))
             if coord is not None:
                 logging.info(f"{pkt.mobile_addr} is at {coord}")
                 if PLOT: geolocation_plotter.write(pkt.anchor_addr, coord)

@@ -80,15 +80,15 @@ class Anchor:
         return self.address.__hash__()
 
     @classmethod
-    def from_IPv6(cls, ipv6: IPv6Address) -> Anchor:
-        return next(filter(lambda a: ipv6 == a.address, cls.all_anchors()))
+    def from_IPv6(cls, ipv6: IPv6Address, sourcefile="lab.csv") -> Anchor:
+        return next(filter(lambda a: ipv6 == a.address, cls.all_anchors(sourcefile)))
     
     @classmethod
-    def all_anchors(cls) -> Collection[Anchor]:
-        return list(cls._read_anchors().values())
+    def all_anchors(cls, sourcefile="lab.csv") -> Collection[Anchor]:
+        return list(cls._read_anchors(sourcefile).values())
 
     @classmethod
-    @lru_cache(maxsize=1)
+    @lru_cache(maxsize=4)
     def _read_anchors(cls, sourcefile="lab.csv") -> Dict[str, Anchor]:
         neighbours: Dict = {}
         with open(sourcefile, 'r') as csvfile:

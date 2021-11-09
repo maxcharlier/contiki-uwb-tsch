@@ -30,12 +30,12 @@ class GreedyScheduler:
         self.scheduler_thread = threading.Thread(target=self.process_events)
         
 
-    def schedule(self, in_pkt: IncomingPacket, device: str) -> List[OutgoingPacket]:
-        decisions: List[OutgoingPacket] = []
+    def schedule(self, in_pkt: IncomingPacket, device: str) -> Collection[OutgoingPacket]:
+        decisions: set[OutgoingPacket] = set()
 
         # Send ClearSlotframePaket if first time we receive a packet
         if device in self.known_devices:
-            decisions.append(ClearSlotframePacket())
+            decisions.add(ClearSlotframePacket())
             self.known_devices.add(device)
 
         # Handle reveived Packet
@@ -51,7 +51,7 @@ class GreedyScheduler:
             
                 timeslot, channel = self._ask_for_new_cell(in_pkt.mobile_addr, a.address)
                 asp = AllocationSlotPacket(in_pkt.mobile_addr, a.address, timeslot, channel)
-                decisions.append(asp)
+                decisions.add(asp)
 
                 # Resend if no ack is received in 2 s.
                 self.scheduler.enter(delay=2, priority=1, action=self.resend, argument=(asp,))

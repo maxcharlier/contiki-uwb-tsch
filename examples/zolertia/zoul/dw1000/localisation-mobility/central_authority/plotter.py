@@ -125,7 +125,7 @@ class GeolocationPlotter(Plotter):
 
         axs[0].hist(x, self.NUM_BINS, density=True, facecolor='r', alpha=0.75, label="Estimation via multilatération")
         axs[0].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe X')
-        axs[0].set_xlabel('Coordonnée X')
+        axs[0].set_xlabel('Coordonnée X [mètres]')
         axs[0].set_ylabel('Frequency')
         if expected_mean is not None:
             axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1, label='Coordonnée réele')
@@ -133,7 +133,7 @@ class GeolocationPlotter(Plotter):
 
         axs[1].hist(y, self.NUM_BINS, density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, label="Estimation via multilatération")
         axs[1].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe Y')
-        axs[1].set_xlabel('Coordonnée Y')
+        axs[1].set_xlabel('Coordonnée Y [mètres]')
         axs[1].set_ylabel('Frequency')
         if expected_mean is not None:
             axs[1].axvline(expected_mean.y, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')

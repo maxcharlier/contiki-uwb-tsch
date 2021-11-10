@@ -35,9 +35,12 @@ def plot(*csv_files: str):
     propagation_csv, geolocation_csv = csv_files
 
     propagation_plotter = PropagationTimePlotter(propagation_csv, False)
-    propagation_plotter.plot(IPv6Address("fe80000000000000fdffffffffff0001"))
+    propagation_plotter.plot([IPv6Address("fe80000000000000fdffffffffff0001"), 
+                              IPv6Address("fe80000000000000fdffffffffff0002"), 
+                              IPv6Address("fe80000000000000fdffffffffff0003")])
     geolocation_plotter = GeolocationPlotter(geolocation_csv, False)
     geolocation_plotter.plot(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
+    geolocation_plotter.plot_xy(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
 
 
 def watch(*devices: str):

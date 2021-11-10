@@ -1,5 +1,8 @@
 
-from typing import Counter
+from typing import Counter, List
+
+from numpy import exp
+from numpy.core.fromnumeric import size
 from packets import IPv6Address
 from multilateration import Coordinates
 import csv
@@ -13,6 +16,9 @@ class Plotter(ABC):
     def __init__(self, datafile: str, header: list, _write: bool = False):
         self.datafile = datafile
         self._write = _write
+
+        self.MEASURE_COLOUR = '#1f77b4'
+        self.ESTIMATE_COLOUR = '#ff7f0e'
 
         self.NUM_BINS = 500
 
@@ -36,7 +42,7 @@ class Plotter(ABC):
         self.f.close()
 
     @abstractmethod
-    def plot(self, anchor_to_plot: IPv6Address, expected_mean = None):
+    def plot(self, anchors_to_plot: List[IPv6Address], expected_mean = None):
         pass
 
 class PropagationTimePlotter(Plotter):
@@ -48,28 +54,41 @@ class PropagationTimePlotter(Plotter):
         return super().write(["".join(str(anchor).split(":")[-2:]), propagation_time])
 
     
-    def plot(self, anchor_to_plot: IPv6Address, expected_mean: int = None):
+    def plot(self, anchors_to_plot: List[IPv6Address], expected_means: int = None):
         # plot a hist graph
-        x = []
+        i = 0
+        if expected_means is None:
+            expected_means = [None] * len(anchors_to_plot)
 
-        with open(self.datafile) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
-                    x.append(int(row['propagation_time']))
+        fig, axs = plt.subplots(len(anchors_to_plot), 1)
+
+        # add spacing between subplots
+        fig.subplots_adjust(hspace=0.5)
+
+        for anchor_to_plot, expected_mean in zip(anchors_to_plot, expected_means):
+            x = []
+
+            with open(self.datafile) as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
+                        x.append(int(row['propagation_time']))
         
-        c = Counter(x)
-        numbers = sorted(c.keys())
+                c = Counter(x)
+                numbers = sorted(c.keys())
 
-        # the histogram of the data
-        plt.bar(numbers, [c[n] for n in numbers], facecolor='b', alpha=0.75)
+            # the histogram of the data
+            axs[i].bar(numbers, [c[n] for n in numbers], facecolor=self.MEASURE_COLOUR, alpha=0.75, label='Mesure obtenue')
 
-        plt.xlabel('Propagation Time')
-        plt.ylabel('Frequency')
-        plt.title(f'Propagation Times of {anchor_to_plot}')
-        plt.grid(True)
-        if expected_mean is not None:
-            plt.axvline(expected_mean, color='k', linestyle='dashed', linewidth=1)
+            axs[i].set_xlabel('Temps de propagation [UNITÉ ?]')
+            axs[i].set_ylabel('Nombre d\'apparitions')
+            axs[i].set_title(f'Temps de propagation du tag avec l\'ancre {"".join(str(anchor_to_plot).split(":")[-2:])}')
+            axs[i].grid(True)
+            if expected_mean is not None:
+                axs[i].axvline(expected_mean, color='k', linestyle='dashed', linewidth=1, label='Coordonnée réele')
+
+            i += 1
+            plt.legend(loc='upper right')
         plt.show()
 
         
@@ -93,28 +112,51 @@ class GeolocationPlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
-                    x.append(float(row['x']))
-                    y.append(float(row['y']))
+                x.append(float(row['x']))
+                y.append(float(row['y']))
         
         # side by side histograms
         fig, axs = plt.subplots(1, 2)
-        axs[0].hist(x, self.NUM_BINS, density=True, facecolor='b', alpha=0.75)
-        axs[0].set_title(f'X Coordinates of {anchor_to_plot}')
-        axs[0].set_xlabel('x coordinate')
+        fig.subplots_adjust(hspace=0.5)
+
+        # add a legend
+        axs[0].legend(loc='upper right')
+
+
+        axs[0].hist(x, self.NUM_BINS, density=True, facecolor='r', alpha=0.75, label="Estimation via multilatération")
+        axs[0].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe X')
+        axs[0].set_xlabel('Coordonnée X')
         axs[0].set_ylabel('Frequency')
         if expected_mean is not None:
-            axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1)
+            axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1, label='Coordonnée réele')
 
 
-        axs[1].hist(y, self.NUM_BINS, density=True, facecolor='b', alpha=0.75)
-        axs[1].set_title(f'Y Coordinates of {anchor_to_plot}')
-        axs[0].set_xlabel('y coordinate')
+        axs[1].hist(y, self.NUM_BINS, density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, label="Estimation via multilatération")
+        axs[1].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe Y')
+        axs[1].set_xlabel('Coordonnée Y')
         axs[1].set_ylabel('Frequency')
         if expected_mean is not None:
-            axs[1].axvline(expected_mean.y, color='k', linestyle='dashed', linewidth=1)
+            axs[1].axvline(expected_mean.y, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')
 
+        plt.legend(loc='upper right')
+        plt.show()
 
+    
+    def plot_xy(self, anchor_to_plot: IPv6Address, expected_mean: Coordinates = None):
+        x = []
+        y = []
+
+        with open(self.datafile) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                x.append(float(row['x']))
+                y.append(float(row['y']))
+        
+        # scatter plot
+        plt.scatter(x, y, c=self.ESTIMATE_COLOUR ,alpha=0.75, label="Estimation via multilatération")
+        if expected_mean is not None:
+            plt.scatter(expected_mean.x, expected_mean.y, c=self.MEASURE_COLOUR, alpha=1, s=200, label="Position réele")
+        plt.legend(loc='upper right')
         plt.show()
 
 

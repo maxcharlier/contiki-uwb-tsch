@@ -94,9 +94,10 @@ class PropagationTimePlotter(Plotter):
             axs[i].grid(True)
             if expected_mean is not None:
                 axs[i].axvline(expected_mean, color='k', linestyle='dashed', linewidth=1, label='Coordonnée réele')
-
+            
+            axs[i].legend(loc='upper left')
             i += 1
-            plt.legend(loc='upper right')
+            
         plt.show()
 
         
@@ -131,17 +132,13 @@ class GeolocationPlotter(Plotter):
         fig, axs = plt.subplots(2, 1)
         fig.subplots_adjust(hspace=0.5)
 
-        # add a legend
-        axs[0].legend(loc='upper right')
-
-
         axs[0].hist(x, self.NUM_BINS, density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, label="Estimation via multilatération")
         axs[0].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe X obtenue par multilatération')
         axs[0].set_xlabel('Coordonnée X [mètres]')
         axs[0].set_ylabel('Frequency')
         if expected_mean is not None:
             axs[0].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')
-
+        axs[0].legend(loc='upper right')
 
         axs[1].hist(y, self.NUM_BINS, density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, label="Estimation via multilatération")
         axs[1].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe Y obtenue par multilatération')
@@ -149,8 +146,8 @@ class GeolocationPlotter(Plotter):
         axs[1].set_ylabel('Frequency')
         if expected_mean is not None:
             axs[1].axvline(expected_mean.y, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')
-
-        plt.legend(loc='upper right')
+        axs[1].legend(loc='upper right')
+        
         plt.show()
 
     
@@ -161,15 +158,16 @@ class GeolocationPlotter(Plotter):
         with open(self.datafile) as f:
             reader = csv.DictReader(f)
             for row in reader:
-                x.append(float(row['x']))
-                y.append(float(row['y']))
-        
-        # Remove outliers            
-        x = list(filter(lambda v: 11<v<11.5, x))
-        y = list(filter(lambda v: 8<v<8.8, y))
+                x_val = float(row['x'])
+                y_val = float(row['y'])
+                if 11<x_val<11.5 and 8<y_val<8.8:   # Remove outliers
+                    x.append(x_val)
+                    y.append(y_val)
         
         # scatter plot
         plt.scatter(x, y, c=self.ESTIMATE_COLOUR ,alpha=0.25, label="Estimation via multilatération")
+        plt.xlabel('Coordonnée X [mètres]')
+        plt.ylabel('Coordonnée Y [mètres]')
         if expected_mean is not None:
             plt.scatter(expected_mean.x, expected_mean.y, c=self.MEASURE_COLOUR, alpha=1, s=200, label="Position réele")
         plt.legend(loc='upper left')

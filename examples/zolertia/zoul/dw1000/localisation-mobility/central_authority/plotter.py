@@ -73,7 +73,15 @@ class PropagationTimePlotter(Plotter):
                 for row in reader:
                     if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
                         x.append(int(row['propagation_time']))
-        
+                
+                # Remove outliers
+                if "".join(str(anchor_to_plot).split(":")[-2:]) == "01":
+                    x = list(filter(lambda v: 800<v<1500, x))
+                elif "".join(str(anchor_to_plot).split(":")[-2:]) == "02":
+                    x = list(filter(lambda v: 1000<v<1500, x))
+                elif "".join(str(anchor_to_plot).split(":")[-2:]) == "03":
+                    x = list(filter(lambda v: 500<v<1000, x))
+
                 c = Counter(x)
                 numbers = sorted(c.keys())
 
@@ -115,24 +123,28 @@ class GeolocationPlotter(Plotter):
                 x.append(float(row['x']))
                 y.append(float(row['y']))
         
+        # Remove outliers            
+        x = list(filter(lambda v: 11<v<11.5, x))
+        y = list(filter(lambda v: 8<v<8.8, y))
+        
         # side by side histograms
-        fig, axs = plt.subplots(1, 2)
+        fig, axs = plt.subplots(2, 1)
         fig.subplots_adjust(hspace=0.5)
 
         # add a legend
         axs[0].legend(loc='upper right')
 
 
-        axs[0].hist(x, self.NUM_BINS, density=True, facecolor='r', alpha=0.75, label="Estimation via multilatération")
-        axs[0].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe X')
+        axs[0].hist(x, self.NUM_BINS, density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, label="Estimation via multilatération")
+        axs[0].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe X obtenue par multilatération')
         axs[0].set_xlabel('Coordonnée X [mètres]')
         axs[0].set_ylabel('Frequency')
         if expected_mean is not None:
-            axs[0].axvline(expected_mean.x, color='k', linestyle='dashed', linewidth=1, label='Coordonnée réele')
+            axs[0].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')
 
 
         axs[1].hist(y, self.NUM_BINS, density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, label="Estimation via multilatération")
-        axs[1].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe Y')
+        axs[1].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe Y obtenue par multilatération')
         axs[1].set_xlabel('Coordonnée Y [mètres]')
         axs[1].set_ylabel('Frequency')
         if expected_mean is not None:
@@ -152,11 +164,15 @@ class GeolocationPlotter(Plotter):
                 x.append(float(row['x']))
                 y.append(float(row['y']))
         
+        # Remove outliers            
+        x = list(filter(lambda v: 11<v<11.5, x))
+        y = list(filter(lambda v: 8<v<8.8, y))
+        
         # scatter plot
-        plt.scatter(x, y, c=self.ESTIMATE_COLOUR ,alpha=0.75, label="Estimation via multilatération")
+        plt.scatter(x, y, c=self.ESTIMATE_COLOUR ,alpha=0.25, label="Estimation via multilatération")
         if expected_mean is not None:
             plt.scatter(expected_mean.x, expected_mean.y, c=self.MEASURE_COLOUR, alpha=1, s=200, label="Position réele")
-        plt.legend(loc='upper right')
+        plt.legend(loc='upper left')
         plt.show()
 
 

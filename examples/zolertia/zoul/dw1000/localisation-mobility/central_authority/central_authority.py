@@ -64,7 +64,13 @@ def startup_time(*devices: str):
         pkt, device = eventQueue.get(block=True)
         # logging.debug(f'Handling packet: {pkt} from the queue.')
 
-        if isinstance(pkt, (DebuggingPacket, AllocationRequestPacket)):
+        if isinstance(pkt, DebuggingPacket):
+            # The tag changed it's parent.
+            if first_parent_time is None:
+                first_parent_time = time.time()
+                logging.info(f'First parent time: {first_parent_time}')
+            continue
+        if isinstance(pkt, AllocationRequestPacket):
             # The tag changed it's parent.
             if first_parent_time is None:
                 first_parent_time = time.time()

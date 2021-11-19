@@ -4,6 +4,7 @@
 import argh
 import logging
 import threading
+import sys
 import csv
 import time
 from typing import Dict, List
@@ -51,6 +52,7 @@ def startup_time(*devices: str):
     eventQueue: Queue = Queue()
     handler = Handler(eventQueue)
 
+    authority_startup_time = time.time()
     first_parent_time = None
     first_localisation_time = None
 
@@ -79,10 +81,10 @@ def startup_time(*devices: str):
                 if PLOT:
                     with open('startups.csv', 'a') as startups_file:
                         startups_csv = csv.writer(startups_file)
-                        startups_csv.writerow([first_parent_time, first_localisation_time])
+                        startups_csv.writerow([authority_startup_time, first_parent_time, first_localisation_time])
 
                 # we received all the information we need (first_parent + first_localisation), exit.
-                exit(0)
+                sys.exit(0)
 
             if pkt.prop_time < 0:
                 # issues at the transceiver -> ignore packets with negative propagation time.

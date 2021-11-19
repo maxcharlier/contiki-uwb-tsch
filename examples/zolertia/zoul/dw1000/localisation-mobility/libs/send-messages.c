@@ -215,8 +215,8 @@ send_to_central_authority(void *data_to_transmit, int length)
 
   // Initiate a connection.
   // Remark: Ideally, an anchor should maintain constantly a connection with its nearest anchor.
-  uip_ipaddr_t *nearest_anchor_ip = query_best_anchor();
-  struct uip_udp_conn *server_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  uip_ipaddr_t nearest_anchor_ip = query_best_anchor();
+  struct uip_udp_conn *server_conn = udp_new(&nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
   
   if (server_conn == NULL) {
     UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process!\n");
@@ -234,7 +234,7 @@ send_to_central_authority(void *data_to_transmit, int length)
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
   uip_udp_packet_sendto(server_conn, data_to_transmit, length,
-                        nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
+                        &nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 
 #endif
 

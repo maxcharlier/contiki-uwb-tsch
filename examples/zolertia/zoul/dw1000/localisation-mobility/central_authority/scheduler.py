@@ -35,7 +35,7 @@ class GreedyScheduler:
 
         # Send ClearSlotframePaket if first time we receive a packet
         if device in self.known_devices:
-            decisions.add(ClearSlotframePacket())
+            # decisions.add(ClearSlotframePacket())     # TODO should we send it here or only at startup?
             self.known_devices.add(device)
 
         # Handle reveived Packet
@@ -118,7 +118,3 @@ class GreedyScheduler:
 
     def resend(self, pkt: OutgoingPacket, device: str = ""):
         self.sa.send_to(pkt)
-
-
-    def execute(self, task: Task):
-        pass

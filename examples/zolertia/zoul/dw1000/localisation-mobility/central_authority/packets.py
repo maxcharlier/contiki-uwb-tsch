@@ -23,6 +23,7 @@ DEALLOCATION_ACK     = 5
 CLEAR_SLOTFRAME      = 6
 CLEAR_ACK            = 7
 PROPAGATION_TIME     = 8
+DEBUGGING            = 255
 
 @dataclass
 class IPv6Address:
@@ -117,6 +118,7 @@ class Packet(ABC, Sized):
         CLEAR_SLOTFRAME:        PacketParameter(6, 8, 'ClearSlotframePacket'),
         CLEAR_ACK:              PacketParameter(7, 8, 'ClearAckPacket'),
         PROPAGATION_TIME:       PacketParameter(8, 28, 'PropagationTimePacket'),
+        DEBUGGING:              PacketParameter(255, 51, 'DebuggingPacket')
     }
 
     @abstractmethod
@@ -321,3 +323,13 @@ class PropagationTimePacket(IncomingPacket):
 
     def __str__(self) -> str:
         return f'PropagationTimePacket({self.type}, {self.mobile_addr} -> {self.anchor_addr},  {self.distance()}m)'
+
+
+class DebuggingPacket(IncomingPacket):
+
+    def __init__(self, frame: bytearray):
+        self.type = frame[0]
+        self.message = frame[1:50] # todo: decode to string.
+
+    def origin_addresses(self) -> list[IPv6Address]:
+        return []

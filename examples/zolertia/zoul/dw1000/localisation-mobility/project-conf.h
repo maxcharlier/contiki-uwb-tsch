@@ -211,6 +211,8 @@
 
 #define ROOT_ID  0X01
 
+#define DEBUG_STARTUP_TIME 1
+
 
 #ifdef IS_MOBILE
 #define IS_ANCHOR 0

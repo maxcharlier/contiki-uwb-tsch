@@ -150,6 +150,14 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 
   UART_WRITE_STRING(UART_DEBUG, "APP: RPL Parent changed, requesting a change of geolocation cell\n");
 
+#if DEBUG_STARTUP_TIME
+  debug_packet dbp = {
+    DEBUGGING,
+    "parent changed."
+  }
+  send_to_central_authority(&dbp, sizeof(debug_packet_t));
+#endif
+
 #if IS_MOBILE
 
   allocation_request rqst = get_allocation_request();

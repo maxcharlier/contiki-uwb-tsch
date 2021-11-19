@@ -4,15 +4,16 @@
 import argh
 import logging
 import threading
-from typing import Dict, List, Tuple
+import csv
+import time
+from typing import Dict, List
 from queue import Queue
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
-from packets import IPv6Address, PropagationTimePacket, Anchor
+from packets import DebuggingPacket, IPv6Address, PropagationTimePacket, Anchor
 from multilateration import Coordinates, MultilaterationAlgorithm
 from plotter import PropagationTimePlotter, GeolocationPlotter
-
 
 class Handler:
 
@@ -41,7 +42,58 @@ def plot(*csv_files: str):
     geolocation_plotter = GeolocationPlotter(geolocation_csv, False)
     geolocation_plotter.plot(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
     geolocation_plotter.plot_xy(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
+    geolocation_plotter.plot_dist(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
 
+
+def startup_time(*devices: str):
+    adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
+    scheduler = GreedyScheduler(max_length=100, offset = 6, serial=adapters[0])  # offset 6 for 2 devices
+    eventQueue: Queue = Queue()
+    handler = Handler(eventQueue)
+
+    first_parent_time = None
+    first_localisation_time = None
+
+    for i in range(len(adapters)):
+        t = threading.Thread(target=handler.handle, args=(adapters[i],))
+        t.start()
+
+    while True:
+        pkt, device = eventQueue.get(block=True)
+        # logging.debug(f'Handling packet: {pkt} from the queue.')
+
+        if isinstance(pkt, DebuggingPacket):
+            # The tag changed it's parent.
+            if first_parent_time is None:
+                first_parent_time = time.time()
+                logging.info(f'First parent time: {first_parent_time}')
+
+
+        if isinstance(pkt, PropagationTimePacket):
+            # A propagation packet is received, handle it.
+
+            if first_localisation_time is None:
+                first_localisation_time = time.time()
+                logging.info(f'First localisation time: {first_localisation_time}')
+
+                if PLOT:
+                    with open('startups.csv', 'a') as startups_file:
+                        startups_csv = csv.writer(startups_file)
+                        startups_csv.writerow([first_parent_time, first_localisation_time])
+
+                # we received all the information we need (first_parent + first_localisation), exit.
+                exit(0)
+
+            if pkt.prop_time < 0:
+                # issues at the transceiver -> ignore packets with negative propagation time.
+                continue
+            
+            continue
+
+        actions = scheduler.schedule(pkt, device)
+
+        for act in actions:
+            adapters[0].send_to(act)
 
 def watch(*devices: str):
     """
@@ -100,4 +152,4 @@ if __name__ == "__main__":
         level=logging.DEBUG
     )
     
-    argh.dispatch_commands([watch, plot])
+    argh.dispatch_commands([watch, plot, startup_time])

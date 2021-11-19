@@ -104,18 +104,10 @@ get_ipaddr_from_linkaddr(linkaddr_t *linkaddress)
 
 allocation_request get_allocation_request() {
 
-  uip_ipaddr_t *rpl_parent_ptr = query_best_anchor();
-  uip_ipaddr_t rpl_parent;
+  uip_ipaddr_t rpl_parent = query_best_anchor();
   uip_ipaddr_t our_ip = uip_ds6_get_global(ADDR_PREFERRED)->ipaddr; // Could also be : uip_ds6_get_link_local()
 
-  if (!rpl_parent_ptr) {
-    // There is no RPL parent yet -> error
-    UART_WRITE_STRING(UART_DEBUG, "ERROR: No PRL parent is available\n");
-    // For now, only send our own IP as a parent.
-    rpl_parent = our_ip; 
-  } else {
-    memcpy(&rpl_parent, rpl_parent_ptr, sizeof(uip_ipaddr_t));
-  }
+  //TODO handle when there is no parent.
 
   allocation_request rqst = { 
       ALLOCATION_REQUEST,

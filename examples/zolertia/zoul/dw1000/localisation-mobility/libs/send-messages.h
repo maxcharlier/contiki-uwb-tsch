@@ -8,9 +8,6 @@ static struct tsch_slotframe *tsch_slotframe;
 void
 debug_send_allocation_probe_request();
 
-uip_ipaddr_t *
-query_best_anchor();
-
 void
 send_allocation_probe_request();
 

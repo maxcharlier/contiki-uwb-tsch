@@ -12,7 +12,7 @@ from queue import Queue
 
 from scheduler import GreedyScheduler
 from serial_adapter import SerialAdapter
-from packets import DebuggingPacket, IPv6Address, PropagationTimePacket, Anchor
+from packets import AllocationRequestPacket, DebuggingPacket, IPv6Address, PropagationTimePacket, Anchor
 from multilateration import Coordinates, MultilaterationAlgorithm
 from plotter import PropagationTimePlotter, GeolocationPlotter
 
@@ -64,7 +64,7 @@ def startup_time(*devices: str):
         pkt, device = eventQueue.get(block=True)
         # logging.debug(f'Handling packet: {pkt} from the queue.')
 
-        if isinstance(pkt, DebuggingPacket):
+        if isinstance(pkt, (DebuggingPacket, AllocationRequestPacket)):
             # The tag changed it's parent.
             if first_parent_time is None:
                 first_parent_time = time.time()

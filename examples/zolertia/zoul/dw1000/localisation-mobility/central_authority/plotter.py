@@ -1,8 +1,5 @@
 
 from typing import Counter, List
-
-from numpy import exp
-from numpy.core.fromnumeric import size
 from packets import IPv6Address
 from multilateration import Coordinates
 import csv
@@ -97,7 +94,7 @@ class PropagationTimePlotter(Plotter):
             
             axs[i].legend(loc='upper left')
             i += 1
-            
+
         plt.show()
 
         
@@ -172,7 +169,39 @@ class GeolocationPlotter(Plotter):
             plt.scatter(expected_mean.x, expected_mean.y, c=self.MEASURE_COLOUR, alpha=1, s=200, label="Position réele")
         plt.legend(loc='upper left')
         plt.show()
+    
+    def plot_dist(self, anchor_to_plot: IPv6Address, expected_mean: Coordinates = None):
+        x = []
+        y = []
 
+        with open(self.datafile) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                x_val = float(row['x'])
+                y_val = float(row['y'])
+                if 11<x_val<11.5 and 8<y_val<8.8:   # Remove outliers
+                    x.append(abs(x_val - expected_mean.x))
+                    y.append(abs(y_val - expected_mean.y))
+        
+        # side by side histograms
+        fig, axs = plt.subplots(1, 2)
+        fig.subplots_adjust(hspace=0.5)
+
+
+        axs[0].hist(x, len(x), density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, histtype='step', cumulative=True)
+        axs[0].set_xlabel("Erreur en X par rapport à la position réelle [mètres]")
+        axs[0].set_ylabel("Probabilité d'occurrence")
+        # axs[0].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée X réele')
+        
+
+        axs[1].hist(y, len(y), density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, histtype='step', cumulative=True)
+        axs[1].set_xlabel("Erreur en Y par rapport à la potition réele [mètres]")
+        axs[1].set_ylabel("Probabilité d'occurrence")
+        # axs[1].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée Y réele')
+
+        plt.legend(loc='upper left')
+
+        plt.show()
 
 if __name__ == "__main__":
     a = IPv6Address("fe80000000000000fdffffffffff0001")

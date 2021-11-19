@@ -154,7 +154,7 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
   debug_packet dbp = {
     DEBUGGING,
     "parent changed."
-  }
+  };
   send_to_central_authority(&dbp, sizeof(debug_packet_t));
 #endif
 

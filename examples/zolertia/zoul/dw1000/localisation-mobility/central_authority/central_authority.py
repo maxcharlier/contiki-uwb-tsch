@@ -4,7 +4,7 @@
 import argh
 import logging
 import threading
-import sys
+import os
 import csv
 import time
 from typing import Dict, List
@@ -90,7 +90,7 @@ def startup_time(*devices: str):
                         startups_csv.writerow([authority_startup_time, first_parent_time, first_localisation_time])
 
                 # we received all the information we need (first_parent + first_localisation), exit.
-                sys.exit(0)
+                os._exit(0)
 
             if pkt.prop_time < 0:
                 # issues at the transceiver -> ignore packets with negative propagation time.

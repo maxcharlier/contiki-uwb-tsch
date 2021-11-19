@@ -140,7 +140,7 @@ debug_uart_receive_byte(unsigned char c) {
   switch (c) {
     case 's':   tsch_schedule_print();                                                                      break;
     case 'S':   tsch_slotframe = tsch_schedule_create_initial();                                            break;
-    case 'p':   PRINT6ADDR(query_best_anchor());                                                            break;
+//  case 'p':   PRINT6ADDR(query_best_anchor());                                                            break;
     case 'n':   rpl_print_neighbor_list();                                                                  break;
     case 'e':   tsch_set_prop_measurement(1);                                                               break;
     case 'd':   tsch_set_prop_measurement(0);                                                               break;

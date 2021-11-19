@@ -190,7 +190,7 @@ class AllocationRequestPacket(IncomingPacket):
         return self.PACKET_ID_SIZE[ALLOCATION_REQUEST].size
 
     def __str__(self):
-        return f'AllocationRequestPacket({self.type}, {self.signal_power}, {self.mobile_addr}, {self.anchor_addr})'
+        return f'AllocationRequestPacket({self.signal_power}, {self.mobile_addr}, {self.anchor_addr})'
 
 
 class AllocationSlotPacket(OutgoingPacket):
@@ -224,7 +224,7 @@ class AllocationSlotPacket(OutgoingPacket):
         return self.PACKET_ID_SIZE[ALLOCATION_SLOT].size
 
     def __str__(self):
-        return f'AllocationSlotPacket({self.type}, {self.mobile_addr}, {self.anchor_addr}, {self.timeslot}, {self.channel})'
+        return f'AllocationSlotPacket({self.mobile_addr}, {self.anchor_addr}, {self.timeslot}, {self.channel})'
     
 class AllocationAckPacket(IncomingPacket):
 
@@ -242,7 +242,7 @@ class AllocationAckPacket(IncomingPacket):
         return self.PACKET_ID_SIZE[ALLOCATION_ACK].size
 
     def __str__(self):
-        return f'AllocationAckPacket({self.type}, {self.mobile_addr}, {self.anchor_addr}, {self.timeslot}, {self.channel})'
+        return f'AllocationAckPacket({self.mobile_addr}, {self.anchor_addr}, {self.timeslot}, {self.channel})'
 
 
 class DeallocationResquestPacket(IncomingPacket):
@@ -261,7 +261,7 @@ class DeallocationResquestPacket(IncomingPacket):
         return self.PACKET_ID_SIZE[DEALLOCATION_REQUEST].size
 
     def __str__(self):
-        return f'DellocationRequestPacket({self.type}, {self.mobile_addr}, {self.anchor_addr})'
+        return f'DellocationRequestPacket({self.mobile_addr}, {self.anchor_addr})'
 
 class ClearSlotframePacket(OutgoingPacket):
 
@@ -297,7 +297,7 @@ class ClearAckPacket(IncomingPacket):
         return self.PACKET_ID_SIZE[CLEAR_SLOTFRAME].size
     
     def __str__(self):
-        return f'ClearAckPacket({self.type}, {self.from_addr})'
+        return f'ClearAckPacket({self.from_addr})'
 
 class PropagationTimePacket(IncomingPacket):
 
@@ -322,7 +322,7 @@ class PropagationTimePacket(IncomingPacket):
         return self.PACKET_ID_SIZE[PROPAGATION_TIME].size
 
     def __str__(self) -> str:
-        return f'PropagationTimePacket({self.type}, {self.mobile_addr} -> {self.anchor_addr},  {self.distance()}m)'
+        return f'PropagationTimePacket({self.mobile_addr} -> {self.anchor_addr},  {self.distance()}m)'
 
 
 class DebuggingPacket(IncomingPacket):
@@ -333,3 +333,9 @@ class DebuggingPacket(IncomingPacket):
 
     def origin_addresses(self) -> list[IPv6Address]:
         return []
+
+    def __len__(self):
+        return self.PACKET_ID_SIZE[DEBUGGING].size
+    
+    def __str__(self) -> str:
+        return f'DebuggingPacket({self.message})'

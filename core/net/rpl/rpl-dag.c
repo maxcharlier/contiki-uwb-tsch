@@ -1629,3 +1629,11 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 }
 /*---------------------------------------------------------------------------*/
 /** @} */
+uip_ipaddr_t *
+query_best_anchor()
+{
+  // Take the fist parent in the table
+  rpl_parent_t *p = nbr_table_head(rpl_parents);
+  return rpl_get_parent_ipaddr(p);
+}
+/*---------------------------------------------------------------------------*/

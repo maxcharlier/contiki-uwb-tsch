@@ -57,15 +57,6 @@ uart_write_string(int output, char text[], int size)
 //#define SEND_TO_CENTRAL_AUTHORITY(data) send_to_central_authority(&(data), sizeof(data))
 
 
-uip_ipaddr_t *
-query_best_anchor()
-{
-  // Take the fist parent in the table
-  rpl_parent_t *p = nbr_table_head(rpl_parents);
-  return rpl_get_parent_ipaddr(p);
-}
-
-
 linkaddr_t
 get_linkaddr_from_ipaddr(uip_ip6addr_t *ipaddr)
 {

@@ -336,5 +336,7 @@ enum rpl_mode rpl_get_mode(void);
  */
 int rpl_has_downward_route(void);
 
+uip_ipaddr_t *query_best_anchor();
+
 /*---------------------------------------------------------------------------*/
 #endif /* RPL_H */

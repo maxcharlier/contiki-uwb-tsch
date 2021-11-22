@@ -180,9 +180,7 @@ class AllocationRequestPacket(IncomingPacket):
     def __init__(self, frame: bytearray):
         self.type = frame[0]
         self.signal_power = frame[1]
-        logging.info(f"AllocationRequestPacket - mobile_addr: {frame[4:20]}")
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(frame[4:20])
-        logging.info(f"AllocationRequestPacket - anchor_addr: {frame[20:36]}")
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(frame[20:36])
     
     def origin_addresses(self) -> Collection[IPv6Address]:
@@ -234,9 +232,7 @@ class AllocationAckPacket(IncomingPacket):
         self.type = frame[0]
         self.timeslot = frame[2]
         self.channel = frame[3]
-        logging.info(f"AllocationAckPacket - mobile_addr: {frame[4:20]}")
         self.mobile_addr: IPv6Address = self._parse_ipv6_address(frame[4:20])
-        logging.info(f"AllocationAckPacket - anchor_addr: {frame[20:36]}")
         self.anchor_addr: IPv6Address = self._parse_ipv6_address(frame[20:36])
 
     def origin_addresses(self) -> Collection[IPv6Address]:

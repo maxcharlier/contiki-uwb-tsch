@@ -38,12 +38,6 @@ byte_stuffing_encode(uint8_t *frame, int length, void *destination) {
 
 int
 byte_stuffing_send_bytes(uint8_t *frame, int length) {
-    //TODO delete
-    for (int j=0; j<length; j++) {
-        printf("%02x", frame[j]);
-    }
-    printf("\n");
-
     
     uart_write_byte(UART_OUTPUT, BS_SFD);
     for (int i=0; i<length; i++) {

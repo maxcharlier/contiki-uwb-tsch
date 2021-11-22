@@ -184,7 +184,7 @@ void send_to_all_mobiles(void *data_to_transmit, int length)
       UART_WRITE_STRING(UART_DEBUG, "No routes are available, skipping sending to children.\n");
   }
   while(route != NULL) {
-    const uip_ipaddr_t *address = &route->ipaddr;
+    const uip_ipaddr_t *address = &route->ipaddr;         // TODO delete
     const uip_ipaddr_t *nexthop = uip_ds6_route_nexthop(route);
 
     send_to_mobile(nexthop, data_to_transmit, length);
@@ -200,45 +200,10 @@ send_to_central_authority(void *data_to_transmit, int length)
 
 #if IS_ANCHOR
 
-  // An anchor has direct UART connection to the central authority.
-  if (*((uint8_t *) data_to_transmit) == ALLOCATION_ACK) {
-      allocation_ack data = *((allocation_ack *) data_to_transmit);
-      PRINTF("sending ALLOCATION_ACK (mobile, anchor):\n");
-      PRINT6ADDR(&data.mobile_addr);
-      PRINT6ADDR(&data.anchor_addr);
-      PRINTF("\n");
-  }
-
-  if (*((uint8_t *) data_to_transmit) == ALLOCATION_REQUEST) {
-      allocation_request data = *((allocation_request *) data_to_transmit);
-      PRINTF("sending ALLOCATION_REQUEST (mobile, anchor):\n");
-      PRINT6ADDR(&data.mobile_addr);
-      PRINT6ADDR(&data.anchor_addr);
-      PRINTF("\n");
-  }
-
   if (*((uint8_t *) data_to_transmit) != CLEAR_SLOTFRAME) {
     // Anchors should ignore CLEAR_SLOTFRAME frames (and not forward them to the central authority).
     uart_send_bytes(data_to_transmit, length);
   }
-
-  if (*((uint8_t *) data_to_transmit) == ALLOCATION_ACK) {
-      allocation_ack data = *((allocation_ack *) data_to_transmit);
-      PRINTF("after ALLOCATION_ACK (mobile, anchor):\n");
-      PRINT6ADDR(&data.mobile_addr);
-      PRINT6ADDR(&data.anchor_addr);
-      PRINTF("\n");
-  }
-
-  if (*((uint8_t *) data_to_transmit) == ALLOCATION_REQUEST) {
-      allocation_request data = *((allocation_request *) data_to_transmit);
-      PRINTF("after ALLOCATION_REQUEST (mobile, anchor):\n");
-      PRINT6ADDR(&data.mobile_addr);
-      PRINT6ADDR(&data.anchor_addr);
-      PRINTF("\n");
-  }
-  
-
 
 #else /* IS_ANCHOR */
 
@@ -252,10 +217,9 @@ send_to_central_authority(void *data_to_transmit, int length)
   struct uip_udp_conn *new_conn = udp_new(&nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL);
   
   if (new_conn == NULL) {
-    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process! for \n");
+    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process! \n");
     PRINT6ADDR(&nearest_anchor_ip);
     PRINTF("\n");
-    rpl_print_neighbor_list();
     return;
   }
 
@@ -283,18 +247,6 @@ void
 uart_send_bytes(void *data_to_transmit, int length)
 {
   byte_stuffing_send_bytes(data_to_transmit, length);
-  /*
-  uint8_t stuffed_bytes[2 * MAX_SERIAL_LEN + 2];
-  int length_to_write = byte_stuffing_encode(data_to_transmit, length, stuffed_bytes);
-
-  uint8_t *current_ptr = stuffed_bytes;
-  uint8_t *end = current_ptr + length_to_write;
-  while (current_ptr < end) {
-    uart_write_byte(UART_OUTPUT, *current_ptr);
-
-    current_ptr += 1;
-  }
-  */
 }
 
 int
@@ -314,18 +266,10 @@ uart_receive_byte(unsigned char c)
   
   case STATE_READ_DATA:
     if (byte == BS_EFD) {
-      state = STATE_WAIT_SFD;
-      // TODO move the buffer here as well ?
-          
-          /*
-          printf("receive_buffer of length %d:\n", receive_ptr - receive_buffer);
-          for (int j=0; j<MAX_SERIAL_LEN; j++) {
-            printf("%02x", receive_buffer[j]);
-          }
-          printf("\n");
-          */
+      state = STATE_WAIT_SFD;   // TODO move the buffer here as well ?
 
       act_on_message(receive_buffer, receive_ptr - receive_buffer);
+
       // Reset buffer for future use
       receive_ptr = receive_buffer;
       memset(receive_buffer, 0xAB , MAX_SERIAL_LEN);

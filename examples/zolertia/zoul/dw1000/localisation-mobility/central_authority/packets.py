@@ -198,6 +198,8 @@ class AllocationSlotPacket(OutgoingPacket):
     def __init__(self, mobile_addr: IPv6Address, anchor_addr: IPv6Address, timeslot: int, channel: int = 1):
         assert 0 <= timeslot < 256  # limit timeslot size on one byte
         assert 0 <= channel < 256   # limit channel size on one byte
+
+        logging.info(f"AllocationSlot init called with {mobile_addr}, {anchor_addr}, {timeslot}, {channel}")
         
         self.type = self.PACKET_ID_SIZE[ALLOCATION_SLOT].id
         self.mobile_addr: IPv6Address = mobile_addr

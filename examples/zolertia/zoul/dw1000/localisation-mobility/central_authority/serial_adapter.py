@@ -37,7 +37,7 @@ class SerialAdapter:
 
         # Flush the uart buffer
         # see https://github.com/gawen947/wsn-tools/blob/ec943642ae5cc488f2c884b8345e36bef583d6a0/uart.c#L140
-        sleep(500/1000000)
+        sleep(0.5)
         termios.tcflush(self.serial.fd, termios.TCIOFLUSH)
 
         self.state = STATE_WAIT_SFD

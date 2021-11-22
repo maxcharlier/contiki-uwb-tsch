@@ -1,0 +1,13 @@
+#!/bin/bash
+
+while true
+do
+    # compile
+    cd /home/thomas/Documents/Projects/contiki-uwb-tsch/examples/zolertia/zoul/dw1000/localisation-mobility/
+    touch project-conf.h libs/* && make main.upload TARGET=zoul BOARD=firefly-dw1000 NODEID=0x1 PORT=/dev/anchor5 && touch project-conf.h libs/* && make main.upload TARGET=zoul BOARD=firefly-dw1000 NODEID=0x4 IS_MOBILE=0x1 PORT=/dev/anchor7
+    
+    
+    #run
+    cd /home/thomas/Documents/Projects/contiki-uwb-tsch/examples/zolertia/zoul/dw1000/localisation-mobility/central_authority/
+    python3 central_authority.py startup-time /dev/anchor5 # will add times to shartups.csv
+done

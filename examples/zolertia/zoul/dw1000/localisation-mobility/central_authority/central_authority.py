@@ -48,7 +48,7 @@ def plot(*csv_files: str):
 
 def startup_time(*devices: str):
     adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
-    scheduler = GreedyScheduler(max_length=100, offset = 6, serial=adapters[0])  # offset 6 for 2 devices
+    scheduler = GreedyScheduler(max_length=100, offset = 14, serial=adapters[0])  # offset 14 for 4 devices
     eventQueue: Queue = Queue()
     handler = Handler(eventQueue)
 

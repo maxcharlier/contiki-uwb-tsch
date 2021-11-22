@@ -44,7 +44,7 @@ class GreedyScheduler:
             # Give at least slots with 3 anchors for 2D two-way ranging according to the closest
             # anchors to the parent of the mobile.
             main_parent = Anchor.from_IPv6(in_pkt.anchor_addr)
-            for a in main_parent.nearest_anchors(3):
+            for a in main_parent.nearest_anchors(1):
                 logging.info(f"Additional parent chosen: {a} for {in_pkt.mobile_addr} around {in_pkt.anchor_addr}")
                 
                 # Adding a slot for that parent

@@ -91,5 +91,5 @@ typedef struct propagation_time_t {
 
 typedef struct debug_packet_t {
   message_type message_type : 8;
-  char debug_message[50];
+  char debug_message[30];
 } debug_packet;

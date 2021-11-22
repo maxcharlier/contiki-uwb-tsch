@@ -27,14 +27,16 @@
 
 
 
-#define MAX_SERIAL_LEN    100
+#define MAX_SERIAL_LEN    50
+#define MAX_UDP_LEN       50
 
 static int state = STATE_WAIT_SFD;
 static uint8_t receive_buffer[MAX_SERIAL_LEN];
 static uint8_t *receive_ptr = receive_buffer;
 
+static uint8_t send_buffer[MAX_UDP_LEN];
 
-#define PRINT_BYTE 1
+#define PRINT_BYTE 0
 #undef PRINTF
 #if !PRINT_BYTE
   #define PRINTF(...) printf(__VA_ARGS__)
@@ -101,7 +103,6 @@ get_ipaddr_from_linkaddr(linkaddr_t *linkaddress)
 
 
 
-
 allocation_request get_allocation_request() {
 
   uip_ipaddr_t rpl_parent = query_best_anchor();
@@ -153,6 +154,8 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 void
 send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
 {
+  memcpy(send_buffer, data_to_transmit, length);
+
   uip_ipaddr_t *nearest_anchor_ip = mobile_ip;
   struct uip_udp_conn *mobile_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
   
@@ -171,7 +174,7 @@ send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
 
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(mobile_conn, data_to_transmit, length,
+  uip_udp_packet_sendto(mobile_conn, send_buffer, length,
                         nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 }
 
@@ -182,6 +185,9 @@ void send_to_all_mobiles(void *data_to_transmit, int length)
 
   /* Loop over routing entries */
   route = uip_ds6_route_head();
+  if (route == NULL) {
+      UART_WRITE_STRING(UART_DEBUG, "No routes are available, skipping sending to children.\n");
+  }
   while(route != NULL) {
     const uip_ipaddr_t *address = &route->ipaddr;
     const uip_ipaddr_t *nexthop = uip_ds6_route_nexthop(route);
@@ -200,10 +206,41 @@ send_to_central_authority(void *data_to_transmit, int length)
 #if IS_ANCHOR
 
   // An anchor has direct UART connection to the central authority.
+  if (*((uint8_t *) data_to_transmit) == ALLOCATION_ACK) {
+      allocation_ack data = *((allocation_ack *) data_to_transmit);
+      PRINTF("sending ALLOCATION_ACK (mobile, anchor):\n");
+      PRINT6ADDR(&data.mobile_addr);
+      PRINT6ADDR(&data.anchor_addr);
+      PRINTF("\n");
+  }
+
+  if (*((uint8_t *) data_to_transmit) == ALLOCATION_REQUEST) {
+      allocation_request data = *((allocation_request *) data_to_transmit);
+      PRINTF("sending ALLOCATION_REQUEST (mobile, anchor):\n");
+      PRINT6ADDR(&data.mobile_addr);
+      PRINT6ADDR(&data.anchor_addr);
+      PRINTF("\n");
+  }
 
   if (*((uint8_t *) data_to_transmit) != CLEAR_SLOTFRAME) {
     // Anchors should ignore CLEAR_SLOTFRAME frames (and not forward them to the central authority).
     uart_send_bytes(data_to_transmit, length);
+  }
+
+  if (*((uint8_t *) data_to_transmit) == ALLOCATION_ACK) {
+      allocation_ack data = *((allocation_ack *) data_to_transmit);
+      PRINTF("after ALLOCATION_ACK (mobile, anchor):\n");
+      PRINT6ADDR(&data.mobile_addr);
+      PRINT6ADDR(&data.anchor_addr);
+      PRINTF("\n");
+  }
+
+  if (*((uint8_t *) data_to_transmit) == ALLOCATION_REQUEST) {
+      allocation_request data = *((allocation_request *) data_to_transmit);
+      PRINTF("after ALLOCATION_REQUEST (mobile, anchor):\n");
+      PRINT6ADDR(&data.mobile_addr);
+      PRINT6ADDR(&data.anchor_addr);
+      PRINTF("\n");
   }
   
 
@@ -215,25 +252,32 @@ send_to_central_authority(void *data_to_transmit, int length)
 
   // Initiate a connection.
   // Remark: Ideally, an anchor should maintain constantly a connection with its nearest anchor.
+  memcpy(send_buffer, data_to_transmit, length);
+
   uip_ipaddr_t nearest_anchor_ip = query_best_anchor();
-  struct uip_udp_conn *server_conn = udp_new(&nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  struct uip_udp_conn *new_conn = udp_new(&nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL);
   
-  if (server_conn == NULL) {
-    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process!\n");
+  if (new_conn == NULL) {
+    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process! for \n");
+    PRINT6ADDR(&nearest_anchor_ip);
+    PRINTF("\n");
     return;
   }
 
-  udp_bind(server_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+  
+  anchor_conn = *new_conn; 
+
+  udp_bind(&anchor_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
   // For debugging purposes
   UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
-  PRINT6ADDR(&server_conn->ripaddr);
+  PRINT6ADDR(&anchor_conn.ripaddr);
   PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(server_conn->lport), UIP_HTONS(server_conn->rport));
+	UIP_HTONS(anchor_conn.lport), UIP_HTONS(anchor_conn.rport));
 
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(server_conn, data_to_transmit, length,
+  uip_udp_packet_sendto(&anchor_conn, send_buffer, length,
                         &nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 
 #endif
@@ -340,8 +384,6 @@ receive_uart(uint8_t *pkt, int length)
 void
 act_on_message(uint8_t *msg, int length)
 {
-  uart_write_byte(UART_DEBUG, '0' + state);
-  uart_write_byte(UART_DEBUG, '0' + *msg);
 
   switch (*msg) {
 
@@ -403,6 +445,9 @@ act_on_message(uint8_t *msg, int length)
       //if (uip_ip6addr_cmp_ed(&our_ip_, &packet.anchor_addr)) {
         // Only add the link to our schedule if the ALLOCATION_SLOT frame was intended for us.
         linkaddr_t mobile_addr = get_linkaddr_from_ipaddr(&packet.mobile_addr);
+        UART_WRITE_STRING(UART_DEBUG, "Address of mobile: ");
+        PRINTLLADDR(&mobile_addr);
+        UART_WRITE_STRING(UART_DEBUG, "\n");
         tsch_schedule_add_link(tsch_slotframe, LINK_OPTION_TX, LINK_TYPE_PROP, &mobile_addr, packet.timeslot, packet.channel);
       //}
 

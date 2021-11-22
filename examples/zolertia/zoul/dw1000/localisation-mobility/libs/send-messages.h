@@ -1,9 +1,13 @@
 #include "contiki.h"
 
-#define UART_OUTPUT     0
-#define UART_DEBUG      1
+#ifndef SEND_MESSAGE_H
+#define SEND_MESSAGE_H
+
+#define UART_OUTPUT     1
+#define UART_DEBUG      0
 
 static struct tsch_slotframe *tsch_slotframe;
+static struct uip_udp_conn anchor_conn;
 
 void
 debug_send_allocation_probe_request();
@@ -29,3 +33,5 @@ uart_send_bytes(void *data_to_transmit, int length);
 
 void
 handle_propagation(struct tsch_neighbor *data);
+
+#endif /* SEND_MESSAGE_H */

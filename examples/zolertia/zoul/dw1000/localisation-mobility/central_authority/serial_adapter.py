@@ -2,6 +2,7 @@ from typing import Dict
 import serial
 import logging
 from time import sleep
+import termios
 from enum import Enum
 from packets import Anchor, IncomingPacket, OutgoingPacket, IPv6Address, ClearSlotframePacket
 
@@ -16,7 +17,7 @@ STATE_WAIT_SFD      = 1
 STATE_READ_DATA     = 2
 STATE_READ_ESC_DATA = 3
 
-BS_SFD = 0xBB
+BS_SFD = 0xCC
 BS_EFD = 0xEE
 BS_ESC = 0x33
 
@@ -33,6 +34,11 @@ class SerialAdapter:
             port=device,
             baudrate=SERIAL_BAUDRATE
         )
+
+        # Flush the uart buffer
+        # see https://github.com/gawen947/wsn-tools/blob/ec943642ae5cc488f2c884b8345e36bef583d6a0/uart.c#L140
+        sleep(500/1000000)
+        termios.tcflush(self.serial.fd, termios.TCIOFLUSH)
 
         self.state = STATE_WAIT_SFD
         self.frame = bytearray()
@@ -84,7 +90,7 @@ class SerialAdapter:
                         logging.debug(f'{self.device}: {recv_byte}')
             elif self.state == STATE_READ_DATA:
                 if recv_byte == BS_EFD:
-                    # logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
+                    logging.info(f'Incomming bytearray from {self.device}: {self.frame}')
                     pkt = IncomingPacket.packet_from_bytearray(self.frame)
                     
                     # Update PORTS to reflect to received packet

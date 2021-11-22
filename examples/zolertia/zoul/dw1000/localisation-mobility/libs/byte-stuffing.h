@@ -4,7 +4,7 @@
 #define STATE_READ_DATA     2
 #define STATE_READ_ESC_DATA 3
 
-#define BS_SFD 0xBB
+#define BS_SFD 0xCC
 #define BS_EFD 0xEE
 #define BS_ESC 0x33
 
@@ -23,4 +23,7 @@ byte_stuffing_encode(uint8_t *frame, int length, void *destination);
 
 void
 byte_stuffing_decode(uint8_t *frame, int length, void *destination);
+
+int
+byte_stuffing_send_bytes(uint8_t *frame, int length);
 

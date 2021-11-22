@@ -27,14 +27,11 @@
 
 
 
-#define MAX_SERIAL_LEN    50
-#define MAX_UDP_LEN       50
+#define MAX_SERIAL_LEN    100
 
 static int state = STATE_WAIT_SFD;
 static uint8_t receive_buffer[MAX_SERIAL_LEN];
 static uint8_t *receive_ptr = receive_buffer;
-
-static uint8_t send_buffer[MAX_UDP_LEN];
 
 #define PRINT_BYTE 0
 #undef PRINTF
@@ -154,8 +151,6 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 void
 send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
 {
-  memcpy(send_buffer, data_to_transmit, length);
-
   uip_ipaddr_t *nearest_anchor_ip = mobile_ip;
   struct uip_udp_conn *mobile_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
   
@@ -174,7 +169,7 @@ send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
 
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(mobile_conn, send_buffer, length,
+  uip_udp_packet_sendto(mobile_conn, data_to_transmit, length,
                         nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 }
 
@@ -252,7 +247,6 @@ send_to_central_authority(void *data_to_transmit, int length)
 
   // Initiate a connection.
   // Remark: Ideally, an anchor should maintain constantly a connection with its nearest anchor.
-  memcpy(send_buffer, data_to_transmit, length);
 
   uip_ipaddr_t nearest_anchor_ip = query_best_anchor();
   struct uip_udp_conn *new_conn = udp_new(&nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL);
@@ -261,6 +255,7 @@ send_to_central_authority(void *data_to_transmit, int length)
     UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process! for \n");
     PRINT6ADDR(&nearest_anchor_ip);
     PRINTF("\n");
+    rpl_print_neighbor_list();
     return;
   }
 
@@ -277,7 +272,7 @@ send_to_central_authority(void *data_to_transmit, int length)
 
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(&anchor_conn, send_buffer, length,
+  uip_udp_packet_sendto(&anchor_conn, data_to_transmit, length,
                         &nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 
 #endif
@@ -287,6 +282,8 @@ send_to_central_authority(void *data_to_transmit, int length)
 void
 uart_send_bytes(void *data_to_transmit, int length)
 {
+  byte_stuffing_send_bytes(data_to_transmit, length);
+  /*
   uint8_t stuffed_bytes[2 * MAX_SERIAL_LEN + 2];
   int length_to_write = byte_stuffing_encode(data_to_transmit, length, stuffed_bytes);
 
@@ -294,8 +291,10 @@ uart_send_bytes(void *data_to_transmit, int length)
   uint8_t *end = current_ptr + length_to_write;
   while (current_ptr < end) {
     uart_write_byte(UART_OUTPUT, *current_ptr);
+
     current_ptr += 1;
   }
+  */
 }
 
 int
@@ -315,10 +314,21 @@ uart_receive_byte(unsigned char c)
   
   case STATE_READ_DATA:
     if (byte == BS_EFD) {
+      state = STATE_WAIT_SFD;
+      // TODO move the buffer here as well ?
+          
+          /*
+          printf("receive_buffer of length %d:\n", receive_ptr - receive_buffer);
+          for (int j=0; j<MAX_SERIAL_LEN; j++) {
+            printf("%02x", receive_buffer[j]);
+          }
+          printf("\n");
+          */
+
       act_on_message(receive_buffer, receive_ptr - receive_buffer);
       // Reset buffer for future use
       receive_ptr = receive_buffer;
-      state = STATE_WAIT_SFD;
+      memset(receive_buffer, 0xAB , MAX_SERIAL_LEN);
     } else if (byte == BS_ESC) {
       state = STATE_READ_ESC_DATA;
     } else {
@@ -336,49 +346,6 @@ uart_receive_byte(unsigned char c)
   }
   
   return 1;
-}
-
-void
-receive_uart(uint8_t *pkt, int length)
-{
-  uint8_t *ptr = pkt;
-  while (ptr < pkt + length) {
-    uint8_t byte = *ptr;
-
-    switch (state){
-
-    case STATE_WAIT_SFD:
-      if (byte == BS_SFD) {
-        state = STATE_READ_DATA;
-      }
-      break;
-    
-    case STATE_READ_DATA:
-      if (byte == BS_EFD) {
-        
-        UART_WRITE_STRING(UART_DEBUG, "ack\n");
-
-        act_on_message(receive_buffer, receive_ptr - receive_buffer);
-
-        // Empty the buffer for future use
-        receive_ptr = receive_buffer;
-      } else if (byte == BS_ESC) {
-        state = STATE_READ_ESC_DATA;
-      } else {
-        *receive_ptr++ = byte;
-      }
-      break;
-    
-    case STATE_READ_ESC_DATA:
-        *receive_ptr++ = byte;
-      break;
-    
-    default:
-      break;
-    }
-
-    ptr++;
-  }
 }
 
 void

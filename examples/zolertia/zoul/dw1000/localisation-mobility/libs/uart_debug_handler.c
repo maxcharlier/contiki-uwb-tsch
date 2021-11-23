@@ -17,7 +17,7 @@ uint8_t uart_debug_receive_buffer0[MAX_SERIAL_LEN+1];
 uint8_t uart_debug_receive_buffer1[MAX_SERIAL_LEN+1];
 static uint8_t current_uart_buffer_index = 0;
 static uint8_t *receive_ptr[2] = {uart_debug_receive_buffer0, uart_debug_receive_buffer1};
-static uint8_t *current_receive_prt;
+static uint8_t *current_receive_ptr;
 
 /**
  * Receive individual byte from the serial line, undo the byte stuffing and 
@@ -42,9 +42,9 @@ uart_receive_byte(unsigned char c)
     if (byte == BS_SFD) {
       state = STATE_READ_DATA;
 
-      *current_receive_prt = receive_ptr[current_uart_buffer_index];
+      *current_receive_ptr = receive_ptr[current_uart_buffer_index];
 
-      memset(current_receive_prt, 0x00 , MAX_SERIAL_LEN+1);
+      memset(current_receive_ptr, 0x00 , MAX_SERIAL_LEN+1);
     }
     break;
   
@@ -55,7 +55,7 @@ uart_receive_byte(unsigned char c)
       // act_on_message(receive_ptr[current_uart_buffer_index]++, receive_ptr - receive_buffer);
 
       //set the lenght of the buffer in the first byte of the receive_buffer
-      *receive_ptr[current_uart_buffer_index] = receive_ptr[current_uart_buffer_index] - current_receive_prt;
+      *receive_ptr[current_uart_buffer_index] = receive_ptr[current_uart_buffer_index] - current_receive_ptr;
 
       /* Send the PROCESS_EVENT_MSG event asynchronously to 
         "uart_debug_handler_process", with a pointer to the current uart_buffer. */
@@ -68,17 +68,17 @@ uart_receive_byte(unsigned char c)
     } else if (byte == BS_SFD) {
       /* We receive an unexpected SFD so the previous message is corrupted.
       Discard the previous message and this byte and start receive the next message */
-      *current_receive_prt = receive_ptr[current_uart_buffer_index];
-      memset(current_receive_prt, 0x00 , MAX_SERIAL_LEN+1);
+      *current_receive_ptr = receive_ptr[current_uart_buffer_index];
+      memset(current_receive_ptr, 0x00 , MAX_SERIAL_LEN+1);
     } else if (byte == BS_ESC) {
       state = STATE_READ_ESC_DATA;
     } else {
-      *current_receive_prt++ = byte;
+      *current_receive_ptr++ = byte;
     }
     break;
   
   case STATE_READ_ESC_DATA:
-      *current_receive_prt++ = byte;
+      *current_receive_ptr++ = byte;
       state = STATE_READ_DATA;
     break;
   

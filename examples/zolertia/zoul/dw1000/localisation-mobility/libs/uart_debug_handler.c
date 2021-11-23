@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/uart_degub_handler.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/uart_debug_handler.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 

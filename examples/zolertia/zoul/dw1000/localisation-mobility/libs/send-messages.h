@@ -7,7 +7,7 @@
 #define UART_DEBUG      0
 
 static struct tsch_slotframe *tsch_slotframe;
-static struct uip_udp_conn anchor_conn;
+//static struct uip_udp_conn anchor_conn;
 
 void
 debug_send_allocation_probe_request();

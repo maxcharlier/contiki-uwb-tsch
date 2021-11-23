@@ -225,7 +225,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
   uart_set_input(UART_OUTPUT, uart_receive_byte);
 
   /* start UART Debug Handler process */
-  process_start(uart_debug_handler_process);
+  process_start(&uart_debug_handler_process, NULL);
 
   NETSTACK_MAC.on();
 

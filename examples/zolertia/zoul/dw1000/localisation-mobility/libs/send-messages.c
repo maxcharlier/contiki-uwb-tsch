@@ -216,19 +216,19 @@ send_to_central_authority(void *data_to_transmit, int length)
   }
 
   
-  anchor_conn = *new_conn; 
+  //anchor_conn = *new_conn; 
 
-  udp_bind(&anchor_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+  udp_bind(new_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
   // For debugging purposes
   UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
-  PRINT6ADDR(&anchor_conn.ripaddr);
+  PRINT6ADDR(&new_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(anchor_conn.lport), UIP_HTONS(anchor_conn.rport));
+	UIP_HTONS(new_conn->lport), UIP_HTONS(new_conn->rport));
 
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(&anchor_conn, data_to_transmit, length,
+  uip_udp_packet_sendto(new_conn, data_to_transmit, length,
                         &nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
 
 #endif

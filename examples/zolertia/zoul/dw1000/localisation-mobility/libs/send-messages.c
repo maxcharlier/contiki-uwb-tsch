@@ -14,7 +14,6 @@
 #include "core/net/ip/uip-udp-packet.h"
 
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/message-formats.h"
-#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule-onecell3A1T.h"
 
@@ -25,13 +24,6 @@
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 
-
-
-#define MAX_SERIAL_LEN    100
-
-static int state = STATE_WAIT_SFD;
-static uint8_t receive_buffer[MAX_SERIAL_LEN];
-static uint8_t *receive_ptr = receive_buffer;
 
 #define PRINT_BYTE 0
 #undef PRINTF
@@ -247,49 +239,6 @@ void
 uart_send_bytes(void *data_to_transmit, int length)
 {
   byte_stuffing_send_bytes(data_to_transmit, length);
-}
-
-int
-uart_receive_byte(unsigned char c)
-{
-  uint8_t byte = c;
-
-  uart_write_byte(UART_DEBUG, byte);
-
-  switch (state){
-
-  case STATE_WAIT_SFD:
-    if (byte == BS_SFD) {
-      state = STATE_READ_DATA;
-    }
-    break;
-  
-  case STATE_READ_DATA:
-    if (byte == BS_EFD) {
-      state = STATE_WAIT_SFD;   // TODO move the buffer here as well ?
-
-      act_on_message(receive_buffer, receive_ptr - receive_buffer);
-
-      // Reset buffer for future use
-      receive_ptr = receive_buffer;
-      memset(receive_buffer, 0xAB , MAX_SERIAL_LEN);
-    } else if (byte == BS_ESC) {
-      state = STATE_READ_ESC_DATA;
-    } else {
-      *receive_ptr++ = byte;
-    }
-    break;
-  
-  case STATE_READ_ESC_DATA:
-      *receive_ptr++ = byte;
-      state = STATE_READ_DATA;
-    break;
-  
-  default:
-    break;
-  }
-  
-  return 1;
 }
 
 void

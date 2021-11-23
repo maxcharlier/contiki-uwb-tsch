@@ -30,6 +30,7 @@
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/byte-stuffing.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/send-messages.h"
 #include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/schedule-onecell3A1T.h"
+#include "examples/zolertia/zoul/dw1000/localisation-mobility/libs/uart_debug_handler.h"
 
 #include "dev/uart.h"
 #include "dev/serial-line.h"
@@ -78,7 +79,8 @@ static struct uip_udp_conn *server_conn;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(TSCH_PROP_PROCESS, "TSCH propagation time process");
-PROCESS(udp_client_process, "UDP Client");
+PROCESS(udp_client_process, "UDP Client");  
+
 AUTOSTART_PROCESSES(&udp_client_process);
 /*---------------------------------------------------------------------------*/
 
@@ -222,6 +224,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
   uart_set_input(UART_DEBUG, debug_uart_receive_byte);
   uart_set_input(UART_OUTPUT, uart_receive_byte);
 
+  /* start UART Debug Handler process */
+  process_start(uart_debug_handler_process);
 
   NETSTACK_MAC.on();
 

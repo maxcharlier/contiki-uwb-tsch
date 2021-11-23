@@ -25,6 +25,9 @@ static uint8_t *current_receive_prt;
  * uart_debug_handler_process.
  * Use double buffering to allow reception of a second message while 
  * processing the previews message.
+ * 
+ * Handle connection failure, so if we receive an unexepted SFD, we discard the 
+ * previous message and start the reception from scratch.
  * */
 int
 uart_receive_byte(unsigned char c)
@@ -62,6 +65,11 @@ uart_receive_byte(unsigned char c)
       // Switch to the other buffer
       current_uart_buffer_index = (current_uart_buffer_index +1)%2;
 
+    } else if (byte == BS_SFD) {
+      /* We receive an unexpected SFD so the previous message is corrupted.
+      Discard the previous message and this byte and start receive the next message */
+      *current_receive_prt = receive_ptr[current_uart_buffer_index];
+      memset(current_receive_prt, 0x00 , MAX_SERIAL_LEN+1);
     } else if (byte == BS_ESC) {
       state = STATE_READ_ESC_DATA;
     } else {

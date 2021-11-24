@@ -34,7 +34,7 @@
 #endif
 
 static struct uip_udp_conn anchor_conn;
-static int has_anchor_conn;
+static int has_anchor_conn = 0;
 
 
 void
@@ -128,6 +128,7 @@ init_and_bind_udp_with_anchor(uip_ipaddr_t *new_anchor) {
   struct uip_udp_conn *new_conn = udp_new(new_anchor, UIP_HTONS(UDP_SERVER_PORT), NULL);
   
   if (new_conn == NULL) {
+    has_anchor_conn = 0;
     UART_WRITE_STRING(UART_DEBUG, "No UDP connection available for \n");
     PRINT6ADDR(new_anchor);
     PRINTF("\n");
@@ -143,6 +144,7 @@ init_and_bind_udp_with_anchor(uip_ipaddr_t *new_anchor) {
   PRINT6ADDR(&anchor_conn.ripaddr);
   PRINTF(" local/remote port %u/%u\n",
 	UIP_HTONS(anchor_conn.lport), UIP_HTONS(anchor_conn.rport));
+  has_anchor_conn = 1;
   return 1;
 }
 
@@ -235,12 +237,12 @@ send_to_central_authority(void *data_to_transmit, int length)
   uip_ipaddr_t parent_ip = query_best_anchor();
 
   if (!has_anchor_conn && !init_and_bind_udp_with_anchor(&parent_ip)) {
-    // No connexion with the anchor could be made, do not send the packet.
-    UART_WRITE_STRING(UART_DEBUG, "No connexion with the anchor could be made, do not send the packet.");
+    // No connection with the anchor could be made, do not send the packet.
+    UART_WRITE_STRING(UART_DEBUG, "No connection with the anchor could be made, do not send the packet.");
     return;
   }
 
-  // Send the packet to the anchor through the permanent UDP connexion.
+  // Send the packet to the anchor through the permanent UDP connection.
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
   uip_udp_packet_sendto(&anchor_conn, data_to_transmit, length,

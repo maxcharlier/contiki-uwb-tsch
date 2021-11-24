@@ -57,8 +57,12 @@ def startup_time(*devices: str):
     first_localisation_time = None
 
     for i in range(len(adapters)):
-        t = threading.Thread(target=handler.handle, args=(adapters[i],))
-        t.start()
+        try:
+            t = threading.Thread(target=handler.handle, args=(adapters[i],))
+            t.start()
+        finally:
+            adapters[i].flush()
+            adapters[i].close()
 
     while True:
         pkt, device = eventQueue.get(block=True)

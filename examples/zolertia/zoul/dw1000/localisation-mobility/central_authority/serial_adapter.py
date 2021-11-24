@@ -50,6 +50,13 @@ class SerialAdapter:
         
         ADPATERS[device] = self
 
+
+    def flush(self):
+        self.serial.flush()
+    
+    def close(self):
+        self.serial.close()
+
     def send_to(self, pkt: OutgoingPacket):
         '''
         Sends a packet to the correct serial port

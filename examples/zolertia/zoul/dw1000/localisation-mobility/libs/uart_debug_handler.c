@@ -21,9 +21,7 @@ struct uart_recv_buffer {
 
 static int state = STATE_WAIT_SFD;
 
-/* UART multiple receive buffer to offload received messages to the protothreads.
-   The first byte stores the lock state of the buffer.
-   The second byte stores the length of the buffer. */
+/* Multiple UART receive buffer to offload received messages to the protothreads. */
 static struct uart_recv_buffer  recv_buffers[NB_RECV_BUFFER];
 static struct uart_recv_buffer *recv_buffer;
 static uint8_t                 *recv_buffer_ptr;

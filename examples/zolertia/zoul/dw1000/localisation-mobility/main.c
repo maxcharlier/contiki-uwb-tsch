@@ -165,7 +165,7 @@ tcpip_handler(void)
 
 #if IS_ANCHOR
     
-    printf("Packet received.\n");
+    printf("Packet received of type %d.\n", *((uint8_t *) uip_appdata));
     send_to_central_authority(uip_appdata, uip_datalen()); 
 
 #else /* IS_ANCHOR */

@@ -33,6 +33,9 @@
   #define PRINTF(...) do {} while(0)
 #endif
 
+static struct uip_udp_conn anchor_conn;
+static int has_anchor_conn;
+
 
 void
 uart_write_string(int output, char text[], int size)
@@ -117,6 +120,32 @@ allocation_request get_allocation_request() {
 
 }
 
+int
+init_and_bind_udp_with_anchor(uip_ipaddr_t *new_anchor) {
+
+    /* Create a constant UDP connection with the new anchor */
+
+  struct uip_udp_conn *new_conn = udp_new(new_anchor, UIP_HTONS(UDP_SERVER_PORT), NULL);
+  
+  if (new_conn == NULL) {
+    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available for \n");
+    PRINT6ADDR(new_anchor);
+    PRINTF("\n");
+    return 0;
+  }
+
+  anchor_conn = *new_conn;
+
+  udp_bind(&anchor_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+
+  // For debugging purposes
+  UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
+  PRINT6ADDR(&anchor_conn.ripaddr);
+  PRINTF(" local/remote port %u/%u\n",
+	UIP_HTONS(anchor_conn.lport), UIP_HTONS(anchor_conn.rport));
+  return 1;
+}
+
 void
 rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 {
@@ -132,6 +161,8 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 #endif
 
 #if IS_MOBILE
+
+  init_and_bind_udp_with_anchor(rpl_get_parent_ipaddr(new));
 
   allocation_request rqst = get_allocation_request();
   send_to_central_authority(&rqst, sizeof(rqst));
@@ -201,35 +232,19 @@ send_to_central_authority(void *data_to_transmit, int length)
 
   // A mobile needs to send packets wirelessly to an (ideally the nearest) anchor,
   // which will forward it to the central autority.
+  uip_ipaddr_t parent_ip = query_best_anchor();
 
-  // Initiate a connection.
-  // Remark: Ideally, an anchor should maintain constantly a connection with its nearest anchor.
-
-  uip_ipaddr_t nearest_anchor_ip = query_best_anchor();
-  struct uip_udp_conn *new_conn = udp_new(&nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL);
-  
-  if (new_conn == NULL) {
-    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process! \n");
-    PRINT6ADDR(&nearest_anchor_ip);
-    PRINTF("\n");
+  if (!has_anchor_conn && !init_and_bind_udp_with_anchor(&parent_ip)) {
+    // No connexion with the anchor could be made, do not send the packet.
+    UART_WRITE_STRING(UART_DEBUG, "No connexion with the anchor could be made, do not send the packet.");
     return;
   }
 
-  
-  //anchor_conn = *new_conn; 
-
-  udp_bind(new_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
-
-  // For debugging purposes
-  UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
-  PRINT6ADDR(&new_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(new_conn->lport), UIP_HTONS(new_conn->rport));
-
+  // Send the packet to the anchor through the permanent UDP connexion.
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(new_conn, data_to_transmit, length,
-                        &nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
+  uip_udp_packet_sendto(&anchor_conn, data_to_transmit, length,
+                        &parent_ip, UIP_HTONS(UDP_SERVER_PORT));
 
 #endif
 

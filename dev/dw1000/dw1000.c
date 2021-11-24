@@ -2584,7 +2584,7 @@ uint64_t
 dw_generate_extendedUniqueID()
 {
   uint64_t eid = 0ULL;
-  uint i;
+  unsigned int i;
   for(i = 0; i < 4; i++) {
     eid |= ((uint64_t)rand()) << (i * 16);
   }
@@ -2894,7 +2894,7 @@ dw1000_test_RW_longbits()
 {
   uint16_t size = 1024;
   uint8_t data_write[size], data_read[size], data_save[size];
-  uint i;
+  unsigned int i;
   for(i = 0; i < size; i++) {
     data_write[i] = (uint8_t)rand();
     data_read[i] = 0;

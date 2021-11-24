@@ -78,7 +78,7 @@ static const int len_local_neighborg=2;
 PROCESS(udp_ping_process, "Ping Pong");
 AUTOSTART_PROCESSES(&udp_ping_process);
 /*---------------------------------------------------------------------------*/
-static uint seq_id=0;
+static unsigned int seq_id=0;
 
 static void
 tcpip_handler(void)
@@ -146,7 +146,7 @@ send_packet(void *ptr)
 
   /* first we check if we have neighbor (if it's the case we have join TSCH) */
   if(nbr_table_head(ds6_neighbors) != NULL){
-    for(uint i = 0; i < len_local_neighborg; i++) {
+    for(unsigned int i = 0; i < len_local_neighborg; i++) {
       /* check to not send message to our addr */
       if( (i +1) != NODEID){
 

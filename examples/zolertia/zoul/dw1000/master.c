@@ -522,7 +522,7 @@ PROCESS_THREAD(receive_process, ev, data)
             /* prepare and  send the ranging report to the master */
 
             /* 1 for mode, 2 for source, 2 for dest, 8 for report */
-            uint frame_size = 9;
+            unsigned int frame_size = 9;
             if(mode == 0x02)
               frame_size += SIZEOF_QUALITY;
             char report[frame_size]; 

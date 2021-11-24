@@ -109,8 +109,8 @@ static const int number_of_transmission_per_timer=2;
 PROCESS(udp_ping_process, "Ping Pong");
 AUTOSTART_PROCESSES(&udp_ping_process);
 /*---------------------------------------------------------------------------*/
-static uint seq_id=0;
-static uint sending_index=0;
+static unsigned int seq_id=0;
+static unsigned int sending_index=0;
 
 static void
 tcpip_handler(void)
@@ -180,7 +180,7 @@ send_packet(void *ptr)
   // if(nbr_table_head(ds6_neighbors) != NULL){
   /* check if we have join the TSCH network and get a ASN value */
   if(tsch_current_asn.ls4b  > 0){
-    for(uint i = 0; i < number_of_transmission_per_timer; i++) {
+    for(unsigned int i = 0; i < number_of_transmission_per_timer; i++) {
       /* check to not send message to our addr */
       if( (((sending_index + i)%len_local_neighborg) +1) != NODEID){
 

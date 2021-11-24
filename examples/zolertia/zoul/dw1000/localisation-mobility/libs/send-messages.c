@@ -359,7 +359,9 @@ act_on_message(uint8_t *msg, int length)
 
     default: ;
 
-      UART_WRITE_STRING(UART_DEBUG, "frame ID does not match any known frame types.\n");
+      UART_WRITE_STRING(UART_DEBUG, "frame ID does not match any known frame types: ");
+      uart_write_byte(UART_DEBUG, '0'+*msg);
+      UART_WRITE_STRING(UART_DEBUG, ".\n");
 
       break;
   }

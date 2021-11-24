@@ -34,15 +34,14 @@ uart_receive_byte(unsigned char c)
 {
   uint8_t byte = c;
 
-  uart_write_byte(UART_DEBUG, byte);
-
   switch (state){
 
   case STATE_WAIT_SFD:
     if (byte == BS_SFD) {
       state = STATE_READ_DATA;
 
-      *current_receive_ptr = receive_ptr[current_uart_buffer_index];
+      current_receive_ptr = receive_ptr[current_uart_buffer_index];
+      current_receive_ptr++; // Leave space for the length
 
       memset(current_receive_ptr, 0x00 , MAX_SERIAL_LEN+1);
     }
@@ -55,7 +54,7 @@ uart_receive_byte(unsigned char c)
       // act_on_message(receive_ptr[current_uart_buffer_index]++, receive_ptr - receive_buffer);
 
       //set the lenght of the buffer in the first byte of the receive_buffer
-      *receive_ptr[current_uart_buffer_index] = receive_ptr[current_uart_buffer_index] - current_receive_ptr;
+      *receive_ptr[current_uart_buffer_index] = current_receive_ptr - receive_ptr[current_uart_buffer_index];
 
       /* Send the PROCESS_EVENT_MSG event asynchronously to 
         "uart_debug_handler_process", with a pointer to the current uart_buffer. */
@@ -68,7 +67,7 @@ uart_receive_byte(unsigned char c)
     } else if (byte == BS_SFD) {
       /* We receive an unexpected SFD so the previous message is corrupted.
       Discard the previous message and this byte and start receive the next message */
-      *current_receive_ptr = receive_ptr[current_uart_buffer_index];
+      current_receive_ptr = receive_ptr[current_uart_buffer_index];
       memset(current_receive_ptr, 0x00 , MAX_SERIAL_LEN+1);
     } else if (byte == BS_ESC) {
       state = STATE_READ_ESC_DATA;
@@ -106,11 +105,21 @@ PROCESS_THREAD(uart_debug_handler_process, ev, data)
       PROCESS_WAIT_EVENT();
 
       if(ev == PROCESS_EVENT_MSG){
-      	uint8_t lenght = (uint8_t) &data;
+      	uint8_t *data_int = (uint8_t *) data;
+        uint8_t lenght = *data_int;
+        
+
+        // Print the data to the UART_debug
+        printf("data of length %d:\n", lenght);
+        for (int j=0; j<lenght; j++) {
+          printf("%02x", data_int[j]);
+        }
+        printf("\n");
+
       	/* Check if we don't have an memory overflow */ 
       	assert(lenght <= MAX_SERIAL_LEN);
 
-      	act_on_message((uint8_t *) data++, lenght);
+      	act_on_message((uint8_t *) (data+1), lenght);
       }
 
   }

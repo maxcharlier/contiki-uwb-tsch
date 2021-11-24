@@ -40,6 +40,9 @@ class SerialAdapter:
         sleep(0.5)
         termios.tcflush(self.serial.fd, termios.TCIOFLUSH)
 
+        self.serial.reset_input_buffer()
+        self.serial.reset_output_buffer()
+
         self.state = STATE_WAIT_SFD
         self.frame = bytearray()
 

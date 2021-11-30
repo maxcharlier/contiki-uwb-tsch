@@ -9,5 +9,5 @@ do
     
     #run
     cd /home/thomas/Documents/Projects/contiki-uwb-tsch/examples/zolertia/zoul/dw1000/localisation-mobility/central_authority/
-    python3 central_authority.py startup-time /dev/anchor5 # will add times to shartups.csv
+    python3 central_authority.py startup-time /dev/ttyUSB3 # will add times to shartups.csv
 done

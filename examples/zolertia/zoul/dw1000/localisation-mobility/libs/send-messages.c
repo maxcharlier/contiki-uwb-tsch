@@ -33,8 +33,8 @@
   #define PRINTF(...) do {} while(0)
 #endif
 
-static struct uip_udp_conn anchor_conn;
-static int has_anchor_conn = 0;
+/* UDP connection used to send data to the RPL parent */
+static struct uip_udp_conn *anchor_conn;
 
 
 void
@@ -123,28 +123,27 @@ allocation_request get_allocation_request() {
 int
 init_and_bind_udp_with_anchor(uip_ipaddr_t *new_anchor) {
 
-    /* Create a constant UDP connection with the new anchor */
+  /* Destroy old connection */
+  uip_udp_remove(anchor_conn);
 
-  struct uip_udp_conn *new_conn = udp_new(new_anchor, UIP_HTONS(UDP_SERVER_PORT), NULL);
+  /* Create a constant UDP connection with the new anchor */
+
+  anchor_conn = udp_new(new_anchor, UIP_HTONS(UDP_SERVER_PORT), NULL);
   
-  if (new_conn == NULL) {
-    has_anchor_conn = 0;
+  if (anchor_conn == NULL) {
     UART_WRITE_STRING(UART_DEBUG, "No UDP connection available for \n");
     PRINT6ADDR(new_anchor);
     PRINTF("\n");
     return 0;
   }
 
-  anchor_conn = *new_conn;
-
-  udp_bind(&anchor_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+  udp_bind(anchor_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
   // For debugging purposes
   UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
-  PRINT6ADDR(&anchor_conn.ripaddr);
+  PRINT6ADDR(&anchor_conn->ripaddr);
   PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(anchor_conn.lport), UIP_HTONS(anchor_conn.rport));
-  has_anchor_conn = 1;
+	UIP_HTONS(anchor_conn->lport), UIP_HTONS(anchor_conn->rport));
   return 1;
 }
 
@@ -173,29 +172,38 @@ rpl_callback_additional_tsch_parent_switch(rpl_parent_t *old, rpl_parent_t *new)
 
 }
 
+struct uip_udp_conn *tmp_conn = NULL;
+
 void
 send_to_mobile(uip_ipaddr_t *mobile_ip, void *data_to_transmit, int length)
 {
-  uip_ipaddr_t *nearest_anchor_ip = mobile_ip;
-  struct uip_udp_conn *mobile_conn = udp_new(nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT), NULL); 
-  
-  if (mobile_conn == NULL) {
-    UART_WRITE_STRING(UART_DEBUG, "No UDP connection available, exiting the process!\n");
-    return;
+
+  uint8_t *data_to_transmit_as_int = data_to_transmit;
+  printf("Sending the following data to the tag ");
+  PRINT6ADDR(mobile_ip);
+  printf(": ");
+  for (int j=0; j<length; j++) {
+    printf("%02x", data_to_transmit_as_int[j]);
+  }
+  printf("\n");
+
+  if (tmp_conn) {
+    uip_udp_remove(tmp_conn);
   }
 
-  udp_bind(mobile_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+  tmp_conn = udp_new(NULL, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  
+  if (tmp_conn == NULL) {
+    PRINTF("No UDP connection available, exiting the process!\n");
+    return 0;
+  }
 
-  // For debugging purposes
-  UART_WRITE_STRING(UART_DEBUG,"Created a connection with the server ");
-  PRINT6ADDR(&mobile_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(mobile_conn->lport), UIP_HTONS(mobile_conn->rport));
+  udp_bind(tmp_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(mobile_conn, data_to_transmit, length,
-                        nearest_anchor_ip, UIP_HTONS(UDP_SERVER_PORT));
+  uip_udp_packet_sendto(tmp_conn, data_to_transmit, length,
+                        mobile_ip, UIP_HTONS(UDP_SERVER_PORT));
 }
 
 
@@ -236,7 +244,8 @@ send_to_central_authority(void *data_to_transmit, int length)
   // which will forward it to the central autority.
   uip_ipaddr_t parent_ip = query_best_anchor();
 
-  if (!has_anchor_conn && !init_and_bind_udp_with_anchor(&parent_ip)) {
+  // Workaround: call uip_udp_new before sending each packet
+  if (!init_and_bind_udp_with_anchor(&parent_ip)) {
     // No connection with the anchor could be made, do not send the packet.
     UART_WRITE_STRING(UART_DEBUG, "No connection with the anchor could be made, do not send the packet.");
     return;
@@ -245,7 +254,7 @@ send_to_central_authority(void *data_to_transmit, int length)
   // Send the packet to the anchor through the permanent UDP connection.
 
   UART_WRITE_STRING(UART_DEBUG,"Data Sent to the remote server\n");
-  uip_udp_packet_sendto(&anchor_conn, data_to_transmit, length,
+  uip_udp_packet_sendto(anchor_conn, data_to_transmit, length,
                         &parent_ip, UIP_HTONS(UDP_SERVER_PORT));
 
 #endif

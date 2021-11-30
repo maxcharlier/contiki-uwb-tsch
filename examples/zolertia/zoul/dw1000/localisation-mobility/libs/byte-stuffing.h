@@ -1,3 +1,6 @@
+#ifndef BYTE_STUFFING_H
+#define BYTE_STUFFING_H
+
 #include "contiki.h"
 
 #define STATE_WAIT_SFD      1
@@ -27,3 +30,4 @@ byte_stuffing_decode(uint8_t *frame, int length, void *destination);
 int
 byte_stuffing_send_bytes(uint8_t *frame, int length);
 
+#endif /* BYTE_STUFFING_H */

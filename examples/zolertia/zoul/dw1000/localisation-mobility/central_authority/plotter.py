@@ -71,23 +71,35 @@ class PropagationTimePlotter(Plotter):
                     if row['anchor'] == "".join(str(anchor_to_plot).split(":")[-2:]):
                         x.append(int(row['propagation_time']))
                 
+                max_range = 50
+                
                 # Remove outliers
                 if "".join(str(anchor_to_plot).split(":")[-2:]) == "01":
-                    x = list(filter(lambda v: 800<v<1500, x))
+                    x = list(filter(lambda v: 925<v<925+max_range, x))
                 elif "".join(str(anchor_to_plot).split(":")[-2:]) == "02":
-                    x = list(filter(lambda v: 1000<v<1500, x))
+                    x = list(filter(lambda v: 1290<v<1290+max_range, x))
                 elif "".join(str(anchor_to_plot).split(":")[-2:]) == "03":
-                    x = list(filter(lambda v: 500<v<1000, x))
+                    x = list(filter(lambda v: 785<v<785+max_range, x))
+
+                x = list(map(lambda v: round(v * 15.65), x))     # Use picoseconds
 
                 c = Counter(x)
                 numbers = sorted(c.keys())
 
             # the histogram of the data
-            axs[i].bar(numbers, [c[n] for n in numbers], facecolor=self.MEASURE_COLOUR, alpha=0.75, label='Mesure obtenue')
+            axs[i].bar(numbers, [c[n] for n in numbers], facecolor=self.MEASURE_COLOUR, alpha=1, width=17, label='Mesure obtenue')
 
-            axs[i].set_xlabel('Temps de propagation [UNITÉ ?]')
+            axs[i].set_xlabel('Temps de propagation [picosecondes]')
             axs[i].set_ylabel('Nombre d\'apparitions')
             axs[i].set_title(f'Temps de propagation du tag avec l\'ancre {"".join(str(anchor_to_plot).split(":")[-2:])}')
+
+            if "".join(str(anchor_to_plot).split(":")[-2:]) == "01":
+                axs[i].set_xlim(925*15.65, (925+max_range)*15.65)
+            elif "".join(str(anchor_to_plot).split(":")[-2:]) == "02":
+                axs[i].set_xlim(1290*15.65, (1290+max_range)*15.65)
+            elif "".join(str(anchor_to_plot).split(":")[-2:]) == "03":
+                axs[i].set_xlim(785*15.65, (785+max_range)*15.65)
+            
             axs[i].grid(True)
             if expected_mean is not None:
                 axs[i].axvline(expected_mean, color='k', linestyle='dashed', linewidth=1, label='Coordonnée réele')
@@ -133,6 +145,7 @@ class GeolocationPlotter(Plotter):
         axs[0].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe X obtenue par multilatération')
         axs[0].set_xlabel('Coordonnée X [mètres]')
         axs[0].set_ylabel('Frequency')
+        axs[0].set_xlim(11.1, 11.6)
         if expected_mean is not None:
             axs[0].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')
         axs[0].legend(loc='upper right')
@@ -141,6 +154,7 @@ class GeolocationPlotter(Plotter):
         axs[1].set_title(f'Coordonnées du tag {"".join(str(anchor_to_plot).split(":")[-2:])} pour l\'axe Y obtenue par multilatération')
         axs[1].set_xlabel('Coordonnée Y [mètres]')
         axs[1].set_ylabel('Frequency')
+        axs[1].set_xlim(8.6, 9.1)
         if expected_mean is not None:
             axs[1].axvline(expected_mean.y, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée réele')
         axs[1].legend(loc='upper right')
@@ -157,14 +171,16 @@ class GeolocationPlotter(Plotter):
             for row in reader:
                 x_val = float(row['x'])
                 y_val = float(row['y'])
-                if 11<x_val<11.5 and 8<y_val<8.8:   # Remove outliers
+                if 11.3<x_val<11.5 and 8.6<y_val<8.8:   # Remove outliers
                     x.append(x_val)
                     y.append(y_val)
         
         # scatter plot
         plt.scatter(x, y, c=self.ESTIMATE_COLOUR ,alpha=0.25, label="Estimation via multilatération")
         plt.xlabel('Coordonnée X [mètres]')
+        plt.xlim(11.1, 11.6)
         plt.ylabel('Coordonnée Y [mètres]')
+        plt.ylim(8.6, 9.1)
         if expected_mean is not None:
             plt.scatter(expected_mean.x, expected_mean.y, c=self.MEASURE_COLOUR, alpha=1, s=200, label="Position réele")
         plt.legend(loc='upper left')
@@ -191,15 +207,16 @@ class GeolocationPlotter(Plotter):
         axs[0].hist(x, len(x), density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, histtype='step', cumulative=True)
         axs[0].set_xlabel("Erreur en X par rapport à la position réelle [mètres]")
         axs[0].set_ylabel("Probabilité d'occurrence")
+        axs[0].set_xlim(0, 0.5)
         # axs[0].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée X réele')
         
 
         axs[1].hist(y, len(y), density=True, facecolor=self.ESTIMATE_COLOUR, alpha=0.75, histtype='step', cumulative=True)
         axs[1].set_xlabel("Erreur en Y par rapport à la potition réele [mètres]")
         axs[1].set_ylabel("Probabilité d'occurrence")
+        axs[1].set_xlim(0, 0.5)
         # axs[1].axvline(expected_mean.x, color=self.MEASURE_COLOUR, linestyle='dashed', linewidth=1, label='Coordonnée Y réele')
 
-        plt.legend(loc='upper left')
 
         plt.show()
 

@@ -9,6 +9,9 @@
 static struct tsch_slotframe *tsch_slotframe;
 //static struct uip_udp_conn anchor_conn;
 
+/* UDP connection used to flood packet to all RPL childen */
+static struct uip_udp_conn *tag_conn;
+
 void
 debug_send_allocation_probe_request();
 

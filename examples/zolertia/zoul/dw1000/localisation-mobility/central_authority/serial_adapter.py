@@ -122,7 +122,7 @@ class SerialAdapter:
 
     def send(self, pkt: OutgoingPacket):
         send_bytes = self._byte_stuffing_encode(pkt.to_bytearray())
-        logging.info(f'Outgoing Packet to {self.device}: {pkt}')
+        logging.info(f'Outgoing Packet to {self.device}: {pkt}, {send_bytes}')
         self.serial.write(send_bytes)
 
     def _byte_stuffing_encode(self, bytes: bytearray):

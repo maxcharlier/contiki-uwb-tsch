@@ -39,18 +39,14 @@ byte_stuffing_encode(uint8_t *frame, int length, void *destination) {
 int
 byte_stuffing_send_bytes(uint8_t *frame, int length) {
 
-    printf("UART SENDING: %02x\n", BS_SFD);
     uart_write_byte(UART_OUTPUT, BS_SFD);
     for (int i=0; i<length; i++) {
         uint8_t b = frame[i];
         if (b == BS_SFD || b == BS_ESC || b == BS_EFD) {
-            printf("UART SENDING: %02x\n", BS_ESC);
             uart_write_byte(UART_OUTPUT, BS_ESC);
         }
-        printf("UART SENDING: %02x\n", b);
         uart_write_byte(UART_OUTPUT, b);
     }
-    printf("UART SENDING: %02x\n", BS_EFD);
     uart_write_byte(UART_OUTPUT, BS_EFD);
     return 0;
 }

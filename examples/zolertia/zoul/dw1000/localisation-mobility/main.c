@@ -65,8 +65,6 @@
 
 #define BUF_LEN 6
 
-
-static struct uip_udp_conn *client_conn;
 static struct uip_udp_conn *server_conn;
 
 
@@ -104,6 +102,26 @@ PROCESS_THREAD(TSCH_PROP_PROCESS, ev, data)
   }
 
   PROCESS_END();
+}
+
+
+int
+init_udp_connection_with_children() {
+  tag_conn = udp_new(NULL, UIP_HTONS(UDP_SERVER_PORT), NULL); 
+  
+  if (tag_conn == NULL) {
+    PRINTF("No UDP connection available, exiting the process!\n");
+    return 0;
+  }
+
+  udp_bind(tag_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
+
+  // For debugging purposes
+  PRINTF("Created a connection with the server ");
+  PRINT6ADDR(&tag_conn->ripaddr);
+  PRINTF(" local/remote port %u/%u\n",
+	UIP_HTONS(tag_conn->lport), UIP_HTONS(tag_conn->rport));
+  return 1;
 }
 
 void debug_precompiler() {
@@ -151,7 +169,8 @@ debug_uart_receive_byte(unsigned char c) {
     case 'x':   uart_write_byte(UART_DEBUG, '0' + sizeof(message_type));                                    break;
 //  case 'y':   uip_ipaddr_t *parent = query_best_anchor(); PRINT6ADDR(parent);                             break;
     case 'c':   iterate_children();                                                                         break;
-    case 'b':   debug_precompiler();
+    case 'U':   init_udp_connection_with_children();                                                        break;
+    case 'b':   debug_precompiler();                                                                        break;
     default :   uart_write_byte(UART_DEBUG, c);                                                             break;
   }
   return 1;
@@ -170,8 +189,13 @@ tcpip_handler(void)
 
 #else /* IS_ANCHOR */
 
-    // This is a mobile node, messages coming from a UDP packet are just forwarded
-    // through the nearest anchor.
+      uint8_t *data_received = uip_appdata;
+      printf("Received the following data from the anchor: ");
+      for (int j=0; j<uip_datalen(); j++) {
+        printf("%02x", data_received[j]);
+      }
+      printf("\n");
+
     act_on_message(uip_appdata, uip_datalen());
 
 #endif /* IS_ANCHOR */
@@ -207,6 +231,7 @@ set_global_address(void)
   #endif /* NODEID */
 
 }
+
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_client_process, ev, data)
 {
@@ -244,6 +269,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
   PRINTF(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
          UIP_HTONS(server_conn->rport));
   /* Finished enabling receiving UDP packets */
+
+  init_udp_connection_with_children();
 
 
   while(1) {

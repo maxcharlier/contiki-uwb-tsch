@@ -46,6 +46,48 @@ def plot(*csv_files: str):
     geolocation_plotter.plot_dist(IPv6Address("fe80000000000000fdffffffffff0001"), Coordinates(11.56,9.09))      # For Anchor 4
 
 
+def startup_time_2(*devices: str):
+    adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
+    scheduler = GreedyScheduler(max_length=100, offset = 14, serial=adapters[0])  # offset 14 for 4 devices
+    eventQueue: Queue = Queue()
+    handler = Handler(eventQueue)
+
+    authority_startup_time = time.time()
+    first_parent_time = None
+
+    for i in range(len(adapters)):
+        t = threading.Thread(target=handler.handle, args=(adapters[i],))
+        t.start()
+
+    while True:
+        pkt, device = eventQueue.get(block=True)
+        # logging.debug(f'Handling packet: {pkt} from the queue.')
+
+        if isinstance(pkt, DebuggingPacket) or isinstance(pkt, AllocationRequestPacket):
+            # The tag changed it's parent.
+            if first_parent_time is None:
+                first_parent_time = time.time()
+                logging.info(f'First parent time: {first_parent_time}')
+                if PLOT:
+                    with open('startups.csv', 'a') as startups_file:
+                        startups_csv = csv.writer(startups_file)
+                        startups_csv.writerow([authority_startup_time, first_parent_time])
+
+                # we received all the information we need (first_parent + first_localisation), exit.
+                os._exit(0)
+
+            if pkt.prop_time < 0:
+                # issues at the transceiver -> ignore packets with negative propagation time.
+                continue
+            
+            continue
+
+        actions = scheduler.schedule(pkt, device)
+
+        for act in actions:
+            adapters[0].send_to(act)
+
+
 def startup_time(*devices: str):
     adapters: List[SerialAdapter] = [SerialAdapter(device, clear=True) for device in devices]
     scheduler = GreedyScheduler(max_length=100, offset = 14, serial=adapters[0])  # offset 14 for 4 devices
@@ -160,4 +202,4 @@ if __name__ == "__main__":
         level=logging.DEBUG
     )
     
-    argh.dispatch_commands([watch, plot, startup_time])
+    argh.dispatch_commands([watch, plot, startup_time, startup_time_2])

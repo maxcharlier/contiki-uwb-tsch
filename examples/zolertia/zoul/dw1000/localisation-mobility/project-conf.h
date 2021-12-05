@@ -34,7 +34,8 @@
 #define WITH_NON_STORING 0 /* Set this to run with non-storing mode */
 #endif /* WITH_NON_STORING */
 
-#define WITH_CONF_STORING 1
+#define RPL_CONF_WITH_STORING 1 // Set RPL in storing mode
+
 
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #undef UIP_CONF_MAX_ROUTES
@@ -202,6 +203,8 @@
 #endif
 
 
+#undef LPM_CONF_ENABLE
+#define LPM_CONF_ENABLE 0
 
 #define RPL_CONF_DIO_INTERVAL_MIN 13
 #define RPL_CONF_DIO_INTERVAL_DOUBLINGS 1
